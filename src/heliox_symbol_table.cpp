@@ -98,7 +98,7 @@ uint32_t hx_get_size(hx_data_type dt)
 {
 	switch (dt)
 	{
-	case hx_data_type::INT: return 4;
+	case hx_data_type::INT: return 8;
 	default:
 		return 0;
 	}

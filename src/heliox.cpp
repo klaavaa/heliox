@@ -8,16 +8,19 @@
 
 int main(int argc, char** argv)
 {
-	std::string file_path = "heliox.hx";
+	std::string file_path = "assembly_build/heliox.hx";
+	
+	
 
 	if (file_path.substr(file_path.size() - 3) != ".hx")
 	{
 		std::cout << "file not heliox (.hx) file" << std::endl;
 		exit(1);
 	}
-
-	std::string file_path_stripped = file_path.substr(0, file_path.size() - 3);
-	
+	// get last part of absolute path (example home/dir1/dir2/file.hx -> file.hx)
+	std::string file_path_stripped = file_path.substr(file_path.find_last_of("/") + 1, file_path.size());   
+	// strip file extension (example file.hx -> file)
+	file_path_stripped = file_path_stripped.substr(0, file_path_stripped.size() - 3);
 
 	std::string text = load_hx_file(file_path);
 
@@ -42,7 +45,6 @@ int main(int argc, char** argv)
 		exit(-1);
 	}
 
-	
 
 	hx_assembly generator;
 	std::string generated_text = generator.generate_asm(program);
@@ -51,29 +53,17 @@ int main(int argc, char** argv)
 
 
 
+	create_assembly_file(file_path_stripped, generated_text);
+
+
 	/*
-	//compound_s* compound = (compound_s*)parser.parse();
-	//std::string assembly = h_assembly_entry(compound);
-
-
-	//create_assembly_file(file_path_stripped, assembly);
-
-
-	
-
-	std::cout << assembly << std::endl;
-
-	compound->print_statement();
-	
-
-	
 	std::cin.get();
 
 	compile_assembly(file_path_stripped);
 
 	std::cin.get();
-
 	*/
+	
 
 	return 0;
 }

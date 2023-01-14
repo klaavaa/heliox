@@ -35,7 +35,8 @@ void create_assembly_file(const std::string& file_path, const std::string& assem
 
 
 	std::ofstream s_file;
-	s_file.open(output_file, std::ios::out);
+	
+	s_file.open("linux/"+output_file, std::ios::out);
 
 	if (s_file.is_open())
 	{

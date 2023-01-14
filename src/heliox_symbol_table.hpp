@@ -35,7 +35,7 @@ struct hx_symbol_table
 public:
 
 	hx_symbol_table() = default;
-
+	
 	bool check_if_exists(const std::string& name);
 	bool insert(std::string name, hx_symbol symbol);
 	void add_symbol_table(std::string name, hx_symbol_table* symbol_table);

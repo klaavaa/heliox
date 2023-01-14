@@ -26,8 +26,8 @@ public:
 			"mov rbp, rsp\n"
 			"call main\n"
 			"leave\n"
+			"mov rdi, rax\n"
 			"mov rax, 60\n"
-			"xor rdi, rdi\n"
 			"syscall\n";
 
 
@@ -105,45 +105,26 @@ private:
 	std::string generate_return_asm(hx_sptr<hx_return_statement> statement)
 	{
 		std::string base;
-
-		if (statement->expression->e_type == expression_type::IDENTIFIER_LITERAL)
-		{
-	
-			hx_symbol symbol = current_scope_table->find_symbol(std::dynamic_pointer_cast<hx_identifier_literal_expression>(statement->expression)->name);
-			
-			base = string_format(
-				"mov rax, dword[rbp-%d]\n",
-				symbol.stack_position
-			);
-		}
-		else
-		{
-			int64_t value = evaluate_expression(statement->expression);
-
-			base = string_format(
-				"mov rax, %d\n"
-				, value
-			);
-		}
+		base += generate_expression_asm(statement->expression);
 		return base;
 	}
 
 	std::string generate_definition_asm(hx_sptr<hx_definition_statement> statement)
 	{
 		
-		
-		int64_t value = evaluate_expression(statement->expression);
+		std::string base;
 	
+		base += generate_expression_asm(statement->expression);
+
 		hx_symbol symbol = current_scope_table->get_symbol(statement->type_decl->name);
 
-		push_to_stack(hx_get_size(symbol.data_type));
 		
-		std::string base;
+		
 
-		base =
+		base +=
 			string_format(
 				"sub rsp, %d\n"
-				"mov dword[rbp-%d], %d\n", hx_get_size(symbol.data_type), symbol.stack_position, value);
+				"mov qword[rbp-%d], rax\n", hx_get_size(symbol.data_type), symbol.stack_position);
 
 		
 		return base;		
@@ -152,13 +133,167 @@ private:
 	std::string generate_expression_asm(hx_sptr<hx_expression> expression)
 	{
 
+
+		std::string base;
+
+		if (expression->e_type == expression_type::IDENTIFIER_LITERAL)
+			base += "mov rax, " + generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression)) + "\n";
+		else
+		{
+			bool can_be_evaluated_fully = true;
+			int64_t value = evaluate_expression(expression, can_be_evaluated_fully);
+			
+			if (can_be_evaluated_fully)
+			{
+				base = string_format(
+					"mov rax, %d\n"
+					, value
+				);
+			}
+			else
+			{
+					base += generate_binop_asm(std::dynamic_pointer_cast<hx_binop_expression>(expression));
+				
+			}
+		}
+		return base;
 	}
 
-private:
-
-	void push_to_stack(uint32_t size)
+	std::string generate_identifier_literal_asm(hx_sptr<hx_identifier_literal_expression> expression)
 	{
-		stack_top_ptr += size;
+		std::string base;
+		hx_symbol symbol = current_scope_table->find_symbol(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression)->name);
+		
+		base = string_format(
+			"qword[rbp-%d]",
+			symbol.stack_position
+		);
+
+		return base;
+
+	}
+
+	std::string generate_binop_asm(hx_sptr<hx_binop_expression> expression)
+	{
+		std::string base;
+
+		expression_type left_type = expression->left->e_type;
+		expression_type right_type = expression->right->e_type;
+
+		if (left_type == expression_type::BINOP)
+		{
+			base += generate_binop_asm(std::dynamic_pointer_cast<hx_binop_expression>(expression->left));
+			base += "mov r8, rax\n";
+		}
+
+		if (right_type == expression_type::BINOP)
+		{
+			base += generate_binop_asm(std::dynamic_pointer_cast<hx_binop_expression>(expression->right));
+			base += "mov rcx, rax\n";
+		}
+
+		if (left_type == expression_type::BINOP)
+		{
+			base += "mov rax, r8\n";
+		}
+
+
+		if (left_type == expression_type::IDENTIFIER_LITERAL)
+		{
+			base += "mov rax, " + generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->left)) + "\n";
+		}
+
+		else if (left_type == expression_type::INT_LITERAL)
+		{
+			int64_t value = evaluate_int_literal(std::dynamic_pointer_cast<hx_int_literal_expression>(expression->left));
+
+			base += string_format(
+					"mov rax, %d\n", value);
+
+
+		}
+
+		if (right_type == expression_type::BINOP)
+		{
+			if (expression->op == tk_type_to_str::get_str(tk_type::TK_PLUS))
+			{
+				base += string_format(
+					"add rax, rcx\n");
+			}
+			else if (expression->op == tk_type_to_str::get_str(tk_type::TK_MINUS))
+			{
+				base += string_format(
+					"sub rax, rcx\n");
+			}
+			else if (expression->op == tk_type_to_str::get_str(tk_type::TK_MULTIPLY))
+			{
+				base += string_format(
+					"imul rax, rcx\n");
+			}
+			else if (expression->op == tk_type_to_str::get_str(tk_type::TK_DIVIDE))
+			{
+
+				base += string_format(
+					"xor rdx, rdx\n"
+					"idiv rcx\n");
+			}
+		}
+
+		else if (right_type == expression_type::IDENTIFIER_LITERAL)
+		{
+			if (expression->op == tk_type_to_str::get_str(tk_type::TK_PLUS))
+			{
+				base += string_format(
+					"add rax, %s\n", generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)).c_str());
+			}
+			else if (expression->op == tk_type_to_str::get_str(tk_type::TK_MINUS))
+			{
+				base += string_format(
+					"sub rax, %s\n", generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)).c_str());
+			}
+			else if (expression->op == tk_type_to_str::get_str(tk_type::TK_MULTIPLY))
+			{
+				base += string_format(
+					"imul rax, %s\n", generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)).c_str());
+			}
+			else if (expression->op == tk_type_to_str::get_str(tk_type::TK_DIVIDE))
+			{
+
+				base += string_format(
+					"xor rdx, rdx\n"
+					"mov r8, %s\n"
+					"idiv r8\n", generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)).c_str());
+			}
+		}
+		
+		else if (right_type == expression_type::INT_LITERAL)
+		{
+			int64_t value = evaluate_int_literal(std::dynamic_pointer_cast<hx_int_literal_expression>(expression->right));
+			if (expression->op == tk_type_to_str::get_str(tk_type::TK_PLUS))
+			{
+				base += string_format(
+					"add rax, %d\n", value);
+			}
+			else if (expression->op == tk_type_to_str::get_str(tk_type::TK_MINUS))
+			{
+				base += string_format(
+					"sub rax, %d\n", value);
+			}
+			else if (expression->op == tk_type_to_str::get_str(tk_type::TK_MULTIPLY))
+			{
+				base += string_format(
+					"imul rax, %d\n", value);
+			}
+			else if (expression->op == tk_type_to_str::get_str(tk_type::TK_DIVIDE))
+			{
+				base += string_format(
+					"xor rdx, rdx\n"
+					"mov r8, %d\n"
+					"idiv r8\n", value);
+			}
+		}
+
+		return base;
 	}
 
 private:
@@ -171,9 +306,6 @@ private:
 	std::string data_section;
 
 	uint32_t layer_depth = 0;
-
-	int32_t stack_base_ptr = 0;
-	int32_t stack_top_ptr = 0;
 
 
 

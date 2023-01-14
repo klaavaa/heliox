@@ -206,45 +206,43 @@ hx_sptr<hx_expression> hx_parser::parse_factor()
 hx_sptr<hx_expression> hx_parser::parse_term()
 {
 	hx_sptr<hx_expression> expression = parse_factor();
-
-	if (token.type == TK_MULTIPLY || token.type == TK_DIVIDE)
+	hx_sptr<hx_binop_expression> binop_expression(make_shared<hx_binop_expression>());
+	binop_expression->left = expression;
+	bool return_binop = false;
+	while (token.type == TK_MULTIPLY || token.type == TK_DIVIDE)
 	{
 		tk_type tok_type = token.type;
 		eat(token.type);
 
-		hx_sptr<hx_binop_expression> binop_expression(make_shared<hx_binop_expression>());
-		binop_expression->left = expression;
+		binop_expression->left = binop_expression;
 		binop_expression->op = tk_type_to_str::get_str(tok_type);
 		binop_expression->right = parse_factor();
-		return binop_expression;
+		return_binop = true;
 	}
-
+	if (return_binop)
+		return binop_expression;
 	return expression;
 }
 
 hx_sptr<hx_expression> hx_parser::parse_expression()
 {
 	hx_sptr<hx_expression> expression = parse_term();
-
-	if (token.type == TK_PLUS || token.type == TK_MINUS)
+	hx_sptr<hx_binop_expression> binop_expression(make_shared<hx_binop_expression>());
+	binop_expression->left = expression;
+	bool return_binop = false;
+	while (token.type == TK_PLUS || token.type == TK_MINUS)
 	{
 		tk_type tok_type = token.type;
 		eat(token.type);
 
-		hx_sptr<hx_binop_expression> binop_expression(make_shared<hx_binop_expression>());
-		binop_expression->left = expression;
+		
+		binop_expression->left = binop_expression;
 		binop_expression->op = tk_type_to_str::get_str(tok_type);
 		binop_expression->right = parse_term();
+		return_binop = true;
+	}
+	if (return_binop)
 		return binop_expression;
-	}
-
-	switch (token.type)
-	{
-
-	case TK_STRING:		return parse_string_literal_expression();
-
-	}
-
 	return expression;
 }
 
