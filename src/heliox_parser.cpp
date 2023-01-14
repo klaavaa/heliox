@@ -214,7 +214,7 @@ hx_sptr<hx_expression> hx_parser::parse_term()
 		tk_type tok_type = token.type;
 		eat(token.type);
 
-		binop_expression->left = binop_expression;
+		binop_expression->left = expression;
 		binop_expression->op = tk_type_to_str::get_str(tok_type);
 		binop_expression->right = parse_factor();
 		return_binop = true;
@@ -236,7 +236,7 @@ hx_sptr<hx_expression> hx_parser::parse_expression()
 		eat(token.type);
 
 		
-		binop_expression->left = binop_expression;
+		binop_expression->left = expression;
 		binop_expression->op = tk_type_to_str::get_str(tok_type);
 		binop_expression->right = parse_term();
 		return_binop = true;
