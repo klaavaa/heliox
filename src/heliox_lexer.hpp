@@ -4,6 +4,8 @@
 
 #include "heliox_token.hpp"
 #include "heliox_keywords.hpp"
+#include "heliox_error.hpp"
+#include "heliox_pointer.hpp"
 
 
 class hx_lexer
@@ -13,19 +15,29 @@ public:
 	hx_lexer(std::string text)
 	{
 		this->text = text;
-
 		this->index = 0;
 		this->len_text = text.size();
 		this->cur_char = -1;
+
 	}
 
+	uint32_t get_line() 
+	{
+		return line_number;
+	}
 
-	hx_token get_next()
+	bool is_finished()
+	{
+		return this->index == this->len_text;
+	}
+
+	hx_token get_next(hx_sptr<hx_error> error)
 	{
 		
 
 		do
 		{
+			if (cur_char == NEWLINE) this->line_number++;
 			if (!advance()) return hx_token(tk_type::TK_EOF, "");
 
 		} while (cur_char == SPACE || cur_char == TAB || cur_char == NEWLINE);
@@ -49,8 +61,11 @@ public:
 			{
 				if (peek_next() == -1)
 				{
-					printf("UNDISCLOSED QUOTATION AMRK");
-					exit(-1);
+					error->ok = false;
+					error->error_type = HX_SYNTAX_ERROR;
+					error->line = get_line();
+					error->info = "Undisclosed quotation mark";
+					return hx_token(tk_type::TK_NOT_A_TOKEN, "");
 				}
 				advance();
 				s += cur_char;
@@ -120,7 +135,7 @@ public:
 
 				std::cout << cur_char << std::endl;
 
-				return get_next();
+				return get_next(error);
 
 
 			}
@@ -135,7 +150,7 @@ public:
 
 				} while (cur_char != NEWLINE && cur_char != EOF);
 
-				return get_next();
+				return get_next(error);
 			}
 
 
@@ -314,6 +329,7 @@ private:
 		index++;
 		if (index > len_text)
 		{
+			index = len_text;
 			return false;
 		}
 		cur_char = text[index - 1];
@@ -326,9 +342,11 @@ private:
 	std::string text;
 	char cur_char;
 
+
 	uint32_t len_text;
 	uint32_t index=0;
 
+	uint32_t line_number = 0;
 
 };
 

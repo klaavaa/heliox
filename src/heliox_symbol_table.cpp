@@ -31,6 +31,7 @@ hx_symbol hx_symbol_table::find_symbol(const std::string& name)
 	if (check_if_exists(name))
 		return symbols.at(name);
 
+
 	return this->parent->find_symbol(name);
 }
 

@@ -3,8 +3,10 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include "heliox_error.hpp"
+#include "heliox_pointer.hpp"
 
-std::string load_hx_file(const std::string& file_path)
+std::string load_hx_file(const std::string& file_path, hx_sptr<hx_error> error)
 {
 
 	std::ofstream hx_file;
@@ -17,7 +19,11 @@ std::string load_hx_file(const std::string& file_path)
 	}
 	else
 	{
-		std::cout << "ERROR: opening file: " << file_path << std::endl;
+		error->ok = false;
+		error->error_type = HX_FILE_OPEN_ERROR;
+		error->line = 0;
+		error->info = "Error opening file for reading";
+		hx_logger::log_error(*error);
 		exit(1);
 	}
 	
@@ -27,7 +33,7 @@ std::string load_hx_file(const std::string& file_path)
 }
 
 
-void create_assembly_file(const std::string& file_path, const std::string& assembly_code)
+void create_assembly_file(const std::string& file_path, const std::string& assembly_code, hx_sptr<hx_error> error)
 {
 
 	std::string output_file = file_path;
@@ -44,7 +50,11 @@ void create_assembly_file(const std::string& file_path, const std::string& assem
 	}
 	else
 	{
-		std::cout << "ERROR: opening file for writing" << std::endl;
+		error->ok = false;
+		error->error_type = HX_FILE_OPEN_ERROR;
+		error->line = 0;
+		error->info = "Error opening file for writing";
+		hx_logger::log_error(*error);
 		exit(1); 
 	}
 

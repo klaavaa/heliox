@@ -19,16 +19,28 @@ public:
 		global_table->print();
 		std::string entry;
 		entry =
+			"section .bss\n"
+			"\tbuf resb 80\n"
 			"section .text\n"
 			"global _start\n"
 			"_start:\n"
-			"push rbp\n"
-			"mov rbp, rsp\n"
-			"call main\n"
-			"leave\n"
-			"mov rdi, rax\n"
-			"mov rax, 60\n"
-			"syscall\n";
+			"\tpush rbp\n"
+			"\tmov rbp, rsp\n"
+			"\tcall main\n"
+			"\tleave\n"
+
+			"\tmov r12, rax\n"
+			"\tmov rdi, rax\n"
+			"\tmov rax, buf\n"
+			"\tcall uitoa\n"
+			"\tmov rdx, rax\n"
+			"\tmov rsi, buf\n"
+			"\tmov rdi, 1\n"
+			"\tmov rax, 1\n"
+			"\tsyscall\n"
+
+			"\tmov rax, 60\n"
+			"\tsyscall\n";
 
 
 		for (uint32_t i = 0; i < program->functions.size(); i++)
@@ -39,6 +51,51 @@ public:
 			current_scope_table = current_scope_table->get_parent();
 			entry += function_assembly;
 		}
+
+		entry +=
+			"uitoa:\n"
+			"mov 	rsi, rax\n"
+			"mov 	rax, rdi\n"
+
+			"cmp 	rax, 0\n"
+			"jnz 	uitoa_convert_regular\n"
+			"mov 	byte[rsi], 48\n"
+			"inc    	esi\n"
+			"mov 	byte[rsi], 0\n"
+			"mov 	rax, 1\n"
+			"jmp 	uitoa_end\n"
+
+			"uitoa_convert_regular:\n"
+			"mov 	r10, 10\n"
+
+
+			"xor rcx, rcx\n"
+			"uitoa_loop :\n"
+			"xor rdx, rdx\n"
+			"div 	r10\n"
+			"inc	ecx\n"
+			"cmp 	rax, 0\n"
+			"jnz 	uitoa_loop\n"
+			"inc 	ecx\n"
+			"mov 	r8, rcx\n"
+
+			"add 	rsi, rcx\n"
+			"mov 	byte[rsi], 0\n"
+			"mov 	rax, rdi\n"
+			"dec 	ecx\n"
+
+			"uitoa_convert :\n"
+			"xor rdx, rdx\n"
+			"dec 	rsi\n"
+			"div 	r10\n"
+			"add 	rdx, 48\n"
+			"mov 	byte[rsi], dl\n"
+			"loopnz  uitoa_convert\n"
+
+			"mov 	rax, r8\n"
+			"uitoa_end :\n"
+			"ret\n";
+
 
 		return entry;
 	}
@@ -51,16 +108,16 @@ private:
 			string_format(
 				"global %s\n"
 				"%s:\n"
-				"push rbp\n"
-				"mov rbp, rsp\n", function->name.c_str(), function->name.c_str()
+				"\tpush rbp\n"
+				"\tmov rbp, rsp\n", function->name.c_str(), function->name.c_str()
 			);
 
 		base += generate_statement_asm(function->statement);
 
 		base +=
 			string_format(
-				"leave\n"
-				"ret\n"
+				"\tleave\n"
+				"\tret\n"
 			);
 				
 		//delete function;
@@ -123,8 +180,8 @@ private:
 
 		base +=
 			string_format(
-				"sub rsp, %d\n"
-				"mov qword[rbp-%d], rax\n", hx_get_size(symbol.data_type), symbol.stack_position);
+				"\tsub rsp, %ld\n"
+				"\tmov qword[rbp-%ld], rax	; variable: %s\n", hx_get_size(symbol.data_type), symbol.stack_position, statement->type_decl->name.c_str());
 
 		
 		return base;		
@@ -137,7 +194,7 @@ private:
 		std::string base;
 
 		if (expression->e_type == expression_type::IDENTIFIER_LITERAL)
-			base += "mov rax, " + generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression)) + "\n";
+			base += "\tmov rax, " + generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression)) + "\n";
 		else
 		{
 			bool can_be_evaluated_fully = true;
@@ -146,13 +203,15 @@ private:
 			if (can_be_evaluated_fully)
 			{
 				base = string_format(
-					"mov rax, %d\n"
+					"\tmov rax, %ld\n"
 					, value
 				);
 			}
 			else
 			{
-					base += generate_binop_asm(std::dynamic_pointer_cast<hx_binop_expression>(expression));
+				std::dynamic_pointer_cast<hx_binop_expression>(expression)->print();
+				printf("\n");
+				base += generate_binop_asm(std::dynamic_pointer_cast<hx_binop_expression>(expression));
 				
 			}
 		}
@@ -165,7 +224,7 @@ private:
 		hx_symbol symbol = current_scope_table->find_symbol(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression)->name);
 		
 		base = string_format(
-			"qword[rbp-%d]",
+			"qword[rbp-%ld]",
 			symbol.stack_position
 		);
 
@@ -183,24 +242,24 @@ private:
 		if (left_type == expression_type::BINOP)
 		{
 			base += generate_binop_asm(std::dynamic_pointer_cast<hx_binop_expression>(expression->left));
-			base += "mov r8, rax\n";
+			base += "\tmov r8, rax\n";
 		}
 
 		if (right_type == expression_type::BINOP)
 		{
 			base += generate_binop_asm(std::dynamic_pointer_cast<hx_binop_expression>(expression->right));
-			base += "mov rcx, rax\n";
+			base += "\tmov rcx, rax\n";
 		}
 
 		if (left_type == expression_type::BINOP)
 		{
-			base += "mov rax, r8\n";
+			base += "\tmov rax, r8\n";
 		}
 
 
 		if (left_type == expression_type::IDENTIFIER_LITERAL)
 		{
-			base += "mov rax, " + generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->left)) + "\n";
+			base += "\tmov rax, " + generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->left)) + "\n";
 		}
 
 		else if (left_type == expression_type::INT_LITERAL)
@@ -208,91 +267,96 @@ private:
 			int64_t value = evaluate_int_literal(std::dynamic_pointer_cast<hx_int_literal_expression>(expression->left));
 
 			base += string_format(
-					"mov rax, %d\n", value);
+					"\tmov rax, %ld\n", value);
 
 
 		}
 
-		if (right_type == expression_type::BINOP)
+		tk_type op = tk_type_to_str::get_tk(expression->op.c_str());
+
+		switch (right_type)
 		{
-			if (expression->op == tk_type_to_str::get_str(tk_type::TK_PLUS))
-			{
-				base += string_format(
-					"add rax, rcx\n");
-			}
-			else if (expression->op == tk_type_to_str::get_str(tk_type::TK_MINUS))
-			{
-				base += string_format(
-					"sub rax, rcx\n");
-			}
-			else if (expression->op == tk_type_to_str::get_str(tk_type::TK_MULTIPLY))
-			{
-				base += string_format(
-					"imul rax, rcx\n");
-			}
-			else if (expression->op == tk_type_to_str::get_str(tk_type::TK_DIVIDE))
-			{
-
-				base += string_format(
-					"xor rdx, rdx\n"
-					"idiv rcx\n");
-			}
-		}
-
-		else if (right_type == expression_type::IDENTIFIER_LITERAL)
+		case expression_type::BINOP:
 		{
-			if (expression->op == tk_type_to_str::get_str(tk_type::TK_PLUS))
+			switch (op)
 			{
+			case tk_type::TK_PLUS:
 				base += string_format(
-					"add rax, %s\n", generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)).c_str());
-			}
-			else if (expression->op == tk_type_to_str::get_str(tk_type::TK_MINUS))
-			{
+					"\tadd rax, rcx\n");
+				break;
+			case tk_type::TK_MINUS:
 				base += string_format(
-					"sub rax, %s\n", generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)).c_str());
-			}
-			else if (expression->op == tk_type_to_str::get_str(tk_type::TK_MULTIPLY))
-			{
+					"\tsub rax, rcx\n");
+				break;
+			case tk_type::TK_MULTIPLY:
 				base += string_format(
-					"imul rax, %s\n", generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)).c_str());
-			}
-			else if (expression->op == tk_type_to_str::get_str(tk_type::TK_DIVIDE))
-			{
-
+					"\tsub rax, rcx\n");
+				break;
+			case tk_type::TK_DIVIDE:
 				base += string_format(
-					"xor rdx, rdx\n"
-					"mov r8, %s\n"
-					"idiv r8\n", generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)).c_str());
+					"\txor rdx, rdx\n"
+					"\tidiv rcx\n");
+				break;
 			}
+			break;
 		}
-		
-		else if (right_type == expression_type::INT_LITERAL)
+		case expression_type::IDENTIFIER_LITERAL:
+		{
+			switch (op)
+			{
+			case tk_type::TK_PLUS:
+				base += string_format(
+					"\tadd rax, %s\n",
+					generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)).c_str());
+				break;
+			case tk_type::TK_MINUS:
+				base += string_format(
+					"\tsub rax, %s\n",
+					generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)).c_str());
+				break;
+			case tk_type::TK_MULTIPLY:
+				base += string_format(
+					"\timul rax, %s\n",
+					generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)).c_str());
+				break;
+			case tk_type::TK_DIVIDE:
+				base += string_format(
+					"\txor rdx, rdx\n"
+					"\tmov r8, %s\n"
+					"\tidiv r8\n",
+					generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)).c_str());
+				break;
+			}
+			break;
+		}
+		case expression_type::INT_LITERAL:
 		{
 			int64_t value = evaluate_int_literal(std::dynamic_pointer_cast<hx_int_literal_expression>(expression->right));
-			if (expression->op == tk_type_to_str::get_str(tk_type::TK_PLUS))
-			{
-				base += string_format(
-					"add rax, %d\n", value);
-			}
-			else if (expression->op == tk_type_to_str::get_str(tk_type::TK_MINUS))
-			{
-				base += string_format(
-					"sub rax, %d\n", value);
-			}
-			else if (expression->op == tk_type_to_str::get_str(tk_type::TK_MULTIPLY))
-			{
-				base += string_format(
-					"imul rax, %d\n", value);
-			}
-			else if (expression->op == tk_type_to_str::get_str(tk_type::TK_DIVIDE))
-			{
-				base += string_format(
-					"xor rdx, rdx\n"
-					"mov r8, %d\n"
-					"idiv r8\n", value);
-			}
-		}
 
+			switch (op)
+			{
+			case tk_type::TK_PLUS:
+				base += string_format(
+					"\tadd rax, %ld\n", value);
+				break;
+			case tk_type::TK_MINUS:
+				base += string_format(
+					"\tsub rax, %ld\n", value);
+				break;
+			case tk_type::TK_MULTIPLY:
+				base += string_format(
+					"\timul rax, %ld\n", value);
+				break;
+			case tk_type::TK_DIVIDE:
+				base += string_format(
+					"\txor rdx, rdx\n"
+					"\tmov r8, %ld\n"
+					"\tidiv r8\n", value);
+				break;
+			}
+			break;
+		}
+		}
 		return base;
 	}
 

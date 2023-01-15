@@ -18,6 +18,7 @@ int64_t evaluate_binop_expression(hx_sptr<hx_binop_expression> binop, bool& can_
 	if (binop->right->e_type == expression_type::BINOP)
 		right = true;
 
+
 	if (binop->left->e_type == expression_type::IDENTIFIER_LITERAL)
 	{
 		can_be_evaluated_fully = false;
