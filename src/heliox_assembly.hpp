@@ -206,9 +206,8 @@ private:
 			break;
 		case expression_type::INT_LITERAL:
 		{
-			bool can_be_evaluated_fully = true;
-			int64_t value = evaluate_expression(expression, can_be_evaluated_fully);
-
+			std::optional<int64_t> opt = evaluate_expression(expression);
+			int64_t value = opt.value();
 			
 			base = string_format(
 				"\tmov rax, %ld\n"
@@ -218,11 +217,12 @@ private:
 			break;
 		}
 		case expression_type::BINOP:
-			bool can_be_evaluated_fully = true;
-			int64_t value = evaluate_expression(expression, can_be_evaluated_fully);
-
-			if (can_be_evaluated_fully)
+	
+			std::optional<int64_t> opt = evaluate_expression(expression);
+			
+			if (opt.has_value())
 			{
+				int64_t value = opt.value();
 				base = string_format(
 					"\tmov rax, %ld\n"
 					, value
@@ -244,7 +244,11 @@ private:
 	std::string generate_identifier_literal_asm(hx_sptr<hx_identifier_literal_expression> expression)
 	{
 		std::string base;
-		hx_symbol symbol = current_scope_table->find_symbol(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression)->name, hx_symbol_type::VAR);
+
+		hx_error err;
+		err.line = expression->line_number;
+
+		hx_symbol symbol = current_scope_table->find_symbol(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression)->name, hx_symbol_type::VAR, err);
 		
 		base = string_format(
 			"qword[rbp-%ld]",
@@ -253,6 +257,21 @@ private:
 
 		return base;
 
+	}
+
+	std::string generate_function_call_asm(hx_sptr<hx_function_call_expression> fn_call)
+	{
+
+		std::string base;
+		for (int32_t i = fn_call->arguments.size()-1; i >= 0; i--)
+		{
+			base += generate_expression_asm(fn_call->arguments[i]);
+			base += "\tpush rax\n";
+		}
+		
+		base += "\tcall " + fn_call->identifier->name + "\n";
+
+		return base;
 	}
 
 	std::string generate_binop_asm(hx_sptr<hx_binop_expression> expression)
@@ -288,14 +307,15 @@ private:
 
 		case expression_type::INT_LITERAL:
 		{
-			int64_t value = evaluate_int_literal(std::dynamic_pointer_cast<hx_int_literal_expression>(expression->left));
-
+			std::optional<int64_t> opt = evaluate_int_literal(std::dynamic_pointer_cast<hx_int_literal_expression>(expression->left));
+			int64_t value = opt.value();
 			base += string_format(
 				"\tmov rax, %ld\n", value);
 			break;
 		}
 		case expression_type::FUNCTION_CALL:
-			base += "\tcall " + std::dynamic_pointer_cast<hx_function_call_expression>(expression->left)->identifier->name + "\n";
+			hx_sptr<hx_function_call_expression> f_expr = std::dynamic_pointer_cast<hx_function_call_expression>(expression->left);
+			base += generate_function_call_asm(f_expr);
 			break;
 		}
 
@@ -358,8 +378,8 @@ private:
 		}
 		case expression_type::INT_LITERAL:
 		{
-			int64_t value = evaluate_int_literal(std::dynamic_pointer_cast<hx_int_literal_expression>(expression->right));
-
+			std::optional<int64_t> opt = evaluate_int_literal(std::dynamic_pointer_cast<hx_int_literal_expression>(expression->right));
+			int64_t value = opt.value();
 			switch (op)
 			{
 			case tk_type::TK_PLUS:
@@ -386,7 +406,10 @@ private:
 		case expression_type::FUNCTION_CALL:
 		{
 			base += "\tpush rax\n";
-			base += "\tcall " + std::dynamic_pointer_cast<hx_function_call_expression>(expression->right)->identifier->name + "\n";
+
+			hx_sptr<hx_function_call_expression> f_expr = std::dynamic_pointer_cast<hx_function_call_expression>(expression->right);
+			base += generate_function_call_asm(f_expr);
+
 			base += "\tmov r9, rax\n";
 			base += "\tpop rax\n";
 			switch (op)
@@ -417,10 +440,6 @@ private:
 	hx_symbol_table* global_table;
 	hx_symbol_table* current_scope_table;
 
-
-	std::string text_section;
-	std::string bss_section;
-	std::string data_section;
 
 	uint32_t layer_depth = 0;
 

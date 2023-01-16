@@ -1,91 +1,65 @@
 #include "heliox_evaluator.hpp"
 
-int64_t evaluate_int_literal(hx_sptr<hx_int_literal_expression> literal)
+std::optional<int64_t> evaluate_int_literal(hx_sptr<hx_int_literal_expression> literal)
 {
 	return literal->value;
 }
 
-int64_t evaluate_binop_expression(hx_sptr<hx_binop_expression> binop, bool& can_be_evaluated_fully)
+std::optional<int64_t> evaluate_binop_expression(hx_sptr<hx_binop_expression> binop)
 {
-	bool left = false;
-	bool right = false;
 
-	int64_t left_value;
-	int64_t right_value;
+	std::optional<int64_t> left_value {};
+	std::optional<int64_t> right_value{};
 
-	if (binop->left->e_type == expression_type::BINOP)
-		left = true;
-	if (binop->right->e_type == expression_type::BINOP)
-		right = true;
-
-
-	if (binop->left->e_type == expression_type::IDENTIFIER_LITERAL || binop->left->e_type == expression_type::FUNCTION_CALL)
+	switch (binop->left->e_type)
 	{
-		can_be_evaluated_fully = false;
-		if (right)
-		{
-			bool can_be_eval_fully = true;
-			int64_t evaluated_expression = evaluate_binop_expression(std::dynamic_pointer_cast<hx_binop_expression>(binop->right), can_be_eval_fully);
-			if (can_be_eval_fully)
-			{
-				binop->right = make_shared<hx_int_literal_expression>();
-				std::dynamic_pointer_cast<hx_int_literal_expression>(binop->right)->value = evaluated_expression;
-			}
-			
-		}
-	}
-
-	if (binop->right->e_type == expression_type::IDENTIFIER_LITERAL || binop->right->e_type == expression_type::FUNCTION_CALL)
+	case expression_type::BINOP:
 	{
-		can_be_evaluated_fully = false;
-		if (left)
-		{
-			bool can_be_eval_fully = true;
-			int64_t evaluated_expression = evaluate_binop_expression(std::dynamic_pointer_cast<hx_binop_expression>(binop->left), can_be_eval_fully);
-			if (can_be_eval_fully)
-			{
-				binop->left = make_shared<hx_int_literal_expression>();
-				std::dynamic_pointer_cast<hx_int_literal_expression>(binop->right)->value = evaluated_expression;
-			}
-
-		}
+		left_value = evaluate_binop_expression(std::dynamic_pointer_cast<hx_binop_expression>(binop->left));
+		break;
 	}
-
-
-	
-	if (left)
-		left_value = evaluate_binop_expression(std::dynamic_pointer_cast<hx_binop_expression>(binop->left), can_be_evaluated_fully);
-	else if (can_be_evaluated_fully)
+	case expression_type::INT_LITERAL:
+	{
 		left_value = evaluate_int_literal(std::dynamic_pointer_cast<hx_int_literal_expression>(binop->left));
+		break;
+	}
+	}
 
-
-	
-	if (right)
-		right_value = evaluate_binop_expression(std::dynamic_pointer_cast<hx_binop_expression>(binop->right), can_be_evaluated_fully);
-	else if (can_be_evaluated_fully)
+	switch (binop->right->e_type)
+	{
+	case expression_type::BINOP:
+	{
+		right_value = evaluate_binop_expression(std::dynamic_pointer_cast<hx_binop_expression>(binop->right));
+		break;
+	}
+	case expression_type::INT_LITERAL:
+	{
 		right_value = evaluate_int_literal(std::dynamic_pointer_cast<hx_int_literal_expression>(binop->right));
+		break;
+	}
+	}
 
-	if (!can_be_evaluated_fully)
-		return 0;
+	if (!(left_value.has_value() && right_value.has_value()))
+		return {};
 
 	if (binop->op == tk_type_to_str::get_str(TK_PLUS))
-		return left_value + right_value;
+		return left_value.value() + right_value.value();
 	if (binop->op == tk_type_to_str::get_str(TK_MINUS))
-		return left_value - right_value;
+		return left_value.value() - right_value.value();
 	if (binop->op == tk_type_to_str::get_str(TK_MULTIPLY))
-		return left_value * right_value;
+		return left_value.value() * right_value.value();
 	if (binop->op == tk_type_to_str::get_str(TK_DIVIDE))
-		return left_value / right_value;
+		return left_value.value() / right_value.value();
 
 }
 
-int64_t evaluate_expression(hx_sptr<hx_expression> expression, bool& can_be_evaluated_fully)
+std::optional<int64_t> evaluate_expression(hx_sptr<hx_expression> expression)
 {
 	switch (expression->e_type)
 	{
 	case expression_type::BINOP:
 
-		return evaluate_binop_expression(std::dynamic_pointer_cast<hx_binop_expression>(expression), can_be_evaluated_fully);
+		return evaluate_binop_expression(std::dynamic_pointer_cast<hx_binop_expression>(expression));
 	case expression_type::INT_LITERAL:
 		return evaluate_int_literal(std::dynamic_pointer_cast<hx_int_literal_expression>(expression));
 

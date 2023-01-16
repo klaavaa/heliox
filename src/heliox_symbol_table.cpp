@@ -33,17 +33,15 @@ hx_symbol hx_symbol_table::get_symbol(const std::string& name)
 	return symbols.at(name);
 }
 
-hx_symbol hx_symbol_table::find_symbol(const std::string& name, hx_symbol_type symbol_type)
+hx_symbol hx_symbol_table::find_symbol(const std::string& name, hx_symbol_type symbol_type, hx_error err)
 {
 	if (check_if_exists(name, symbol_type))
 		return symbols.at(name);
 
 	if (this->parent)
-		return this->parent->find_symbol(name, symbol_type);
+		return this->parent->find_symbol(name, symbol_type, err);
 
-	hx_error err;
 	err.ok = false;
-	err.line = 0;
 	err.file = "";
 	err.error_type = HX_SYMBOL_NOT_FOUND;
 	err.info = "No symbol called: " + name + " found";
