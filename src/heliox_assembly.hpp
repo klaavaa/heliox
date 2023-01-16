@@ -193,13 +193,34 @@ private:
 
 		std::string base;
 
-		if (expression->e_type == expression_type::IDENTIFIER_LITERAL)
+		switch (expression->e_type)
+		{
+		
+		case expression_type::IDENTIFIER_LITERAL:
 			base += "\tmov rax, " + generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression)) + "\n";
-		else
+			break;
+
+		case expression_type::FUNCTION_CALL:
+			base += string_format(
+				"\tcall %s\n", std::dynamic_pointer_cast<hx_function_call_expression>(expression)->identifier->name.c_str());
+			break;
+		case expression_type::INT_LITERAL:
 		{
 			bool can_be_evaluated_fully = true;
 			int64_t value = evaluate_expression(expression, can_be_evaluated_fully);
+
 			
+			base = string_format(
+				"\tmov rax, %ld\n"
+				, value
+			);
+			
+			break;
+		}
+		case expression_type::BINOP:
+			bool can_be_evaluated_fully = true;
+			int64_t value = evaluate_expression(expression, can_be_evaluated_fully);
+
 			if (can_be_evaluated_fully)
 			{
 				base = string_format(
@@ -212,16 +233,18 @@ private:
 				std::dynamic_pointer_cast<hx_binop_expression>(expression)->print();
 				printf("\n");
 				base += generate_binop_asm(std::dynamic_pointer_cast<hx_binop_expression>(expression));
-				
+
 			}
+			break;
 		}
+
 		return base;
 	}
 
 	std::string generate_identifier_literal_asm(hx_sptr<hx_identifier_literal_expression> expression)
 	{
 		std::string base;
-		hx_symbol symbol = current_scope_table->find_symbol(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression)->name);
+		hx_symbol symbol = current_scope_table->find_symbol(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression)->name, hx_symbol_type::VAR);
 		
 		base = string_format(
 			"qword[rbp-%ld]",
@@ -257,19 +280,23 @@ private:
 		}
 
 
-		if (left_type == expression_type::IDENTIFIER_LITERAL)
+		switch (left_type)
 		{
+		case expression_type::IDENTIFIER_LITERAL:
 			base += "\tmov rax, " + generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->left)) + "\n";
-		}
+			break;
 
-		else if (left_type == expression_type::INT_LITERAL)
+		case expression_type::INT_LITERAL:
 		{
 			int64_t value = evaluate_int_literal(std::dynamic_pointer_cast<hx_int_literal_expression>(expression->left));
 
 			base += string_format(
-					"\tmov rax, %ld\n", value);
-
-
+				"\tmov rax, %ld\n", value);
+			break;
+		}
+		case expression_type::FUNCTION_CALL:
+			base += "\tcall " + std::dynamic_pointer_cast<hx_function_call_expression>(expression->left)->identifier->name + "\n";
+			break;
 		}
 
 		tk_type op = tk_type_to_str::get_tk(expression->op.c_str());
@@ -354,6 +381,32 @@ private:
 					"\tidiv r8\n", value);
 				break;
 			}
+			break;
+		}
+		case expression_type::FUNCTION_CALL:
+		{
+			base += "\tpush rax\n";
+			base += "\tcall " + std::dynamic_pointer_cast<hx_function_call_expression>(expression->right)->identifier->name + "\n";
+			base += "\tmov r9, rax\n";
+			base += "\tpop rax\n";
+			switch (op)
+			{
+			case tk_type::TK_PLUS:
+				base += "\tadd rax, r9\n";
+				break;
+			case tk_type::TK_MINUS:
+				base += "\tsub rax, r9\n";
+				break;
+			case tk_type::TK_MULTIPLY:
+				base += "\timul rax, r9\n";
+				break;
+			case tk_type::TK_DIVIDE:
+				base +=
+					"\txor rdx, rdx\n"
+					"\tidiv r9\n";
+				break;
+			}
+
 			break;
 		}
 		}

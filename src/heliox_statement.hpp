@@ -18,7 +18,7 @@ enum class expression_type : uint32_t
 struct hx_expression
 {
 	expression_type e_type;
-
+	uint32_t line_number;
 	virtual void print() {};
 };
 
@@ -112,7 +112,7 @@ enum class statement_type : uint32_t
 struct hx_statement
 {
 	statement_type s_type;
-
+	uint32_t line_number;
 	virtual void print() {};
 };
 
@@ -205,6 +205,8 @@ struct hx_function
 	std::vector<hx_sptr<hx_type_decl_statement>> parameters;
 	std::string return_type;
 	hx_sptr<hx_statement> statement;
+
+	uint32_t line_number;
 
 	void print()
 	{

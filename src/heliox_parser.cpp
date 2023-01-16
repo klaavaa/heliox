@@ -67,7 +67,7 @@ void hx_parser::eat(tk_type token_type, hx_sptr<hx_error> error)
 hx_sptr<hx_function> hx_parser::parse_function(hx_sptr<hx_error> error)
 {
 	hx_sptr<hx_function> function(make_shared<hx_function>());
-
+	function->line_number = lexer->get_line();
 	eat(TK_KEYWORD, error);
 
 	function->name = token.value;
@@ -115,7 +115,9 @@ hx_sptr<hx_statement> hx_parser::parse_statement(hx_sptr<hx_error> error)
 	case TK_SEMICOLON:
 	{
 		eat(TK_SEMICOLON, error);
-		return make_shared<hx_noop_statement>();
+		hx_sptr<hx_noop_statement> noop_stat = make_shared<hx_noop_statement>();
+		noop_stat->line_number = lexer->get_line();
+		return noop_stat;
 	}
 
 	default:
@@ -128,6 +130,7 @@ hx_sptr<hx_statement> hx_parser::parse_statement(hx_sptr<hx_error> error)
 hx_sptr<hx_compound_statement> hx_parser::parse_compound_statement(hx_sptr<hx_error> error)
 {
 	hx_sptr<hx_compound_statement> compound_statement(make_shared<hx_compound_statement>());
+	compound_statement->line_number = lexer->get_line();
 	eat(TK_L_BRACE, error);
 	while (token.type != TK_R_BRACE)
 	{
@@ -157,6 +160,7 @@ hx_sptr<hx_return_statement> hx_parser::parse_return_statement(hx_sptr<hx_error>
 {
 	eat(TK_KEYWORD, error);
 	hx_sptr<hx_return_statement> return_statement(make_shared<hx_return_statement>());
+	return_statement->line_number = lexer->get_line();
 	return_statement->expression = parse_expression(error);
 	eat(TK_SEMICOLON, error);
 	return return_statement;
@@ -166,7 +170,7 @@ hx_sptr<hx_definition_statement> hx_parser::parse_definition_statement(hx_sptr<h
 {
 	hx_sptr<hx_definition_statement> definition_statement(make_shared<hx_definition_statement>());
 	definition_statement->type_decl = parse_type_decl_statement(error);
-
+	definition_statement->line_number = lexer->get_line();
 	eat(TK_EQU, error);
 
 	definition_statement->expression = parse_expression(error);
@@ -179,6 +183,7 @@ hx_sptr<hx_definition_statement> hx_parser::parse_definition_statement(hx_sptr<h
 hx_sptr<hx_type_decl_statement> hx_parser::parse_type_decl_statement(hx_sptr<hx_error> error)
 {
 	hx_sptr<hx_type_decl_statement> type_decl_statement(make_shared<hx_type_decl_statement>());
+	type_decl_statement->line_number = lexer->get_line();
 	type_decl_statement->type = token.value;
 	eat(TK_KEYWORD, error);
 
@@ -201,6 +206,7 @@ hx_sptr<hx_type_decl_statement> hx_parser::parse_type_decl_statement(hx_sptr<hx_
 hx_sptr<hx_expression_statement> hx_parser::parse_expression_statement(hx_sptr<hx_error> error)
 {
 	hx_sptr<hx_expression_statement> expression_statement(make_shared<hx_expression_statement>());
+	expression_statement->line_number = lexer->get_line();
 	expression_statement->expression = parse_expression(error);
 
 	eat(TK_SEMICOLON, error);
@@ -228,7 +234,7 @@ hx_sptr<hx_expression> hx_parser::parse_term(hx_sptr<hx_error> error)
 {
 	hx_sptr<hx_expression> expression = parse_factor(error);
 	hx_sptr<hx_binop_expression> binop_expression(make_shared<hx_binop_expression>());
-
+	binop_expression->line_number = lexer->get_line();
 	bool return_binop = false;
 	if (token.type == TK_MULTIPLY || token.type == TK_DIVIDE)
 	{
@@ -236,6 +242,7 @@ hx_sptr<hx_expression> hx_parser::parse_term(hx_sptr<hx_error> error)
 		eat(token.type, error);
 
 		hx_sptr<hx_binop_expression> left_binop(make_shared<hx_binop_expression>());
+		left_binop->line_number = lexer->get_line();
 
 		left_binop->left = expression;
 		left_binop->op = tk_type_to_str::get_str(tok_type);
@@ -252,7 +259,7 @@ hx_sptr<hx_expression> hx_parser::parse_term(hx_sptr<hx_error> error)
 		eat(token.type, error);
 
 		hx_sptr<hx_binop_expression> left_binop(make_shared<hx_binop_expression>());
-
+		left_binop->line_number = lexer->get_line();
 		left_binop->left = binop_expression;
 		left_binop->op = tk_type_to_str::get_str(tok_type);
 		left_binop->right = parse_factor(error);
@@ -269,7 +276,7 @@ hx_sptr<hx_expression> hx_parser::parse_expression(hx_sptr<hx_error> error)
 {
 	hx_sptr<hx_expression> expression = parse_term(error);
 	hx_sptr<hx_binop_expression> binop_expression(make_shared<hx_binop_expression>());
-
+	binop_expression->line_number = lexer->get_line();
 	bool return_binop = false;
 
 	if (token.type == TK_PLUS || token.type == TK_MINUS)
@@ -278,7 +285,7 @@ hx_sptr<hx_expression> hx_parser::parse_expression(hx_sptr<hx_error> error)
 		eat(token.type, error);
 
 		hx_sptr<hx_binop_expression> left_binop(make_shared<hx_binop_expression>());
-
+		left_binop->line_number = lexer->get_line();
 		left_binop->left = expression;
 		left_binop->op = tk_type_to_str::get_str(tok_type);
 		left_binop->right = parse_term(error);
@@ -294,7 +301,7 @@ hx_sptr<hx_expression> hx_parser::parse_expression(hx_sptr<hx_error> error)
 		eat(token.type, error);
 
 		hx_sptr<hx_binop_expression> left_binop(make_shared<hx_binop_expression>());
-
+		left_binop->line_number = lexer->get_line();
 		left_binop->left = binop_expression;
 		left_binop->op = tk_type_to_str::get_str(tok_type);
 		left_binop->right = parse_term(error);
@@ -312,6 +319,7 @@ hx_sptr<hx_expression> hx_parser::parse_identifier_expression(hx_sptr<hx_error> 
 
 
 	hx_sptr<hx_identifier_literal_expression> identifier_literal_expression(make_shared<hx_identifier_literal_expression>());
+	identifier_literal_expression->line_number = lexer->get_line();
 	identifier_literal_expression->name = name;
 	eat(TK_IDENTIFIER, error);
 
@@ -320,6 +328,7 @@ hx_sptr<hx_expression> hx_parser::parse_identifier_expression(hx_sptr<hx_error> 
 
 		hx_sptr<hx_function_call_expression> function_call_expression(make_shared<hx_function_call_expression>());
 		function_call_expression->identifier = identifier_literal_expression;
+		function_call_expression->line_number = lexer->get_line();
 
 		eat(TK_L_PAREN, error);
 
@@ -344,6 +353,7 @@ hx_sptr<hx_int_literal_expression> hx_parser::parse_int_literal_expression(hx_sp
 {
 	hx_sptr<hx_int_literal_expression> int_literal_expression(make_shared<hx_int_literal_expression>());
 	int_literal_expression->value = std::atoi(token.value.c_str());
+	int_literal_expression->line_number = lexer->get_line();
 
 	eat(TK_INTEGER, error);
 
@@ -353,6 +363,7 @@ hx_sptr<hx_int_literal_expression> hx_parser::parse_int_literal_expression(hx_sp
 hx_sptr<hx_string_literal_expression> hx_parser::parse_string_literal_expression(hx_sptr<hx_error> error)
 {
 	hx_sptr<hx_string_literal_expression> string_literal_expression(make_shared<hx_string_literal_expression>());
+	string_literal_expression->line_number = lexer->get_line();
 	string_literal_expression->literal = token.value;
 	eat(TK_STRING, error);
 
@@ -362,6 +373,7 @@ hx_sptr<hx_string_literal_expression> hx_parser::parse_string_literal_expression
 hx_sptr<hx_identifier_literal_expression> hx_parser::parse_identifier_literal_expression(hx_sptr<hx_error> error)
 {
 	hx_sptr<hx_identifier_literal_expression> identifier_literal_expression(make_shared<hx_identifier_literal_expression>());
+	identifier_literal_expression->line_number = lexer->get_line();
 	identifier_literal_expression->name = token.value;
 
 	eat(TK_IDENTIFIER, error);

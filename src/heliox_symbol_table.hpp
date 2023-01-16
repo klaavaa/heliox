@@ -5,6 +5,7 @@
 
 #include "heliox_statement.hpp"
 #include "heliox_pointer.hpp"
+#include "heliox_error.hpp"
 
 enum class hx_symbol_type : uint32_t
 {
@@ -26,6 +27,7 @@ struct hx_symbol
 	hx_symbol_type type;
 	hx_data_type data_type;
 	uint32_t stack_position;
+	uint32_t line_number;
 };
 
 
@@ -36,13 +38,13 @@ public:
 
 	hx_symbol_table() = default;
 	
-	bool check_if_exists(const std::string& name);
+	bool check_if_exists(const std::string& name, hx_symbol_type symbol_type);
 	bool insert(std::string name, hx_symbol symbol);
 	void add_symbol_table(std::string name, hx_symbol_table* symbol_table);
 
 	
 	hx_symbol get_symbol(const std::string& name);
-	hx_symbol find_symbol(const std::string& name);
+	hx_symbol find_symbol(const std::string& name, hx_symbol_type symbol_type);
 	hx_symbol_table*  get_symbol_table(const std::string& name);
 	hx_symbol_table* get_parent();
 	hx_symbol_table* get_table_based_on_index(uint32_t index);

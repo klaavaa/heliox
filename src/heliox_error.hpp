@@ -9,6 +9,8 @@
 #define HX_NO_MAIN_ERROR "NoMainFuncError"
 #define HX_FILE_OPEN_ERROR "FileOpenError"
 #define HX_NOT_HELIOX_FILE "NotHelioxFileError"
+#define HX_SYMBOL_NOT_FOUND "SymbolNotFoundError"
+
 
 struct hx_error
 {
@@ -27,5 +29,6 @@ public:
 	
 	static std::string format_error(hx_error error_data);
 	static void log_error(hx_error error_data);
+	static void log_and_exit(hx_error error_data);
 
 };

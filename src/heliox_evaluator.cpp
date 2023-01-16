@@ -19,7 +19,7 @@ int64_t evaluate_binop_expression(hx_sptr<hx_binop_expression> binop, bool& can_
 		right = true;
 
 
-	if (binop->left->e_type == expression_type::IDENTIFIER_LITERAL)
+	if (binop->left->e_type == expression_type::IDENTIFIER_LITERAL || binop->left->e_type == expression_type::FUNCTION_CALL)
 	{
 		can_be_evaluated_fully = false;
 		if (right)
@@ -35,7 +35,7 @@ int64_t evaluate_binop_expression(hx_sptr<hx_binop_expression> binop, bool& can_
 		}
 	}
 
-	if (binop->right->e_type == expression_type::IDENTIFIER_LITERAL)
+	if (binop->right->e_type == expression_type::IDENTIFIER_LITERAL || binop->right->e_type == expression_type::FUNCTION_CALL)
 	{
 		can_be_evaluated_fully = false;
 		if (left)

@@ -1,13 +1,20 @@
 #include "heliox_symbol_table.hpp"
 
-bool hx_symbol_table::check_if_exists(const std::string& name)
+bool hx_symbol_table::check_if_exists(const std::string& name, hx_symbol_type symbol_type)
 {
-	return (symbols.count(name));
+
+	if (symbols.count(name))
+	{
+		if (symbols[name].type == symbol_type)
+			return true;
+	}
+
+	return false;
 }
 
 bool hx_symbol_table::insert(std::string name, hx_symbol symbol)
 {
-	if (check_if_exists(name))
+	if (check_if_exists(name, symbol.type))
 		return false;
 
 	symbols[name] = symbol;
@@ -26,13 +33,21 @@ hx_symbol hx_symbol_table::get_symbol(const std::string& name)
 	return symbols.at(name);
 }
 
-hx_symbol hx_symbol_table::find_symbol(const std::string& name)
+hx_symbol hx_symbol_table::find_symbol(const std::string& name, hx_symbol_type symbol_type)
 {
-	if (check_if_exists(name))
+	if (check_if_exists(name, symbol_type))
 		return symbols.at(name);
 
+	if (this->parent)
+		return this->parent->find_symbol(name, symbol_type);
 
-	return this->parent->find_symbol(name);
+	hx_error err;
+	err.ok = false;
+	err.line = 0;
+	err.file = "";
+	err.error_type = HX_SYMBOL_NOT_FOUND;
+	err.info = "No symbol called: " + name + " found";
+	hx_logger::log_and_exit(err);
 }
 
 hx_symbol_table* hx_symbol_table::get_symbol_table(const std::string& name)
@@ -127,6 +142,7 @@ hx_symbol_table* generate_compound_symbol_table(hx_sptr<hx_compound_statement> c
 			hx_symbol definition_symbol;
 			definition_symbol.data_type = hx_data_type::INT;
 			definition_symbol.type = hx_symbol_type::VAR;
+			definition_symbol.line_number = statement->line_number;
 			relative_stack_p += hx_get_size(definition_symbol.data_type);
 			definition_symbol.stack_position = relative_stack_p;
 			
@@ -155,7 +171,7 @@ hx_symbol_table* generate_symbol_table(hx_sptr<hx_program> program)
 		hx_symbol func_symbol;
 		func_symbol.data_type = hx_data_type::INT;
 		func_symbol.type = hx_symbol_type::FUNC;
-
+		func_symbol.line_number = function->line_number;
 
 
 
