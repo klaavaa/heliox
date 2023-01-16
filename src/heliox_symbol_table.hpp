@@ -26,7 +26,7 @@ struct hx_symbol
 {
 	hx_symbol_type type;
 	hx_data_type data_type;
-	uint32_t stack_position;
+	int32_t stack_position;
 	uint32_t line_number;
 };
 
@@ -70,5 +70,5 @@ private:
 
 
 uint32_t hx_get_size(hx_data_type dt);
-hx_symbol_table* generate_compound_symbol_table(hx_sptr<hx_compound_statement> compound, int32_t& relative_stack_pos,uint32_t depth = 1);
+hx_symbol_table* generate_compound_symbol_table(hx_sptr<hx_compound_statement> compound, int32_t& relative_stack_pos,  uint32_t depth = 1);
 hx_symbol_table* generate_symbol_table(hx_sptr<hx_program> program);

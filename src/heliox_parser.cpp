@@ -227,6 +227,14 @@ hx_sptr<hx_expression> hx_parser::parse_factor(hx_sptr<hx_error> error)
 		eat(TK_R_PAREN, error);
 		return expression;
 	}
+	default:
+	{
+		error->ok = false;
+		error->error_type = HX_SYNTAX_ERROR;
+		error->info = "Expected integer, identifier or a parenthesis";
+		
+		hx_logger::log_and_exit(*error);
+	}
 	}
 }
 
@@ -310,6 +318,8 @@ hx_sptr<hx_expression> hx_parser::parse_expression(hx_sptr<hx_error> error)
 	}
 	if (return_binop)
 		return binop_expression;
+
+
 	return expression;
 }
 

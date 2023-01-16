@@ -121,8 +121,8 @@ uint32_t hx_get_size(hx_data_type dt)
 hx_symbol_table* generate_compound_symbol_table(hx_sptr<hx_compound_statement> compound, int32_t& relative_stack_pos, uint32_t depth)
 {
 	hx_symbol_table* table = new hx_symbol_table();
-
 	int32_t relative_stack_p = relative_stack_pos;
+
 	for (const auto& statement : compound->statements)
 	{
 		switch (statement->s_type)
@@ -165,7 +165,7 @@ hx_symbol_table* generate_symbol_table(hx_sptr<hx_program> program)
 
 	for (const auto& function : program->functions)
 	{
-
+		
 		hx_symbol func_symbol;
 		func_symbol.data_type = hx_data_type::INT;
 		func_symbol.type = hx_symbol_type::FUNC;
@@ -174,6 +174,9 @@ hx_symbol_table* generate_symbol_table(hx_sptr<hx_program> program)
 
 
 		bool ok = global_table->insert(function->name, func_symbol);
+
+
+
 		if (!ok)
 			printf("ERROR IN SYMBOL TABLE\n");
 		//TODO ERROR
@@ -185,6 +188,26 @@ hx_symbol_table* generate_symbol_table(hx_sptr<hx_program> program)
 			int32_t relative_stack_pos = 0;
 			global_table->add_symbol_table(function->name, generate_compound_symbol_table(
 				std::dynamic_pointer_cast<hx_compound_statement>(function->statement), relative_stack_pos));
+
+
+			hx_symbol_table* func_table = global_table->get_symbol_table(function->name);
+			int32_t param_stack_pos = 0;
+			for (const auto param : function->parameters)
+			{
+
+
+
+				hx_symbol symbol;
+				param_stack_pos -= hx_get_size(hx_data_type::INT);
+				symbol.stack_position = param_stack_pos - 8; // subtract extra 8 because of push rbp call
+				symbol.data_type = hx_data_type::INT;
+				symbol.type = hx_symbol_type::VAR;
+				
+				func_table->insert(param->name, symbol);
+
+			}
+
+
 			break;
 		}
 

@@ -195,31 +195,34 @@ private:
 
 		switch (expression->e_type)
 		{
-		
+
 		case expression_type::IDENTIFIER_LITERAL:
+		{
 			base += "\tmov rax, " + generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression)) + "\n";
 			break;
-
+		}
 		case expression_type::FUNCTION_CALL:
-			base += string_format(
-				"\tcall %s\n", std::dynamic_pointer_cast<hx_function_call_expression>(expression)->identifier->name.c_str());
+		{
+			hx_sptr<hx_function_call_expression> f_expr = std::dynamic_pointer_cast<hx_function_call_expression>(expression);
+			base += generate_function_call_asm(f_expr);
 			break;
+		}
 		case expression_type::INT_LITERAL:
 		{
 			std::optional<int64_t> opt = evaluate_expression(expression);
 			int64_t value = opt.value();
-			
+
 			base = string_format(
 				"\tmov rax, %ld\n"
 				, value
 			);
-			
+
 			break;
 		}
 		case expression_type::BINOP:
-	
+		{
 			std::optional<int64_t> opt = evaluate_expression(expression);
-			
+
 			if (opt.has_value())
 			{
 				int64_t value = opt.value();
@@ -237,7 +240,7 @@ private:
 			}
 			break;
 		}
-
+		}
 		return base;
 	}
 
@@ -250,10 +253,13 @@ private:
 
 		hx_symbol symbol = current_scope_table->find_symbol(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression)->name, hx_symbol_type::VAR, err);
 		
+		
 		base = string_format(
 			"qword[rbp-%ld]",
 			symbol.stack_position
 		);
+		
+	
 
 		return base;
 
@@ -302,9 +308,10 @@ private:
 		switch (left_type)
 		{
 		case expression_type::IDENTIFIER_LITERAL:
+		{
 			base += "\tmov rax, " + generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->left)) + "\n";
 			break;
-
+		}
 		case expression_type::INT_LITERAL:
 		{
 			std::optional<int64_t> opt = evaluate_int_literal(std::dynamic_pointer_cast<hx_int_literal_expression>(expression->left));

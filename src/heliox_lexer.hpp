@@ -346,7 +346,7 @@ private:
 	uint32_t len_text;
 	uint32_t index=0;
 
-	uint32_t line_number = 0;
+	uint32_t line_number = 1;
 
 };
 
