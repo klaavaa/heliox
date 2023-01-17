@@ -114,11 +114,6 @@ private:
 
 		base += generate_statement_asm(function->statement);
 
-		base +=
-			string_format(
-				"\tleave\n"
-				"\tret\n"
-			);
 				
 		//delete function;
 
@@ -142,7 +137,10 @@ private:
 			
 			return base;
 		}
-		case statement_type::RETURN: return generate_return_asm(std::dynamic_pointer_cast<hx_return_statement>(statement));
+		case statement_type::CONDITIONAL: 
+			return generate_conditional_asm(std::dynamic_pointer_cast<hx_conditional_statement>(statement));
+		case statement_type::RETURN: 
+			return generate_return_asm(std::dynamic_pointer_cast<hx_return_statement>(statement));
 		case statement_type::NOOP:  return "";
 		}
 	}
@@ -159,10 +157,30 @@ private:
 		return base;
 	}
 
+	std::string generate_conditional_asm(hx_sptr<hx_conditional_statement> statement)
+	{
+		std::string base;
+		base += generate_expression_asm(statement->expression);
+
+		base += string_format("\tjz IFEND%d\n", label_counter);
+
+		base += generate_statement_asm(statement->statement);
+
+		base += string_format("\tIFEND%d:\n", label_counter);
+
+		label_counter++;
+		return base;
+	}
+
 	std::string generate_return_asm(hx_sptr<hx_return_statement> statement)
 	{
 		std::string base;
 		base += generate_expression_asm(statement->expression);
+		base +=
+			string_format(
+				"\tleave\n"
+				"\tret\n"
+			);
 		return base;
 	}
 
@@ -269,6 +287,7 @@ private:
 	{
 
 		std::string base;
+		
 		for (int32_t i = fn_call->arguments.size()-1; i >= 0; i--)
 		{
 			base += generate_expression_asm(fn_call->arguments[i]);
@@ -276,7 +295,7 @@ private:
 		}
 		
 		base += "\tcall " + fn_call->identifier->name + "\n";
-
+		base += string_format("\tadd rsp, %d\n", fn_call->arguments.size() * 8);
 		return base;
 	}
 
@@ -328,6 +347,7 @@ private:
 
 		tk_type op = tk_type_to_str::get_tk(expression->op.c_str());
 
+
 		switch (right_type)
 		{
 		case expression_type::BINOP:
@@ -351,9 +371,34 @@ private:
 					"\txor rdx, rdx\n"
 					"\tidiv rcx\n");
 				break;
+			case tk_type::TK_GT:
+				base += string_format(
+					"\tcmp rax, rcx\n"
+					"\tmov rax, 1\n"
+					"\tjg GREATER%d\n"
+					"\txor rax, rax\n"
+					"GREATER%d:\n", label_counter, label_counter
+				);
+				label_counter++;
+				break;
+			case tk_type::TK_LT:
+				base += string_format(
+					"\tcmp rax, rcx\n"
+					"\tmov rax, 1\n"
+					"\tjl LESS%d\n"
+					"\txor rax, rax\n"
+					"LESS%d:\n", label_counter, label_counter
+				);
+				label_counter++;
+				break;
+
+
+
 			}
 			break;
 		}
+
+
 		case expression_type::IDENTIFIER_LITERAL:
 		{
 			switch (op)
@@ -379,6 +424,30 @@ private:
 					"\tmov r8, %s\n"
 					"\tidiv r8\n",
 					generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)).c_str());
+				break;
+			case tk_type::TK_GT:
+				base += string_format(
+					"\tcmp rax, %s\n"
+					"\tmov rax, 1\n"
+					"\tjg GREATER%d\n"
+					"\txor rax, rax\n"
+					"GREATER%d:\n",
+					generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)).c_str(),
+					label_counter, label_counter
+				);
+				label_counter++;
+				break;
+			case tk_type::TK_LT:
+				base += string_format(
+					"\tcmp rax, %s\n"
+					"\tmov rax, 1\n"
+					"\tjl LESS%d\n"
+					"\txor rax, rax\n"
+					"LESS%d:\n",
+					generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)).c_str(),
+					label_counter, label_counter
+				);
+				label_counter++;
 				break;
 			}
 			break;
@@ -406,6 +475,26 @@ private:
 					"\txor rdx, rdx\n"
 					"\tmov r8, %ld\n"
 					"\tidiv r8\n", value);
+				break;
+			case tk_type::TK_GT:
+				base += string_format(
+					"\tcmp rax, %ld\n"
+					"\tmov rax, 1\n"
+					"\tjg GREATER%d\n"
+					"\txor rax, rax\n"
+					"GREATER%d:\n", value, label_counter, label_counter
+				);
+				label_counter++;
+				break;
+			case tk_type::TK_LT:
+				base += string_format(
+					"\tcmp rax, %ld\n"
+					"\tmov rax, 1\n"
+					"\tjl LESS%d\n"
+					"\txor rax, rax\n"
+					"LESS%d:\n", value, label_counter, label_counter
+				);
+				label_counter++;
 				break;
 			}
 			break;
@@ -435,6 +524,26 @@ private:
 					"\txor rdx, rdx\n"
 					"\tidiv r9\n";
 				break;
+			case tk_type::TK_GT:
+				base += string_format(
+					"\tcmp rax, r9\n"
+					"\tmov rax, 1\n"
+					"\tjg GREATER%d\n"
+					"\txor rax, rax\n"
+					"GREATER%d:\n", label_counter, label_counter
+				);
+				label_counter++;
+				break;
+			case tk_type::TK_LT:
+				base += string_format(
+					"\tcmp rax, r9\n"
+					"\tmov rax, 1\n"
+					"\tjl LESS%d\n"
+					"\txor rax, rax\n"
+					"LESS%d:\n", label_counter, label_counter
+				);
+				label_counter++;
+				break;
 			}
 
 			break;
@@ -449,7 +558,7 @@ private:
 
 
 	uint32_t layer_depth = 0;
-
+	uint32_t label_counter = 0;
 
 
 };

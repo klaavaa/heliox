@@ -147,8 +147,17 @@ hx_symbol_table* generate_compound_symbol_table(hx_sptr<hx_compound_statement> c
 
 			std::string name = (std::dynamic_pointer_cast<hx_definition_statement>(statement))->type_decl->name;
 			table->insert(name, definition_symbol);
+			break;
 		}
-
+		case statement_type::CONDITIONAL:
+		{
+			std::string name = std::to_string(depth);
+			hx_sptr<hx_conditional_statement> cond_stat = std::dynamic_pointer_cast<hx_conditional_statement>(statement);
+			if (cond_stat->statement->s_type == statement_type::COMPOUND)
+				table->add_symbol_table(name, generate_compound_symbol_table(
+					std::dynamic_pointer_cast<hx_compound_statement>(cond_stat->statement), relative_stack_p, depth + 1));
+			break;
+		}
 		}
 	}
 

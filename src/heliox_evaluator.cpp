@@ -42,14 +42,17 @@ std::optional<int64_t> evaluate_binop_expression(hx_sptr<hx_binop_expression> bi
 	if (!(left_value.has_value() && right_value.has_value()))
 		return {};
 
-	if (binop->op == tk_type_to_str::get_str(TK_PLUS))
-		return left_value.value() + right_value.value();
-	if (binop->op == tk_type_to_str::get_str(TK_MINUS))
-		return left_value.value() - right_value.value();
-	if (binop->op == tk_type_to_str::get_str(TK_MULTIPLY))
-		return left_value.value() * right_value.value();
-	if (binop->op == tk_type_to_str::get_str(TK_DIVIDE))
-		return left_value.value() / right_value.value();
+	tk_type op = tk_type_to_str::get_tk(binop->op.c_str());
+
+	switch (op)
+	{
+	case TK_PLUS:		return left_value.value() + right_value.value();
+	case TK_MINUS:		return left_value.value() - right_value.value();
+	case TK_MULTIPLY:	return left_value.value() * right_value.value();
+	case TK_DIVIDE:		return left_value.value() / right_value.value();
+	case TK_GT:			return left_value.value() > right_value.value();
+	case TK_LT:			return left_value.value() < right_value.value();
+	}
 
 }
 

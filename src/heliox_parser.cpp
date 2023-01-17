@@ -153,6 +153,7 @@ hx_sptr<hx_statement> hx_parser::parse_keyword_statement(hx_sptr<hx_error> error
 	switch (keyword.keyword)
 	{
 	case hx_kwords::RETURN: return parse_return_statement(error);
+	case hx_kwords::IF:		return parse_if_statement(error);
 	}
 }
 
@@ -161,9 +162,27 @@ hx_sptr<hx_return_statement> hx_parser::parse_return_statement(hx_sptr<hx_error>
 	eat(TK_KEYWORD, error);
 	hx_sptr<hx_return_statement> return_statement(make_shared<hx_return_statement>());
 	return_statement->line_number = lexer->get_line();
-	return_statement->expression = parse_expression(error, parse_primary(error), 1);
+	return_statement->expression = parse_expression(error, parse_primary(error));
 	eat(TK_SEMICOLON, error);
 	return return_statement;
+}
+
+hx_sptr<hx_conditional_statement> hx_parser::parse_if_statement(hx_sptr<hx_error> error)
+{
+	eat(TK_KEYWORD, error);
+	hx_sptr<hx_conditional_statement> conditional_statement(make_shared<hx_conditional_statement>());
+
+	conditional_statement->line_number = lexer->get_line();
+
+	eat(TK_L_PAREN, error);
+
+	conditional_statement->expression = parse_expression(error, parse_primary(error));
+	conditional_statement->expression->line_number = lexer->get_line();
+	eat(TK_R_PAREN, error);
+
+	conditional_statement->statement = parse_statement(error);
+	conditional_statement->statement->line_number = lexer->get_line();
+	return conditional_statement;
 }
 
 hx_sptr<hx_definition_statement> hx_parser::parse_definition_statement(hx_sptr<hx_error> error)
@@ -173,7 +192,7 @@ hx_sptr<hx_definition_statement> hx_parser::parse_definition_statement(hx_sptr<h
 	definition_statement->line_number = lexer->get_line();
 	eat(TK_EQU, error);
 
-	definition_statement->expression = parse_expression(error, parse_primary(error), 1);
+	definition_statement->expression = parse_expression(error, parse_primary(error));
 
 	eat(TK_SEMICOLON, error);
 
@@ -227,7 +246,7 @@ hx_sptr<hx_expression> hx_parser::parse_primary(hx_sptr<hx_error> error)
 	case TK_L_PAREN:
 	{
 		eat(TK_L_PAREN, error);
-		hx_sptr<hx_expression> expression = parse_expression(error, parse_primary(error), 1);
+		hx_sptr<hx_expression> expression = parse_expression(error, parse_primary(error));
 		eat(TK_R_PAREN, error);
 		return expression;
 	} 
@@ -243,10 +262,6 @@ hx_sptr<hx_expression> hx_parser::parse_primary(hx_sptr<hx_error> error)
 hx_sptr<hx_expression> hx_parser::parse_expression(hx_sptr<hx_error> error, hx_sptr<hx_expression> lhs, uint32_t precedence)
 {
 	
-
-	
-
-
 	hx_sptr<hx_binop_expression> binop_expression(make_shared<hx_binop_expression>());
 
 	while (true)
@@ -266,10 +281,6 @@ hx_sptr<hx_expression> hx_parser::parse_expression(hx_sptr<hx_error> error, hx_s
 		eat(token.type, error);
 
 		hx_sptr<hx_expression> rhs = parse_primary(error);
-
-
-
-		
 
 		
 		while (true)
@@ -300,6 +311,13 @@ hx_sptr<hx_expression> hx_parser::parse_expression(hx_sptr<hx_error> error, hx_s
 				make_shared<hx_identifier_literal_expression>
 				(*std::dynamic_pointer_cast<hx_identifier_literal_expression>(lhs));
 			break;
+		case expression_type::FUNCTION_CALL:
+		{
+			binop_expression->left =
+				make_shared<hx_function_call_expression>
+				(*std::dynamic_pointer_cast<hx_function_call_expression>(lhs));
+			break;
+		}
 		case expression_type::BINOP:
 			binop_expression->left = 
 				make_shared<hx_binop_expression>(*std::dynamic_pointer_cast<hx_binop_expression>(lhs));

@@ -211,7 +211,7 @@ static std::optional<uint32_t> get_precedence_level(tk_type token_type)
 	case tk_type::TK_GT:
 		return 10;
 	case tk_type::TK_PLUS:
-		return 15;
+		return 12;
 	case tk_type::TK_MINUS:
 		return 12;
 	case tk_type::TK_MULTIPLY:

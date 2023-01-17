@@ -75,6 +75,7 @@ struct hx_function_call_expression : public hx_expression
 	}
 };
 
+
 struct hx_binop_expression : public hx_expression
 {
 	hx_binop_expression() { e_type = expression_type::BINOP; }
@@ -104,6 +105,8 @@ enum class statement_type : uint32_t
 	TYPE_DECLARATION,
 	DEFINITION,
 	
+	CONDITIONAL,
+
 	EXPRESSION,
 	NOOP
 };
@@ -179,6 +182,24 @@ struct hx_definition_statement : public hx_statement
 		expression->print();
 	}
 	
+};
+
+struct hx_conditional_statement : public hx_statement
+{
+	hx_conditional_statement() { s_type = statement_type::CONDITIONAL; }
+
+	hx_sptr<hx_expression>	expression;
+	hx_sptr<hx_statement>	statement;
+
+	void print() override
+	{
+		printf("IF(");
+		expression->print();
+		printf(")\n");
+
+		statement->print();
+	}
+
 };
 
 struct hx_expression_statement : public hx_statement
