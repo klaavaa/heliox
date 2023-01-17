@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 #include <unordered_map>
-
+#include <optional>
 
 #define COMMA						','
 #define DOT							'.'
@@ -179,12 +179,10 @@ private:
 		return string_to_token;
 		
 	}
-	
-
-
-
-
 };
+
+
+
 
 
 struct hx_token
@@ -202,3 +200,33 @@ struct hx_token
 	std::string value;
 
 };
+
+static std::optional<uint32_t> get_precedence_level(tk_type token_type)
+{
+
+	switch (token_type)
+	{
+	case tk_type::TK_LT:
+		return 10;
+	case tk_type::TK_GT:
+		return 10;
+	case tk_type::TK_PLUS:
+		return 15;
+	case tk_type::TK_MINUS:
+		return 12;
+	case tk_type::TK_MULTIPLY:
+		return 14;
+	case tk_type::TK_DIVIDE:
+		return 14;
+	case tk_type::TK_L_PAREN:
+		return 15;
+	case tk_type::TK_ARROW:
+		return 15;
+	case tk_type::TK_DOT:
+		return 15;
+	default:
+		return {};
+
+	}
+
+}

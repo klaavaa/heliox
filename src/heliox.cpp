@@ -10,7 +10,7 @@ int main(int argc, char** argv)
 {
 	std::string file_path = "assembly_build/heliox.hx";
 	
-	
+
 	hx_sptr<hx_error> error = make_shared<hx_error>();
 
 	if (file_path.substr(file_path.size() - 3) != ".hx")

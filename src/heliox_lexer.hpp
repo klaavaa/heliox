@@ -31,6 +31,7 @@ public:
 		return this->index == this->len_text;
 	}
 
+
 	hx_token get_next(hx_sptr<hx_error> error)
 	{
 		
@@ -336,6 +337,7 @@ private:
 
 		return true;
 	}
+
 
 private:
 
