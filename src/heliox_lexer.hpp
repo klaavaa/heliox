@@ -201,7 +201,11 @@ public:
 
 		case EQUALS:
 		{
-
+			if (peek_next() == EQUALS)
+			{
+				advance();
+				return hx_token(tk_type::TK_DOUBLE_EQU, "");
+			}
 			return hx_token(tk_type::TK_EQU, "");
 		}
 

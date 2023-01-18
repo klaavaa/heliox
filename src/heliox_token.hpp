@@ -95,6 +95,7 @@ enum tk_type : uint32_t
 
 	TK_GT,
 	TK_LT,
+	TK_DOUBLE_EQU,
 
 	TK_ARROW
 
@@ -129,6 +130,7 @@ static const std::unordered_map<tk_type, const char*>  token_to_string =
 { tk_type::TK_OR ,								"|" },
 { tk_type::TK_XOR ,								"^" },
 { tk_type::TK_EQU,								"=" },
+{ tk_type::TK_DOUBLE_EQU,						"=="},
 { tk_type::TK_NOT,								"!" },
 { tk_type::TK_INTEGER,							"INTEGER" },
 { tk_type::TK_FLOAT,							"FLOAT" },
@@ -206,6 +208,8 @@ static std::optional<uint32_t> get_precedence_level(tk_type token_type)
 
 	switch (token_type)
 	{
+	case tk_type::TK_DOUBLE_EQU:
+		return 9;
 	case tk_type::TK_LT:
 		return 10;
 	case tk_type::TK_GT:

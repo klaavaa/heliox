@@ -52,6 +52,7 @@ std::optional<int64_t> evaluate_binop_expression(hx_sptr<hx_binop_expression> bi
 	case TK_DIVIDE:		return left_value.value() / right_value.value();
 	case TK_GT:			return left_value.value() > right_value.value();
 	case TK_LT:			return left_value.value() < right_value.value();
+	case TK_DOUBLE_EQU: return left_value.value() == right_value.value();
 	}
 
 }

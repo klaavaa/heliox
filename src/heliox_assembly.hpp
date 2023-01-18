@@ -166,7 +166,7 @@ private:
 
 		base += generate_statement_asm(statement->statement);
 
-		base += string_format("\tIFEND%d:\n", label_counter);
+		base += string_format("IFEND%d:\n", label_counter);
 
 		label_counter++;
 		return base;
@@ -392,6 +392,18 @@ private:
 				label_counter++;
 				break;
 
+			case tk_type::TK_DOUBLE_EQU:
+
+				base += string_format(
+					"\tcmp rax, rcx\n"
+					"\tmov rax, 1\n"
+					"\tjz EQUAL%d\n"
+					"\txor rax, rax\n"
+					"EQUAL%d:\n", label_counter, label_counter
+				);
+				label_counter++;
+				break;
+
 
 
 			}
@@ -449,6 +461,19 @@ private:
 				);
 				label_counter++;
 				break;
+			case tk_type::TK_DOUBLE_EQU:
+
+				base += string_format(
+					"\tcmp rax, %s\n"
+					"\tmov rax, 1\n"
+					"\tjz EQUAL%d\n"
+					"\txor rax, rax\n"
+					"EQUAL%d:\n", 
+					generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)).c_str(),
+					label_counter, label_counter
+				);
+				label_counter++;
+				break;
 			}
 			break;
 		}
@@ -493,6 +518,18 @@ private:
 					"\tjl LESS%d\n"
 					"\txor rax, rax\n"
 					"LESS%d:\n", value, label_counter, label_counter
+				);
+				label_counter++;
+				break;
+			case tk_type::TK_DOUBLE_EQU:
+
+				base += string_format(
+					"\tcmp rax, %ld\n"
+					"\tmov rax, 1\n"
+					"\tjz EQUAL%d\n"
+					"\txor rax, rax\n"
+					"EQUAL%d:\n",
+					value, label_counter, label_counter
 				);
 				label_counter++;
 				break;
@@ -541,6 +578,18 @@ private:
 					"\tjl LESS%d\n"
 					"\txor rax, rax\n"
 					"LESS%d:\n", label_counter, label_counter
+				);
+				label_counter++;
+				break;
+			case tk_type::TK_DOUBLE_EQU:
+
+				base += string_format(
+					"\tcmp rax, r9\n"
+					"\tmov rax, 1\n"
+					"\tjz EQUAL%d\n"
+					"\txor rax, rax\n"
+					"EQUAL%d:\n",
+					label_counter, label_counter
 				);
 				label_counter++;
 				break;

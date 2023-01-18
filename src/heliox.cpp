@@ -75,8 +75,6 @@ int main(int argc, char** argv)
 	create_assembly_file(file_path_stripped, generated_text, error);
 
 
-	
-	
 
 	return 0;
 }
