@@ -109,6 +109,7 @@ hx_sptr<hx_statement> hx_parser::parse_statement(hx_sptr<hx_error> error)
 
 	switch (token.type)
 	{
+
 	case TK_L_BRACE: return parse_compound_statement(error);
 	case TK_KEYWORD: return parse_keyword_statement(error);
 
@@ -119,6 +120,8 @@ hx_sptr<hx_statement> hx_parser::parse_statement(hx_sptr<hx_error> error)
 		noop_stat->line_number = lexer->get_line();
 		return noop_stat;
 	}
+
+	
 
 	default:
 		return parse_expression_statement(error);
@@ -135,6 +138,7 @@ hx_sptr<hx_compound_statement> hx_parser::parse_compound_statement(hx_sptr<hx_er
 	while (token.type != TK_R_BRACE)
 	{
 		compound_statement->statements.push_back(parse_statement(error));
+
 	}
 	eat(TK_R_BRACE, error);
 
@@ -154,6 +158,15 @@ hx_sptr<hx_statement> hx_parser::parse_keyword_statement(hx_sptr<hx_error> error
 	{
 	case hx_kwords::RETURN: return parse_return_statement(error);
 	case hx_kwords::IF:		return parse_if_statement(error);
+
+	default:
+	{
+		error->ok = false;
+		error->error_type = HX_SYNTAX_ERROR;
+		error->line = lexer->get_line();
+		error->info = "Unexpected token: " + get_string_from_kword(keyword.keyword) + " (possibly missing matching '}')";
+		hx_logger::log_and_exit(*error);
+	}
 	}
 }
 
@@ -374,7 +387,8 @@ hx_sptr<hx_expression> hx_parser::parse_identifier_expression(hx_sptr<hx_error> 
 hx_sptr<hx_int_literal_expression> hx_parser::parse_int_literal_expression(hx_sptr<hx_error> error)
 {
 	hx_sptr<hx_int_literal_expression> int_literal_expression(make_shared<hx_int_literal_expression>());
-	int_literal_expression->value = std::atoi(token.value.c_str());
+
+	int_literal_expression->value = std::stoll(token.value);
 	int_literal_expression->line_number = lexer->get_line();
 
 	eat(TK_INTEGER, error);

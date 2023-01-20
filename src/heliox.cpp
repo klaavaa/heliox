@@ -1,17 +1,14 @@
 #include <iostream>
 #include <cassert>
-
+#include <filesystem>
 #include "heliox_file.hpp"
 #include "heliox_assembly.hpp"
 #include "heliox_error.hpp"
 
 
-int main(int argc, char** argv)
-{
-	std::string file_path = "assembly_build/heliox.hx";
-	
-	
 
+void hx_compile(const std::string& file_path, const std::string& output_path)
+{
 	hx_sptr<hx_error> error = make_shared<hx_error>();
 
 	if (file_path.substr(file_path.size() - 3) != ".hx")
@@ -23,15 +20,16 @@ int main(int argc, char** argv)
 		hx_logger::log_error(*error);
 		exit(1);
 	}
+
 	// get last part of absolute path (example home/dir1/dir2/file.hx -> file.hx)
-	std::string file_path_stripped = file_path.substr(file_path.find_last_of("/") + 1, file_path.size());   
+	std::string file_path_stripped = file_path.substr(file_path.find_last_of("/") + 1, file_path.size());
 
 	error->file = file_path_stripped;
 
 	// strip file extension (example file.hx -> file)
 	file_path_stripped = file_path_stripped.substr(0, file_path_stripped.size() - 3);
 
-	
+
 	std::string text = load_hx_file(file_path, error);
 
 
@@ -71,9 +69,18 @@ int main(int argc, char** argv)
 	std::cout << generated_text << std::endl;
 
 
+	create_assembly_file(output_path + file_path_stripped, generated_text, error);
 
-	create_assembly_file(file_path_stripped, generated_text, error);
+}
 
+int main(int argc, char** argv)
+{
+
+	std::string file_path = "assembly_build/heliox.hx";
+	
+	hx_compile(file_path, "linux/");
+
+	
 
 
 	return 0;

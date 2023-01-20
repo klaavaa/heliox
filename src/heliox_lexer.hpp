@@ -38,7 +38,6 @@ public:
 
 		do
 		{
-			if (cur_char == NEWLINE) this->line_number++;
 			if (!advance()) return hx_token(tk_type::TK_EOF, "");
 
 		} while (cur_char == SPACE || cur_char == TAB || cur_char == NEWLINE);
@@ -81,19 +80,29 @@ public:
 		}
 		case AMPERSAND:
 		{
+			if (peek_next() == AMPERSAND)
+			{
+				advance();
+				return hx_token(tk_type::TK_LOGICAL_AND, "");
+			}
 
-			return hx_token(tk_type::TK_AND, "");
+			return hx_token(tk_type::TK_BITWISE_AND, "");
 
 		}
 
 		case CIRCUMFLEX:
 		{
-			return hx_token(tk_type::TK_XOR, "");
+			return hx_token(tk_type::TK_BITWISE_XOR, "");
 		}
 
 		case PIPE:
 		{
-			return hx_token(tk_type::TK_OR, "");
+			if (peek_next() == PIPE)
+			{
+				advance();
+				return hx_token(tk_type::TK_LOGICAL_OR, "");
+			}
+			return hx_token(tk_type::TK_BITWISE_OR, "");
 		}
 
 		case PLUS:
@@ -192,10 +201,20 @@ public:
 
 		case LEFT_ARROW:
 		{
+			if (peek_next() == EQUALS)
+			{
+				advance();
+				return hx_token(tk_type::TK_LTE, "");
+			}
 			return hx_token(tk_type::TK_LT, "");
 		}
 		case RIGHT_ARROW:
 		{
+			if (peek_next() == EQUALS)
+			{
+				advance();
+				return hx_token(tk_type::TK_GTE, "");
+			}
 			return hx_token(tk_type::TK_GT, "");
 		}
 
@@ -211,6 +230,13 @@ public:
 
 		case EXCLAMATION_MARK:
 		{
+
+			if (peek_next() == EQUALS)
+			{
+				advance();
+				return hx_token(tk_type::TK_NEQU, "");
+			}
+
 			return hx_token(tk_type::TK_NOT, "");
 
 		}
@@ -338,6 +364,9 @@ private:
 			return false;
 		}
 		cur_char = text[index - 1];
+
+		if (cur_char == '\n')
+			line_number++;
 
 		return true;
 	}

@@ -36,17 +36,19 @@ std::string load_hx_file(const std::string& file_path, hx_sptr<hx_error> error)
 void create_assembly_file(const std::string& file_path, const std::string& assembly_code, hx_sptr<hx_error> error)
 {
 
+
 	std::string output_file = file_path;
 	output_file.append(".asm");
 
 
 	std::ofstream s_file;
 	
-	s_file.open("linux/"+output_file, std::ios::out);
+	s_file.open(output_file, std::ios::out);
 
 	if (s_file.is_open())
 	{
 		s_file.write(assembly_code.c_str(), assembly_code.size());
+
 	}
 	else
 	{

@@ -83,19 +83,25 @@ enum tk_type : uint32_t
 	TK_R_BRACK,
 
 	TK_DOLLAR,
-	TK_AND,
-	TK_OR,
-	TK_XOR,
+	TK_BITWISE_AND,
+	TK_BITWISE_OR,
+	TK_BITWISE_XOR,
 	TK_EQU,
 	TK_NOT,
 	TK_INTEGER,
 	TK_FLOAT,
 	TK_STRING,
+
 	TK_AT,
 
+	TK_LOGICAL_AND,
+	TK_LOGICAL_OR,
 	TK_GT,
+	TK_GTE,
 	TK_LT,
+	TK_LTE,
 	TK_DOUBLE_EQU,
+	TK_NEQU,
 
 	TK_ARROW
 
@@ -126,16 +132,21 @@ static const std::unordered_map<tk_type, const char*>  token_to_string =
 { tk_type::TK_R_BRACK,							"]" },
 { tk_type::TK_DOLLAR ,							"$" },
 { tk_type::TK_AT ,								"@" },
-{ tk_type::TK_AND,								"&" },
-{ tk_type::TK_OR ,								"|" },
-{ tk_type::TK_XOR ,								"^" },
+{ tk_type::TK_BITWISE_AND,						"&" },
+{ tk_type::TK_BITWISE_OR ,						"|" },
+{ tk_type::TK_BITWISE_XOR ,						"^" },
+{ tk_type::TK_LOGICAL_AND,						"&&"},
+{ tk_type::TK_LOGICAL_OR,						"||"},
 { tk_type::TK_EQU,								"=" },
 { tk_type::TK_DOUBLE_EQU,						"=="},
 { tk_type::TK_NOT,								"!" },
+{ tk_type::TK_NEQU,								"!="},
 { tk_type::TK_INTEGER,							"INTEGER" },
 { tk_type::TK_FLOAT,							"FLOAT" },
 { tk_type::TK_STRING,							"STRING"},
 { tk_type::TK_LT,								"<" },
+{ tk_type::TK_LTE,								"<="}, 
+{ tk_type::TK_GTE,								">="},
 { tk_type::TK_GT,								">" },
 { tk_type::TK_ARROW,							"->"}				
 
@@ -208,24 +219,40 @@ static std::optional<uint32_t> get_precedence_level(tk_type token_type)
 
 	switch (token_type)
 	{
+
+	// 4
+	case tk_type::TK_LOGICAL_OR:
+		return 4;
+
+	// 5
+	case tk_type::TK_LOGICAL_AND:
+		return 5;
+
+	// 9
 	case tk_type::TK_DOUBLE_EQU:
+	case tk_type::TK_NEQU:
 		return 9;
+
+	// 10
 	case tk_type::TK_LT:
-		return 10;
+	case tk_type::TK_LTE:
 	case tk_type::TK_GT:
+	case tk_type::TK_GTE:
 		return 10;
+
+	// 12
 	case tk_type::TK_PLUS:
-		return 12;
 	case tk_type::TK_MINUS:
 		return 12;
+
+	// 14
 	case tk_type::TK_MULTIPLY:
-		return 14;
 	case tk_type::TK_DIVIDE:
 		return 14;
+
+	// 15
 	case tk_type::TK_L_PAREN:
-		return 15;
 	case tk_type::TK_ARROW:
-		return 15;
 	case tk_type::TK_DOT:
 		return 15;
 	default:

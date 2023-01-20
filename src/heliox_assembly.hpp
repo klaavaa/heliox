@@ -114,7 +114,8 @@ private:
 
 		base += generate_statement_asm(function->statement);
 
-				
+		base += "\tleave\n";
+		base += "\tret\n";
 		//delete function;
 
 		return base;
@@ -162,6 +163,7 @@ private:
 		std::string base;
 		base += generate_expression_asm(statement->expression);
 
+		base += "\ttest rax, rax\n";
 		base += string_format("\tjz IFEND%d\n", label_counter);
 
 		base += generate_statement_asm(statement->statement);
@@ -193,13 +195,12 @@ private:
 
 		hx_symbol symbol = current_scope_table->get_symbol(statement->type_decl->name);
 
-		
-		
+	
 
 		base +=
 			string_format(
-				"\tsub rsp, %ld\n"
-				"\tmov qword[rbp-%ld], rax	; variable: %s\n", hx_get_size(symbol.data_type), symbol.stack_position, statement->type_decl->name.c_str());
+				"\tsub rsp, %d\n"
+				"\tmov qword[rbp-%d], rax	; variable: %s\n", hx_get_size(symbol.data_type), symbol.stack_position, statement->type_decl->name.c_str());
 
 		
 		return base;		
@@ -231,7 +232,7 @@ private:
 			int64_t value = opt.value();
 
 			base = string_format(
-				"\tmov rax, %ld\n"
+				"\tmov rax, qword %lld\n"
 				, value
 			);
 
@@ -245,14 +246,14 @@ private:
 			{
 				int64_t value = opt.value();
 				base = string_format(
-					"\tmov rax, %ld\n"
+					"\tmov rax, qword %lld\n"
 					, value
 				);
 			}
 			else
 			{
-				std::dynamic_pointer_cast<hx_binop_expression>(expression)->print();
-				printf("\n");
+				//std::dynamic_pointer_cast<hx_binop_expression>(expression)->print();
+				//printf("\n");
 				base += generate_binop_asm(std::dynamic_pointer_cast<hx_binop_expression>(expression));
 
 			}
@@ -266,14 +267,13 @@ private:
 	{
 		std::string base;
 
-		hx_error err;
-		err.line = expression->line_number;
-
-		hx_symbol symbol = current_scope_table->find_symbol(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression)->name, hx_symbol_type::VAR, err);
+		hx_symbol symbol = current_scope_table->find_symbol(
+			std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression)->name,
+			hx_symbol_type::VAR, expression->line_number);
 		
 		
 		base = string_format(
-			"qword[rbp-%ld]",
+			"qword[rbp-%d]",
 			symbol.stack_position
 		);
 		
@@ -318,14 +318,13 @@ private:
 			base += "\tmov rcx, rax\n";
 		}
 
-		if (left_type == expression_type::BINOP)
-		{
-			base += "\tmov rax, r8\n";
-		}
-
-
 		switch (left_type)
 		{
+		case expression_type::BINOP:
+		{
+			base += "\tmov rax, r8\n";
+			break;
+		}
 		case expression_type::IDENTIFIER_LITERAL:
 		{
 			base += "\tmov rax, " + generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->left)) + "\n";
@@ -336,7 +335,7 @@ private:
 			std::optional<int64_t> opt = evaluate_int_literal(std::dynamic_pointer_cast<hx_int_literal_expression>(expression->left));
 			int64_t value = opt.value();
 			base += string_format(
-				"\tmov rax, %ld\n", value);
+				"\tmov rax, qword %lld\n", value);
 			break;
 		}
 		case expression_type::FUNCTION_CALL:
@@ -381,6 +380,16 @@ private:
 				);
 				label_counter++;
 				break;
+			case tk_type::TK_GTE:
+				base += string_format(
+					"\tcmp rax, rcx\n"
+					"\tmov rax, 1\n"
+					"\tjge GREATEREQU%d\n"
+					"\txor rax, rax\n"
+					"GREATEREQU%d:\n", label_counter, label_counter
+				);
+				label_counter++;
+				break;
 			case tk_type::TK_LT:
 				base += string_format(
 					"\tcmp rax, rcx\n"
@@ -388,6 +397,16 @@ private:
 					"\tjl LESS%d\n"
 					"\txor rax, rax\n"
 					"LESS%d:\n", label_counter, label_counter
+				);
+				label_counter++;
+				break;
+			case tk_type::TK_LTE:
+				base += string_format(
+					"\tcmp rax, rcx\n"
+					"\tmov rax, 1\n"
+					"\tjle LESSEQU%d\n"
+					"\txor rax, rax\n"
+					"LESSEQU%d:\n", label_counter, label_counter
 				);
 				label_counter++;
 				break;
@@ -403,9 +422,24 @@ private:
 				);
 				label_counter++;
 				break;
+			case tk_type::TK_NEQU:
 
-
-
+				base += string_format(
+					"\tcmp rax, rcx\n"
+					"\tmov rax, 1\n"
+					"\tjnz NOTEQUAL%d\n"
+					"\txor rax, rax\n"
+					"NOTEQUAL%d:\n", label_counter, label_counter
+				);
+				label_counter++;
+				break;
+			case tk_type::TK_LOGICAL_AND:
+				base += "\tand rax, rcx\n";
+				break;
+			case tk_type::TK_LOGICAL_OR:
+				base += "\tor rax, rcx\n";
+				break;
+				
 			}
 			break;
 		}
@@ -433,8 +467,8 @@ private:
 			case tk_type::TK_DIVIDE:
 				base += string_format(
 					"\txor rdx, rdx\n"
-					"\tmov r8, %s\n"
-					"\tidiv r8\n",
+					"\tmov r9, %s\n"
+					"\tidiv r9\n",
 					generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)).c_str());
 				break;
 			case tk_type::TK_GT:
@@ -449,6 +483,18 @@ private:
 				);
 				label_counter++;
 				break;
+			case tk_type::TK_GTE:
+				base += string_format(
+					"\tcmp rax, %s\n"
+					"\tmov rax, 1\n"
+					"\tjge GREATEREQU%d\n"
+					"\txor rax, rax\n"
+					"GREATEREQU%d:\n",
+					generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)).c_str(),
+					label_counter, label_counter
+				);
+				label_counter++;
+				break;
 			case tk_type::TK_LT:
 				base += string_format(
 					"\tcmp rax, %s\n"
@@ -456,6 +502,18 @@ private:
 					"\tjl LESS%d\n"
 					"\txor rax, rax\n"
 					"LESS%d:\n",
+					generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)).c_str(),
+					label_counter, label_counter
+				);
+				label_counter++;
+				break;
+			case tk_type::TK_LTE:
+				base += string_format(
+					"\tcmp rax, %s\n"
+					"\tmov rax, 1\n"
+					"\tjle LESSEQU%d\n"
+					"\txor rax, rax\n"
+					"LESSEQU%d:\n",
 					generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)).c_str(),
 					label_counter, label_counter
 				);
@@ -474,6 +532,30 @@ private:
 				);
 				label_counter++;
 				break;
+			case tk_type::TK_NEQU:
+
+				base += string_format(
+					"\tcmp rax, %s\n"
+					"\tmov rax, 1\n"
+					"\tjnz NOTEQUAL%d\n"
+					"\txor rax, rax\n"
+					"NOTEQUAL%d:\n",
+					generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)).c_str(),
+					label_counter, label_counter
+				);
+				label_counter++;
+				break;
+			case tk_type::TK_LOGICAL_AND:
+				base += string_format(
+					"\tand rax, %s\n",
+					generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)).c_str());
+				break;
+			case tk_type::TK_LOGICAL_OR:
+				base += string_format(
+					"\tor rax, %s\n",
+					generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)).c_str());
+				break;
+
 			}
 			break;
 		}
@@ -481,29 +563,37 @@ private:
 		{
 			std::optional<int64_t> opt = evaluate_int_literal(std::dynamic_pointer_cast<hx_int_literal_expression>(expression->right));
 			int64_t value = opt.value();
+			//bool is_64_bytes = value > INT32_MAX; 
+			// TODO: check if the number is greater than 32 bytes and only then move it to a register for the operation
+			//		 else use op rax, imm32
+
 			switch (op)
 			{
 			case tk_type::TK_PLUS:
 				base += string_format(
-					"\tadd rax, %ld\n", value);
+					"\tmov r9, qword %lld\n"
+					"\tadd rax, r9\n", value);
 				break;
 			case tk_type::TK_MINUS:
 				base += string_format(
-					"\tsub rax, %ld\n", value);
+					"\tmov r9, qword %lld\n"
+					"\tsub rax, r9\n", value);
 				break;
 			case tk_type::TK_MULTIPLY:
 				base += string_format(
-					"\timul rax, %ld\n", value);
+					"\tmov r9, qword %lld\n"
+					"\timul rax, r9", value);
 				break;
 			case tk_type::TK_DIVIDE:
 				base += string_format(
 					"\txor rdx, rdx\n"
-					"\tmov r8, %ld\n"
-					"\tidiv r8\n", value);
+					"\tmov r9, qword %lld\n"
+					"\tidiv r9\n", value);
 				break;
 			case tk_type::TK_GT:
 				base += string_format(
-					"\tcmp rax, %ld\n"
+					"\tmov r9, qword %lld\n"
+					"\tcmp rax, r9\n"
 					"\tmov rax, 1\n"
 					"\tjg GREATER%d\n"
 					"\txor rax, rax\n"
@@ -511,9 +601,21 @@ private:
 				);
 				label_counter++;
 				break;
+			case tk_type::TK_GTE:
+				base += string_format(
+					"\tmov r9, qword %lld\n"
+					"\tcmp rax, r9\n"
+					"\tmov rax, 1\n"
+					"\tjge GREATEREQU%d\n"
+					"\txor rax, rax\n"
+					"GREATEREQU%d:\n", value, label_counter, label_counter
+				);
+				label_counter++;
+				break;
 			case tk_type::TK_LT:
 				base += string_format(
-					"\tcmp rax, %ld\n"
+					"\tmov r9, qword %lld\n"
+					"\tcmp rax, r9\n"
 					"\tmov rax, 1\n"
 					"\tjl LESS%d\n"
 					"\txor rax, rax\n"
@@ -521,10 +623,22 @@ private:
 				);
 				label_counter++;
 				break;
+			case tk_type::TK_LTE:
+				base += string_format(
+					"\tmov r9, qword %lld\n"
+					"\tcmp rax, r9\n"
+					"\tmov rax, 1\n"
+					"\tjle LESSEQU%d\n"
+					"\txor rax, rax\n"
+					"LESSEQU%d:\n", value, label_counter, label_counter
+				);
+				label_counter++;
+				break;
 			case tk_type::TK_DOUBLE_EQU:
 
 				base += string_format(
-					"\tcmp rax, %ld\n"
+					"\tmov r9, qword %lld\n"
+					"\tcmp rax, r9\n"
 					"\tmov rax, 1\n"
 					"\tjz EQUAL%d\n"
 					"\txor rax, rax\n"
@@ -532,6 +646,27 @@ private:
 					value, label_counter, label_counter
 				);
 				label_counter++;
+				break;
+			case tk_type::TK_NEQU:
+
+				base += string_format(
+					"\tmov r9, qword %lld\n"
+					"\tcmp rax, r9\n"
+					"\tmov rax, 1\n"
+					"\tjnz NOTEQUAL%d\n"
+					"\txor rax, rax\n"
+					"NOTEQUAL%d:\n",
+					value, label_counter, label_counter
+				);
+				label_counter++;
+				break;
+			case tk_type::TK_LOGICAL_AND:
+				base += string_format(
+					"\tand rax, qword %lld", value);
+				break;
+			case tk_type::TK_LOGICAL_OR:
+				base += string_format(
+					"\tor rax, qword %lld", value);
 				break;
 			}
 			break;
@@ -571,6 +706,16 @@ private:
 				);
 				label_counter++;
 				break;
+			case tk_type::TK_GTE:
+				base += string_format(
+					"\tcmp rax, r9\n"
+					"\tmov rax, 1\n"
+					"\tjge GREATEREQU%d\n"
+					"\txor rax, rax\n"
+					"GREATEREQU%d:\n", label_counter, label_counter
+				);
+				label_counter++;
+				break;
 			case tk_type::TK_LT:
 				base += string_format(
 					"\tcmp rax, r9\n"
@@ -578,6 +723,16 @@ private:
 					"\tjl LESS%d\n"
 					"\txor rax, rax\n"
 					"LESS%d:\n", label_counter, label_counter
+				);
+				label_counter++;
+				break;
+			case tk_type::TK_LTE:
+				base += string_format(
+					"\tcmp rax, r9\n"
+					"\tmov rax, 1\n"
+					"\tjle LESSEQU%d\n"
+					"\txor rax, rax\n"
+					"LESSEQU%d:\n", label_counter, label_counter
 				);
 				label_counter++;
 				break;
@@ -592,6 +747,24 @@ private:
 					label_counter, label_counter
 				);
 				label_counter++;
+				break;
+			case tk_type::TK_NEQU:
+
+				base += string_format(
+					"\tcmp rax, r9\n"
+					"\tmov rax, 1\n"
+					"\tjnz NOTEQUAL%d\n"
+					"\txor rax, rax\n"
+					"NOTEQUAL%d:\n",
+					label_counter, label_counter
+				);
+				label_counter++;
+				break;
+			case tk_type::TK_LOGICAL_AND:
+				base += "\tand rax, r9\n";
+				break;
+			case tk_type::TK_LOGICAL_OR:
+				base += "\tor rax, r9\n";
 				break;
 			}
 

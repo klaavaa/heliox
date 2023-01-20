@@ -33,14 +33,20 @@ hx_symbol hx_symbol_table::get_symbol(const std::string& name)
 	return symbols.at(name);
 }
 
-hx_symbol hx_symbol_table::find_symbol(const std::string& name, hx_symbol_type symbol_type, hx_error err)
+hx_symbol hx_symbol_table::find_symbol(const std::string& name, hx_symbol_type symbol_type, uint32_t line_number)
 {
+	
 	if (check_if_exists(name, symbol_type))
-		return symbols.at(name);
-
+	{
+		if (line_number > symbols.at(name).line_number)
+			return symbols.at(name);
+	}
+	
 	if (this->parent)
-		return this->parent->find_symbol(name, symbol_type, err);
+		return this->parent->find_symbol(name, symbol_type, line_number);
 
+	hx_error err;
+	err.line = line_number;
 	err.ok = false;
 	err.file = "";
 	err.error_type = HX_SYMBOL_NOT_FOUND;
@@ -134,7 +140,7 @@ hx_symbol_table* generate_compound_symbol_table(hx_sptr<hx_compound_statement> c
 			table->add_symbol_table(name, generate_compound_symbol_table(std::dynamic_pointer_cast<hx_compound_statement>(statement), relative_stack_p, depth + 1));
 			break;
 		}
-
+		
 		case statement_type::DEFINITION:
 		{
 			hx_symbol definition_symbol;
@@ -149,6 +155,7 @@ hx_symbol_table* generate_compound_symbol_table(hx_sptr<hx_compound_statement> c
 			table->insert(name, definition_symbol);
 			break;
 		}
+		
 		case statement_type::CONDITIONAL:
 		{
 			std::string name = std::to_string(depth);
@@ -200,20 +207,19 @@ hx_symbol_table* generate_symbol_table(hx_sptr<hx_program> program)
 
 
 			hx_symbol_table* func_table = global_table->get_symbol_table(function->name);
+			
 			int32_t param_stack_pos = 0;
+
 			for (const auto param : function->parameters)
 			{
-
-
-
 				hx_symbol symbol;
 				param_stack_pos -= hx_get_size(hx_data_type::INT);
 				symbol.stack_position = param_stack_pos - 8; // subtract extra 8 because of push rbp call
 				symbol.data_type = hx_data_type::INT;
 				symbol.type = hx_symbol_type::VAR;
+				symbol.line_number = param->line_number;
 				
 				func_table->insert(param->name, symbol);
-
 			}
 
 

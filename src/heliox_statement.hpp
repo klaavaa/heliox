@@ -26,7 +26,7 @@ struct hx_expression
 struct hx_int_literal_expression : public hx_expression
 {
 	hx_int_literal_expression() { e_type = expression_type::INT_LITERAL; }
-	int value;
+	int64_t value;
 
 	void print() override
 	{

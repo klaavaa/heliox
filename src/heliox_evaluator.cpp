@@ -46,13 +46,19 @@ std::optional<int64_t> evaluate_binop_expression(hx_sptr<hx_binop_expression> bi
 
 	switch (op)
 	{
-	case TK_PLUS:		return left_value.value() + right_value.value();
-	case TK_MINUS:		return left_value.value() - right_value.value();
-	case TK_MULTIPLY:	return left_value.value() * right_value.value();
-	case TK_DIVIDE:		return left_value.value() / right_value.value();
-	case TK_GT:			return left_value.value() > right_value.value();
-	case TK_LT:			return left_value.value() < right_value.value();
-	case TK_DOUBLE_EQU: return left_value.value() == right_value.value();
+	case TK_PLUS:		 return left_value.value() +  right_value.value();
+	case TK_MINUS:		 return left_value.value() -  right_value.value();
+	case TK_MULTIPLY:	 return left_value.value() *  right_value.value();
+	case TK_DIVIDE:		 return left_value.value() /  right_value.value();
+	case TK_GT:			 return left_value.value() >  right_value.value();
+	case TK_GTE:		 return left_value.value() >= right_value.value();
+	case TK_LT:			 return left_value.value() <  right_value.value();
+	case TK_LTE:		 return left_value.value() <= right_value.value();
+	case TK_DOUBLE_EQU:  return left_value.value() == right_value.value();
+	case TK_NEQU:		 return left_value.value() != right_value.value();
+	case TK_LOGICAL_AND: return left_value.value() && right_value.value();
+	case TK_LOGICAL_OR:  return left_value.value() || right_value.value();
+
 	}
 
 }
