@@ -125,14 +125,17 @@ public:
 			// IGNORE IF COMMENT RETURN NEXT INSTEAD
 			if (peek_next() == STAR)
 			{
-				advance();
+				if (!advance())
+					goto error_label;
 				do
 				{
-					advance();
+					if (!advance())
+						goto error_label;
 
 					if (cur_char == STAR)
 					{
-						advance();
+						if (!advance())
+							goto error_label;
 						if (cur_char == DIVIDE)
 						{
 							advance();
@@ -140,13 +143,21 @@ public:
 						}
 					}
 
-				} while (cur_char != EOF);
+				} while (true);
 
 
 				std::cout << cur_char << std::endl;
 
 				return get_next(error);
 
+			error_label:
+				hx_error err;
+				err.ok = false;
+				err.error_type = HX_SYNTAX_ERROR;
+				err.info = "No matching '*/' found";
+				err.line = get_line();
+				
+				hx_logger::log_and_exit(err);
 
 			}
 			
