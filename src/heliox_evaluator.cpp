@@ -16,6 +16,13 @@ std::optional<int64_t> evaluate_binop_expression(hx_sptr<hx_binop_expression> bi
 	case expression_type::BINOP:
 	{
 		left_value = evaluate_binop_expression(std::dynamic_pointer_cast<hx_binop_expression>(binop->left));
+		if (left_value.has_value())
+		{
+			hx_sptr<hx_int_literal_expression> left_int_literal = make_shared<hx_int_literal_expression>();
+			left_int_literal->line_number = binop->line_number;
+			left_int_literal->value = left_value.value();
+			binop->left = left_int_literal;
+		}
 		break;
 	}
 	case expression_type::INT_LITERAL:
@@ -30,6 +37,13 @@ std::optional<int64_t> evaluate_binop_expression(hx_sptr<hx_binop_expression> bi
 	case expression_type::BINOP:
 	{
 		right_value = evaluate_binop_expression(std::dynamic_pointer_cast<hx_binop_expression>(binop->right));
+		if (right_value.has_value())
+		{
+			hx_sptr<hx_int_literal_expression> right_int_literal = make_shared<hx_int_literal_expression>();
+			right_int_literal->line_number = binop->line_number;
+			right_int_literal->value = right_value.value();
+			binop->left = right_int_literal;
+		}
 		break;
 	}
 	case expression_type::INT_LITERAL:

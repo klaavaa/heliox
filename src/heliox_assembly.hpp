@@ -264,8 +264,8 @@ private:
 			}
 			else
 			{
-				//std::dynamic_pointer_cast<hx_binop_expression>(expression)->print();
-				//printf("\n");
+				std::dynamic_pointer_cast<hx_binop_expression>(expression)->print();
+				printf("\n");
 				base += generate_binop_asm(std::dynamic_pointer_cast<hx_binop_expression>(expression));
 
 			}
