@@ -1,5 +1,4 @@
 #include <iostream>
-#include <cassert>
 #include <filesystem>
 #include "heliox_file.hpp"
 #include "heliox_assembly.hpp"

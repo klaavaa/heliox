@@ -52,6 +52,7 @@ hx_symbol hx_symbol_table::find_symbol(const std::string& name, hx_symbol_type s
 	err.error_type = HX_SYMBOL_NOT_FOUND;
 	err.info = "No symbol called: " + name + " found";
 	hx_logger::log_and_exit(err);
+	return {};
 }
 
 hx_symbol_table* hx_symbol_table::get_symbol_table(const std::string& name)

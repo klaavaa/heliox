@@ -143,7 +143,19 @@ private:
 		case statement_type::RETURN: 
 			return generate_return_asm(std::dynamic_pointer_cast<hx_return_statement>(statement));
 		case statement_type::NOOP:  return "";
+		default:
+		{
+			hx_error err;
+			err.ok = false;
+			err.line = statement->line_number;
+			err.error_type = HX_SYNTAX_ERROR;
+			err.info = "Unexpected statement found";
+			hx_logger::log_and_exit(err);
+			return {};
 		}
+		}
+
+		
 	}
 
 	std::string generate_compound_asm(hx_sptr<hx_compound_statement> statement)
@@ -288,7 +300,7 @@ private:
 
 		std::string base;
 		
-		for (int32_t i = fn_call->arguments.size()-1; i >= 0; i--)
+		for (int i = (int)fn_call->arguments.size()-1; i >= 0; i--)
 		{
 			base += generate_expression_asm(fn_call->arguments[i]);
 			base += "\tpush rax\n";

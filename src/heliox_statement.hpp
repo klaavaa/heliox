@@ -30,7 +30,7 @@ struct hx_int_literal_expression : public hx_expression
 
 	void print() override
 	{
-		printf("%d", value);
+		printf("%lld", value);
 	}
 };
 
@@ -69,7 +69,7 @@ struct hx_function_call_expression : public hx_expression
 		identifier->print();
 		for (size_t i = 0; i < arguments.size(); i++)
 		{
-			printf("argument %d", i);
+			printf("argument %zd", i);
 			arguments[i]->print();
 		}
 	}

@@ -16,7 +16,7 @@ public:
 	{
 		this->text = text;
 		this->index = 0;
-		this->len_text = text.size();
+		this->len_text = (uint32_t)text.size();
 		this->cur_char = -1;
 
 	}

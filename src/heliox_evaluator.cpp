@@ -58,7 +58,16 @@ std::optional<int64_t> evaluate_binop_expression(hx_sptr<hx_binop_expression> bi
 	case TK_NEQU:		 return left_value.value() != right_value.value();
 	case TK_LOGICAL_AND: return left_value.value() && right_value.value();
 	case TK_LOGICAL_OR:  return left_value.value() || right_value.value();
-
+	default:
+	{
+		hx_error err;
+		err.ok = false;
+		err.line = binop->line_number;
+		err.error_type = HX_SYNTAX_ERROR;
+		err.info = "Unexpected operator found";
+		hx_logger::log_and_exit(err);
+		return {};
+	}
 	}
 
 }
@@ -74,5 +83,15 @@ std::optional<int64_t> evaluate_expression(hx_sptr<hx_expression> expression)
 		return evaluate_int_literal(std::dynamic_pointer_cast<hx_int_literal_expression>(expression));
 
 
+	default:
+	{
+		hx_error err;
+		err.ok = false;
+		err.line = expression->line_number;
+		err.error_type = HX_SYNTAX_ERROR;
+		err.info = "Unexpected expression found";
+		hx_logger::log_and_exit(err);
+		return {};
+	}
 	}
 }
