@@ -45,7 +45,6 @@ void hx_compile(const std::string& file_path, const std::string& output_path)
 	program->print();
 
 	bool main_exists = false;
-
 	for (const auto funcs : program->functions)
 	{
 		if (funcs->name == "main")
