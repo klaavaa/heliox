@@ -22,6 +22,8 @@ enum class hx_data_type : uint32_t
 	STRING
 };
 
+
+
 struct hx_symbol
 {
 	hx_symbol_type type;
@@ -62,7 +64,7 @@ private:
 
 	
 	hx_symbol_table* parent;
-
+	
 	
 
 	
@@ -70,5 +72,10 @@ private:
 
 
 uint32_t hx_get_size(hx_data_type dt);
-hx_symbol_table* generate_compound_symbol_table(hx_sptr<hx_compound_statement> compound, int32_t& relative_stack_pos,  uint32_t depth = 1);
+void generate_conditional_symbols(hx_symbol_table* table, hx_sptr<hx_conditional_statement> statement, int32_t& relative_stack_pos, uint32_t& index);
+void generate_definition_symbols(hx_symbol_table* table, hx_sptr<hx_definition_statement> statement, int32_t& relative_stack_pos);
+void generate_statement_symbols(hx_symbol_table* table, hx_sptr<hx_statement> statement, int32_t& relative_stack_pos, uint32_t& index, std::string func_name);
+hx_symbol_table* generate_compound_symbol_table(hx_sptr<hx_compound_statement> compound, int32_t& relative_stack_pos);
 hx_symbol_table* generate_symbol_table(hx_sptr<hx_program> program);
+
+

@@ -67,9 +67,6 @@ hx_symbol_table* hx_symbol_table::get_parent()
 
 hx_symbol_table* hx_symbol_table::get_table_based_on_index(uint32_t index)
 {
-	if (index == 0)
-		return this;
-
 	return get_symbol_table(std::to_string(index));
 }
 
@@ -125,61 +122,135 @@ uint32_t hx_get_size(hx_data_type dt)
 	}
 }
 
-hx_symbol_table* generate_compound_symbol_table(hx_sptr<hx_compound_statement> compound, int32_t& relative_stack_pos, uint32_t depth)
+void generate_conditional_symbols(hx_symbol_table* table, hx_sptr<hx_conditional_statement> statement, int32_t& relative_stack_pos, uint32_t& index)
 {
-	hx_symbol_table* table = new hx_symbol_table();
+
 	int32_t relative_stack_p = relative_stack_pos;
+	std::string name = std::to_string(index);
+	hx_sptr<hx_conditional_statement> cond_stat = std::dynamic_pointer_cast<hx_conditional_statement>(statement);
 
-	for (const auto& statement : compound->statements)
+	switch (cond_stat->statement->s_type)
 	{
-		switch (statement->s_type)
-		{
+	case statement_type::COMPOUND:
+	{
+		table->add_symbol_table(name, generate_compound_symbol_table(
+			std::dynamic_pointer_cast<hx_compound_statement>(cond_stat->statement), relative_stack_p));
+		index++;
+		break;
+	}
+	case statement_type::DEFINITION:
+	{
+		generate_definition_symbols(table, std::dynamic_pointer_cast<hx_definition_statement>(cond_stat->statement), relative_stack_p);
+		break;
+	}
+	}
+	
+	if (cond_stat->else_statement.has_value())
+	{
+		std::string name = std::to_string(index);
 
+		switch (cond_stat->else_statement.value()->s_type)
+		{
 		case statement_type::COMPOUND:
 		{
-			std::string name = std::to_string(depth);
-			table->add_symbol_table(name, generate_compound_symbol_table(std::dynamic_pointer_cast<hx_compound_statement>(statement), relative_stack_p, depth + 1));
+			table->add_symbol_table(name, generate_compound_symbol_table(
+				std::dynamic_pointer_cast<hx_compound_statement>(cond_stat->else_statement.value()), relative_stack_p));
+			index++;
 			break;
 		}
-		
-		case statement_type::DEFINITION:
-		{
-			hx_symbol definition_symbol;
-			definition_symbol.data_type = hx_data_type::INT;
-			definition_symbol.type = hx_symbol_type::VAR;
-			definition_symbol.line_number = statement->line_number;
-			relative_stack_p += hx_get_size(definition_symbol.data_type);
-			definition_symbol.stack_position = relative_stack_p;
-			
-
-			std::string name = (std::dynamic_pointer_cast<hx_definition_statement>(statement))->type_decl->name;
-			table->insert(name, definition_symbol);
-			break;
-		}
-		
 		case statement_type::CONDITIONAL:
 		{
-			std::string name = std::to_string(depth);
-			hx_sptr<hx_conditional_statement> cond_stat = std::dynamic_pointer_cast<hx_conditional_statement>(statement);
-			if (cond_stat->statement->s_type == statement_type::COMPOUND)
-				table->add_symbol_table(name, generate_compound_symbol_table(
-					std::dynamic_pointer_cast<hx_compound_statement>(cond_stat->statement), relative_stack_p, depth + 1));
+
+			generate_conditional_symbols(table, 
+				std::dynamic_pointer_cast<hx_conditional_statement>(cond_stat->else_statement.value()), relative_stack_p, index);
+			break;
+		}
+		case statement_type::DEFINITION:
+		{
+			generate_definition_symbols(table, 
+				std::dynamic_pointer_cast<hx_definition_statement>(cond_stat->else_statement.value()), relative_stack_p);
+			break;
+		}
+		default:
+		{
 			break;
 		}
 		}
 	}
 
-	return table;
+}
+
+void generate_definition_symbols(hx_symbol_table* table, hx_sptr<hx_definition_statement> statement, int32_t& relative_stack_pos)
+{
+	hx_symbol definition_symbol;
+	definition_symbol.data_type = hx_data_type::INT;
+	definition_symbol.type = hx_symbol_type::VAR;
+	definition_symbol.line_number = statement->line_number;
+	relative_stack_pos += hx_get_size(definition_symbol.data_type);
+	definition_symbol.stack_position = relative_stack_pos;
 
 
+	std::string name = (std::dynamic_pointer_cast<hx_definition_statement>(statement))->type_decl->name;
+	table->insert(name, definition_symbol);
 
 }
+
+void generate_statement_symbols(hx_symbol_table* table, hx_sptr<hx_statement> statement, int32_t& relative_stack_pos, uint32_t& index, std::string func_name)
+{
+	
+	switch (statement->s_type)
+	{
+	case statement_type::COMPOUND:
+	{
+		std::string name;
+		if (!func_name.empty())
+			name = func_name;
+		else
+			name = std::to_string(index);
+		table->add_symbol_table(name, generate_compound_symbol_table(std::dynamic_pointer_cast<hx_compound_statement>(statement), relative_stack_pos));
+		index++;
+		break;
+	}
+	case statement_type::DEFINITION:
+	{
+		generate_definition_symbols(table, std::dynamic_pointer_cast<hx_definition_statement>(statement), relative_stack_pos);
+		break;
+	}
+	case statement_type::CONDITIONAL:
+	{
+		generate_conditional_symbols(table, std::dynamic_pointer_cast<hx_conditional_statement>(statement), relative_stack_pos, index);
+		break;
+	}
+
+	default:
+	{
+		break;
+	}
+
+	}
+}
+
+
+hx_symbol_table* generate_compound_symbol_table(hx_sptr<hx_compound_statement> compound, int32_t& relative_stack_pos)
+{
+	hx_symbol_table* table = new hx_symbol_table();
+	uint32_t index = 0;
+	for (const auto& statement : compound->statements)
+	{
+		generate_statement_symbols(table, statement, relative_stack_pos, index, "");
+	}
+
+	return table;
+
+}
+
+
 
 hx_symbol_table* generate_symbol_table(hx_sptr<hx_program> program)
 {
 
 	hx_symbol_table* global_table = new hx_symbol_table();
-
+	uint32_t index = 0;
 	for (const auto& function : program->functions)
 	{
 		
@@ -188,59 +259,44 @@ hx_symbol_table* generate_symbol_table(hx_sptr<hx_program> program)
 		func_symbol.type = hx_symbol_type::FUNC;
 		func_symbol.line_number = function->line_number;
 
-
+		printf("FUNC JÄRJESTYS %s\n", function->name.c_str());
 
 		bool ok = global_table->insert(function->name, func_symbol);
 
+		
 
 
 		if (!ok)
 			printf("ERROR IN SYMBOL TABLE\n");
 		//TODO ERROR
+		int32_t relative_stack_pos = 0;
+		
+		generate_statement_symbols(global_table, function->statement, relative_stack_pos, index, function->name);
+		
 
-		switch (function->statement->s_type)
+		int32_t param_stack_pos = 0;
+
+		if (function->is_declaration)
+			continue;
+
+		hx_symbol_table* func_table = global_table->get_symbol_table(function->name);
+		
+		for (const auto param : function->parameters)
 		{
-		case statement_type::COMPOUND:
-		{
-			int32_t relative_stack_pos = 0;
-			global_table->add_symbol_table(function->name, generate_compound_symbol_table(
-				std::dynamic_pointer_cast<hx_compound_statement>(function->statement), relative_stack_pos));
+			hx_symbol symbol;
+			param_stack_pos -= hx_get_size(hx_data_type::INT);
+			symbol.stack_position = param_stack_pos - 8; // subtract extra 8 because of push rbp call
+			symbol.data_type = hx_data_type::INT;
+			symbol.type = hx_symbol_type::VAR;
+			symbol.line_number = param->line_number;
 
-
-			hx_symbol_table* func_table = global_table->get_symbol_table(function->name);
-			
-			int32_t param_stack_pos = 0;
-
-			for (const auto param : function->parameters)
-			{
-				hx_symbol symbol;
-				param_stack_pos -= hx_get_size(hx_data_type::INT);
-				symbol.stack_position = param_stack_pos - 8; // subtract extra 8 because of push rbp call
-				symbol.data_type = hx_data_type::INT;
-				symbol.type = hx_symbol_type::VAR;
-				symbol.line_number = param->line_number;
-				
-				func_table->insert(param->name, symbol);
-			}
-
-
-			break;
+			func_table->insert(param->name, symbol);
 		}
-
-		case statement_type::NOOP:
-		{
-			global_table->add_symbol_table(function->name, new hx_symbol_table);
-			break;
-		}
-	
-
-		}
-
-
 
 	}
 
 	return global_table;
 
 }
+
 

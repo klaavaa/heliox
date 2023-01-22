@@ -98,8 +98,23 @@ hx_sptr<hx_function> hx_parser::parse_function(hx_sptr<hx_error> error)
 		function->return_type = get_string_from_kword(hx_kwords::VOID);
 	}
 
-
 	function->statement = parse_statement(error);
+
+	if (function->statement->s_type == statement_type::NOOP)
+		function->is_declaration = true;
+	else if (function->statement->s_type == statement_type::COMPOUND)
+		function->is_declaration = false;
+	else
+	{
+		error->ok = false;
+		error->line = function->line_number;
+		error->error_type = HX_SYNTAX_ERROR;
+		error->info = "Function must have a body or a semicolon for declaration";
+		hx_logger::log_and_exit(*error);
+	}
+
+
+	
 
 	return function;
 }
@@ -158,6 +173,7 @@ hx_sptr<hx_statement> hx_parser::parse_keyword_statement(hx_sptr<hx_error> error
 	{
 	case hx_kwords::RETURN: return parse_return_statement(error);
 	case hx_kwords::IF:		return parse_if_statement(error);
+	
 
 	default:
 	{
@@ -196,6 +212,14 @@ hx_sptr<hx_conditional_statement> hx_parser::parse_if_statement(hx_sptr<hx_error
 
 	conditional_statement->statement = parse_statement(error);
 	conditional_statement->statement->line_number = lexer->get_line();
+
+	if (token.type == TK_KEYWORD && token.value == get_string_from_kword(hx_kwords::ELSE))
+	{
+		eat(TK_KEYWORD, error);
+		conditional_statement->else_statement = parse_statement(error);
+		conditional_statement->else_statement.value()->line_number = lexer->get_line();
+	}
+
 	return conditional_statement;
 }
 
@@ -204,6 +228,15 @@ hx_sptr<hx_definition_statement> hx_parser::parse_definition_statement(hx_sptr<h
 	hx_sptr<hx_definition_statement> definition_statement(make_shared<hx_definition_statement>());
 	definition_statement->type_decl = parse_type_decl_statement(error);
 	definition_statement->line_number = lexer->get_line();
+
+	if (token.type == TK_SEMICOLON)
+	{
+		eat(TK_SEMICOLON, error);
+		definition_statement->is_declaration = false;
+		return definition_statement;
+	}
+	definition_statement->is_declaration = true;
+
 	eat(TK_EQU, error);
 
 	definition_statement->expression = parse_expression(error, parse_primary(error));

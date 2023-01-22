@@ -14,7 +14,8 @@ enum class hx_kwords : uint32_t
 	FUNC,
 	VOID,
 	RETURN,
-	IF
+	IF,
+	ELSE
 
 };
 
@@ -56,7 +57,8 @@ static const std::unordered_map<std::string, hx_keyword> keywords = {
 	/* ====STATEMENT==== */
 	{"func",		{hx_keyword::STATEMENT, hx_kwords::FUNC}},
 	{"return",		{hx_keyword::STATEMENT, hx_kwords::RETURN}},
-	{"if",          {hx_keyword::STATEMENT, hx_kwords::IF}}
+	{"if",          {hx_keyword::STATEMENT, hx_kwords::IF}},
+	{"else",		{hx_keyword::STATEMENT, hx_kwords::ELSE}}
 };
 
 inline hx_keyword get_kword_from_string(const std::string& name)

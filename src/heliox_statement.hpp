@@ -2,7 +2,7 @@
 
 #include <string>
 #include <vector>
-
+#include <optional>
 #include "heliox_pointer.hpp"
 
 enum class expression_type : uint32_t
@@ -174,7 +174,7 @@ struct hx_definition_statement : public hx_statement
 
 	hx_sptr<hx_type_decl_statement> type_decl;
 	hx_sptr<hx_expression> expression;
-
+	bool is_declaration;
 	void print() override
 	{
 		type_decl->print();
@@ -190,6 +190,7 @@ struct hx_conditional_statement : public hx_statement
 
 	hx_sptr<hx_expression>	expression;
 	hx_sptr<hx_statement>	statement;
+	std::optional<hx_sptr<hx_statement>> else_statement;
 
 	void print() override
 	{
@@ -198,6 +199,13 @@ struct hx_conditional_statement : public hx_statement
 		printf(")\n");
 
 		statement->print();
+
+		if (else_statement.has_value())
+		{
+			printf("ELSE\n");
+			else_statement.value()->print();
+			printf("\n");
+		}
 	}
 
 };
@@ -226,7 +234,7 @@ struct hx_function
 	std::vector<hx_sptr<hx_type_decl_statement>> parameters;
 	std::string return_type;
 	hx_sptr<hx_statement> statement;
-
+	bool is_declaration;
 	uint32_t line_number;
 
 	void print()

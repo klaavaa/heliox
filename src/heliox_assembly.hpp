@@ -42,13 +42,16 @@ public:
 			"\tmov rax, 60\n"
 			"\tsyscall\n";
 
+		
 
-		for (uint32_t i = 0; i < program->functions.size(); i++)
+		for (const auto& function : program->functions)
 		{
+			if (function->is_declaration)
+				continue;
+			
 			layer_depth = 0;
-			current_scope_table = global_table->get_symbol_table(program->functions[i]->name);
-			std::string function_assembly = generate_function_asm(program->functions[i]);
-			current_scope_table = current_scope_table->get_parent();
+			current_scope_table = global_table->get_symbol_table(function->name);
+			std::string function_assembly = generate_function_asm(function);
 			entry += function_assembly;
 		}
 
@@ -129,12 +132,13 @@ private:
 		case statement_type::DEFINITION: return generate_definition_asm(std::dynamic_pointer_cast<hx_definition_statement>(statement));
 		case statement_type::COMPOUND:
 		{
-		
-			current_scope_table = current_scope_table->get_table_based_on_index(layer_depth);
+			if (layer_depth > 0)
+				current_scope_table = current_scope_table->get_table_based_on_index(layer_depth -1);
 			layer_depth++;
+			uint32_t preserve = layer_depth;
 			std::string base = generate_compound_asm(std::dynamic_pointer_cast<hx_compound_statement>(statement));
-			if (layer_depth -1 > 0)
-				current_scope_table = current_scope_table->get_parent();
+			layer_depth = preserve;
+			current_scope_table = current_scope_table->get_parent();
 			
 			return base;
 		}
@@ -160,7 +164,7 @@ private:
 
 	std::string generate_compound_asm(hx_sptr<hx_compound_statement> statement)
 	{
-
+		layer_depth = 1;
 		std::string base;
 		for (uint32_t i = 0; i < statement->statements.size(); i++)
 		{
@@ -173,16 +177,37 @@ private:
 	std::string generate_conditional_asm(hx_sptr<hx_conditional_statement> statement)
 	{
 		std::string base;
+
+		bool has_else = statement->else_statement.has_value();
+
+		uint32_t cur_label = label_counter;
+		label_counter++;
+
 		base += generate_expression_asm(statement->expression);
 
 		base += "\ttest rax, rax\n";
-		base += string_format("\tjz IFEND%d\n", label_counter);
+		base += string_format("\tjz IFEND%d\n", cur_label);
 
 		base += generate_statement_asm(statement->statement);
 
-		base += string_format("IFEND%d:\n", label_counter);
+		if (has_else)
+		{
+			base += string_format("\tjmp ELSEEND%d\n", cur_label);
+		}
+		base += string_format("IFEND%d:\n", cur_label);
 
-		label_counter++;
+
+		if (has_else)
+		{
+			hx_sptr<hx_statement> else_stat = statement->else_statement.value();
+
+			base += generate_statement_asm(else_stat);
+
+			base += string_format("ELSEEND%d:\n", cur_label);
+		}
+
+		std::cout << base << "\n";
+
 		return base;
 	}
 
@@ -202,8 +227,9 @@ private:
 	{
 		
 		std::string base;
-	
-		base += generate_expression_asm(statement->expression);
+		
+		if (statement->is_declaration)
+			base += generate_expression_asm(statement->expression);
 
 		hx_symbol symbol = current_scope_table->get_symbol(statement->type_decl->name);
 
