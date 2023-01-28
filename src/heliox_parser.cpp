@@ -16,7 +16,7 @@ hx_sptr<hx_program> hx_parser::parse(hx_sptr<hx_error> error)
 	while (token.type == TK_KEYWORD)
 	{
 		hx_kwords keyword = get_kword_from_string(token.value).keyword;
-		if (keyword != hx_kwords::FUNC)
+		if (keyword != hx_kwords::FUN)
 		{
 			error->ok = false;
 			error->line = lexer->get_line();
@@ -137,6 +137,7 @@ hx_sptr<hx_statement> hx_parser::parse_statement(hx_sptr<hx_error> error)
 	}
 
 	
+	
 
 	default:
 		return parse_expression_statement(error);
@@ -192,7 +193,7 @@ hx_sptr<hx_return_statement> hx_parser::parse_return_statement(hx_sptr<hx_error>
 	eat(TK_KEYWORD, error);
 	hx_sptr<hx_return_statement> return_statement(make_shared<hx_return_statement>());
 	return_statement->line_number = lexer->get_line();
-	return_statement->expression = parse_expression(error, parse_primary(error));
+	return_statement->expression = parse_expression(error, parse_primary(error), 0);
 	eat(TK_SEMICOLON, error);
 	return return_statement;
 }
@@ -206,7 +207,7 @@ hx_sptr<hx_conditional_statement> hx_parser::parse_if_statement(hx_sptr<hx_error
 
 	eat(TK_L_PAREN, error);
 
-	conditional_statement->expression = parse_expression(error, parse_primary(error));
+	conditional_statement->expression = parse_expression(error, parse_primary(error), 0);
 	conditional_statement->expression->line_number = lexer->get_line();
 	eat(TK_R_PAREN, error);
 
@@ -239,7 +240,7 @@ hx_sptr<hx_definition_statement> hx_parser::parse_definition_statement(hx_sptr<h
 
 	eat(TK_EQU, error);
 
-	definition_statement->expression = parse_expression(error, parse_primary(error));
+	definition_statement->expression = parse_expression(error, parse_primary(error), 0);
 
 	eat(TK_SEMICOLON, error);
 
@@ -275,7 +276,7 @@ hx_sptr<hx_expression_statement> hx_parser::parse_expression_statement(hx_sptr<h
 {
 	hx_sptr<hx_expression_statement> expression_statement(make_shared<hx_expression_statement>());
 	expression_statement->line_number = lexer->get_line();
-	expression_statement->expression = parse_expression(error, parse_primary(error), 1);
+	expression_statement->expression = parse_expression(error, parse_primary(error), 0, 0);
 
 	eat(TK_SEMICOLON, error);
 
@@ -293,7 +294,7 @@ hx_sptr<hx_expression> hx_parser::parse_primary(hx_sptr<hx_error> error)
 	case TK_L_PAREN:
 	{
 		eat(TK_L_PAREN, error);
-		hx_sptr<hx_expression> expression = parse_expression(error, parse_primary(error));
+		hx_sptr<hx_expression> expression = parse_expression(error, parse_primary(error), 0);
 		eat(TK_R_PAREN, error);
 		return expression;
 	} 
@@ -307,7 +308,7 @@ hx_sptr<hx_expression> hx_parser::parse_primary(hx_sptr<hx_error> error)
 	}
 }
 
-hx_sptr<hx_expression> hx_parser::parse_expression(hx_sptr<hx_error> error, hx_sptr<hx_expression> lhs, uint32_t precedence)
+hx_sptr<hx_expression> hx_parser::parse_expression(hx_sptr<hx_error> error, hx_sptr<hx_expression> lhs, uint32_t depth, uint32_t precedence)
 {
 	
 	hx_sptr<hx_binop_expression> binop_expression(make_shared<hx_binop_expression>());
@@ -322,6 +323,27 @@ hx_sptr<hx_expression> hx_parser::parse_expression(hx_sptr<hx_error> error, hx_s
 
 		uint32_t precedence_level = opt.value();
 
+		if (token.type == TK_EQU)
+		{
+			if (depth > 0)
+			{
+
+				error->ok = false;
+				error->error_type = HX_SYNTAX_ERROR;
+				error->line = lhs->line_number;
+				error->info = "Equal sign at the wrong place";
+				hx_logger::log_and_exit(*error);
+			}
+			if (lhs->e_type != expression_type::IDENTIFIER_LITERAL)
+			{
+				error->ok = false;
+				error->error_type = HX_SYNTAX_ERROR;
+				error->line = lhs->line_number;
+				error->info = "Left hand side of equality is not an identifier.";
+				hx_logger::log_and_exit(*error);
+			}
+		}
+	
 		if (precedence_level < precedence)
 			break;
 
@@ -342,7 +364,7 @@ hx_sptr<hx_expression> hx_parser::parse_expression(hx_sptr<hx_error> error, hx_s
 			if (precedence_level_inner <= precedence_level)
 				break;
 
-			rhs = parse_expression(error, rhs, precedence_level_inner);
+			rhs = parse_expression(error, rhs, depth + 1, precedence_level_inner);
 
 		}
 		
@@ -377,7 +399,7 @@ hx_sptr<hx_expression> hx_parser::parse_expression(hx_sptr<hx_error> error, hx_s
 
 		lhs = binop_expression;
 
-	
+		depth++;
 	}
 
 	return lhs;

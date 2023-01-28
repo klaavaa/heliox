@@ -214,11 +214,69 @@ struct hx_token
 
 };
 
+
+// true = left associative, false = right associative
+static bool get_associativity(tk_type token_type)
+{
+
+	switch (token_type)
+	{
+
+		// 2
+	case tk_type::TK_EQU:
+		return false;
+
+		// 4
+	case tk_type::TK_LOGICAL_OR:
+		return true;
+
+		// 5
+	case tk_type::TK_LOGICAL_AND:
+		return true;
+
+		// 9
+	case tk_type::TK_DOUBLE_EQU:
+	case tk_type::TK_NEQU:
+		return true;
+
+		// 10
+	case tk_type::TK_LT:
+	case tk_type::TK_LTE:
+	case tk_type::TK_GT:
+	case tk_type::TK_GTE:
+		return true;
+
+		// 12
+	case tk_type::TK_PLUS:
+	case tk_type::TK_MINUS:
+		return true;
+
+		// 14
+	case tk_type::TK_MULTIPLY:
+	case tk_type::TK_DIVIDE:
+		return true;
+
+		// 15
+	case tk_type::TK_L_PAREN:
+	case tk_type::TK_ARROW:
+	case tk_type::TK_DOT:
+		return true;
+	default:
+		return {};
+
+	}
+
+}
+
 static std::optional<uint32_t> get_precedence_level(tk_type token_type)
 {
 
 	switch (token_type)
 	{
+
+	// 2
+	case tk_type::TK_EQU:
+		return 2;
 
 	// 4
 	case tk_type::TK_LOGICAL_OR:
@@ -261,3 +319,22 @@ static std::optional<uint32_t> get_precedence_level(tk_type token_type)
 	}
 
 }
+
+struct hx_operator
+{
+
+	hx_operator(std::string op)
+		:
+		op(op)
+	{
+		tk = tk_type_to_str::get_tk(op.c_str());
+		left_associative = get_associativity(tk);
+		precedence_level = get_precedence_level(tk).value();
+	}
+
+	std::string op;
+	tk_type tk;
+	bool left_associative;
+	uint32_t precedence_level;
+
+};

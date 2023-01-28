@@ -147,6 +147,11 @@ private:
 		case statement_type::RETURN: 
 			return generate_return_asm(std::dynamic_pointer_cast<hx_return_statement>(statement));
 		case statement_type::NOOP:  return "";
+
+		case statement_type::EXPRESSION:
+			return generate_expression_asm(std::dynamic_pointer_cast<hx_expression_statement>(statement)->expression);
+			break;
+
 		default:
 		{
 			hx_error err;
@@ -339,11 +344,15 @@ private:
 
 	std::string generate_binop_asm(hx_sptr<hx_binop_expression> expression)
 	{
+		
 		std::string base;
 
 		expression_type left_type = expression->left->e_type;
 		expression_type right_type = expression->right->e_type;
 
+		
+		hx_operator op(expression->op);
+	 /*
 		if (left_type == expression_type::BINOP)
 		{
 			base += generate_binop_asm(std::dynamic_pointer_cast<hx_binop_expression>(expression->left));
@@ -382,16 +391,18 @@ private:
 			break;
 		}
 
-		tk_type op = tk_type_to_str::get_tk(expression->op.c_str());
+	
+		
 
-
+		
 		switch (right_type)
 		{
 		case expression_type::BINOP:
 		{
-			switch (op)
+			switch (op.tk)
 			{
 			case tk_type::TK_PLUS:
+				//base += generate_add_asm("", "rcx", "");
 				base += string_format(
 					"\tadd rax, rcx\n");
 				break;
@@ -477,6 +488,7 @@ private:
 			case tk_type::TK_LOGICAL_OR:
 				base += "\tor rax, rcx\n";
 				break;
+
 				
 			}
 			break;
@@ -485,7 +497,7 @@ private:
 
 		case expression_type::IDENTIFIER_LITERAL:
 		{
-			switch (op)
+			switch (op.tk)
 			{
 			case tk_type::TK_PLUS:
 				base += string_format(
@@ -605,7 +617,7 @@ private:
 			// TODO: check if the number is greater than 32 bytes and only then move it to a register for the operation
 			//		 else use op rax, imm32
 
-			switch (op)
+			switch (op.tk)
 			{
 			case tk_type::TK_PLUS:
 				base += string_format(
@@ -620,7 +632,7 @@ private:
 			case tk_type::TK_MULTIPLY:
 				base += string_format(
 					"\tmov r9, qword %lld\n"
-					"\timul rax, r9", value);
+					"\timul rax, r9\n", value);
 				break;
 			case tk_type::TK_DIVIDE:
 				base += string_format(
@@ -718,7 +730,7 @@ private:
 
 			base += "\tmov r9, rax\n";
 			base += "\tpop rax\n";
-			switch (op)
+			switch (op.tk)
 			{
 			case tk_type::TK_PLUS:
 				base += "\tadd rax, r9\n";
@@ -807,10 +819,107 @@ private:
 			}
 
 			break;
+
+
+
+			
+
 		}
+			
+
+		}
+		
+		*/
+		if (!op.left_associative)
+		{
+			std::swap(expression->left, expression->right);
+			std::swap(left_type, right_type);
+		}
+
+		if (left_type == expression_type::BINOP)
+		{
+			base += generate_binop_asm(std::dynamic_pointer_cast<hx_binop_expression>(expression->left));
+			base += "\tmov r8, rax\n";
+		}
+		if (right_type == expression_type::BINOP)
+		{
+			base += generate_binop_asm(std::dynamic_pointer_cast<hx_binop_expression>(expression->right));
+			base += "\tmov r9, rax\n";
+		}
+		if (left_type == expression_type::BINOP)
+			base += "\tmov rax, r8\n";
+		
+		else 
+			base += generate_expr_to_reg("rax", expression->left);
+		
+		if (right_type == expression_type::BINOP)
+			base += "\tmov rcx, r9\n";
+		else
+			base += generate_expr_to_reg("rcx", expression->right);
+	
+		switch (op.tk)
+		{
+
+		case tk_type::TK_PLUS:
+			base += "\tadd rax, rcx\n";
+			break;
+
+		case tk_type::TK_MINUS:
+			base += "\tsub rax, rcx\n";
+			break;
+		case tk_type::TK_MULTIPLY:
+			base += "\timul rax, rcx\n";
+			break;
+		case tk_type::TK_DIVIDE:
+			base += "\txor rdx, rdx\n";
+			base += "\tidiv rcx\n";
+			break;
+		}
+		
+		return base;
+	}
+	std::string generate_int_literal_asm(hx_sptr<hx_int_literal_expression> expression)
+	{
+		return string_format("qword %lld", expression->value);
+	}
+	std::string generate_expr_to_reg(std::string reg, hx_sptr<hx_expression> expression)
+	{
+		std::string base;
+		base += "\tmov " + reg + ", ";
+		switch (expression->e_type)
+		{
+			case expression_type::BINOP:
+	
+				base += generate_binop_asm(std::dynamic_pointer_cast<hx_binop_expression>(expression)) + "\n";
+			
+				base += "\tmov " + reg + ", rax\n";
+		
+				break;
+
+			case expression_type::INT_LITERAL:
+				base += generate_int_literal_asm(std::dynamic_pointer_cast<hx_int_literal_expression>(expression)) + "\n";
+				break;
+		
+			case expression_type::IDENTIFIER_LITERAL:
+				base += generate_identifier_literal_asm(std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression)) + "\n";
+				break;
+
+			case expression_type::FUNCTION_CALL:
+				base = generate_function_call_asm(std::dynamic_pointer_cast<hx_function_call_expression>(expression));
+				break;
+
+			default:
+			{
+				hx_error err;
+				err.ok = false;
+				err.error_type = HX_UNDEFINED_ERROR;
+				err.info = "Not implemented / unknown expression";
+				hx_logger::log_and_exit(err);
+			}
 		}
 		return base;
 	}
+
 
 private:
 	hx_symbol_table* global_table;

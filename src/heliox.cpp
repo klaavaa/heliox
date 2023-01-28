@@ -73,7 +73,7 @@ void hx_compile(const std::string& file_path, const std::string& output_path)
 
 int main(int argc, char** argv)
 {
-
+	
 	std::string file_path = "assembly_build/heliox.hx";
 	
 	hx_compile(file_path, "linux/");

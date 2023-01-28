@@ -179,7 +179,8 @@ struct hx_definition_statement : public hx_statement
 	{
 		type_decl->print();
 		printf("equ ");
-		expression->print();
+		if (is_declaration)
+			expression->print();
 	}
 	
 };

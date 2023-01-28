@@ -42,7 +42,7 @@ std::optional<int64_t> evaluate_binop_expression(hx_sptr<hx_binop_expression> bi
 			hx_sptr<hx_int_literal_expression> right_int_literal = make_shared<hx_int_literal_expression>();
 			right_int_literal->line_number = binop->line_number;
 			right_int_literal->value = right_value.value();
-			binop->left = right_int_literal;
+			binop->right = right_int_literal;
 		}
 		break;
 	}
