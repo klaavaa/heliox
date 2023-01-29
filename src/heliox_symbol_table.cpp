@@ -280,7 +280,12 @@ hx_symbol_table* generate_symbol_table(hx_sptr<hx_program> program)
 			continue;
 
 		hx_symbol_table* func_table = global_table->get_symbol_table(function->name);
+	
 		
+		func_table->allocated_memory_stack = (relative_stack_pos - 8) + (16 - ((relative_stack_pos - 8) % 16)) + 8;
+
+	
+
 		for (const auto param : function->parameters)
 		{
 			hx_symbol symbol;

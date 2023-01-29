@@ -15,7 +15,8 @@ enum class hx_kwords : uint32_t
 	VOID,
 	RETURN,
 	IF,
-	ELSE
+	ELSE,
+	EXTERN
 
 };
 

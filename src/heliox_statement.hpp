@@ -237,6 +237,7 @@ struct hx_function
 	hx_sptr<hx_statement> statement;
 	bool is_declaration;
 	uint32_t line_number;
+	bool is_extern = false;
 
 	void print()
 	{

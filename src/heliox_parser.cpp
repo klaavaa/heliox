@@ -66,7 +66,9 @@ void hx_parser::eat(tk_type token_type, hx_sptr<hx_error> error)
 
 hx_sptr<hx_function> hx_parser::parse_function(hx_sptr<hx_error> error)
 {
+
 	hx_sptr<hx_function> function(make_shared<hx_function>());
+
 	function->line_number = lexer->get_line();
 	eat(TK_KEYWORD, error);
 

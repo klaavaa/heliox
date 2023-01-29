@@ -55,6 +55,7 @@ public:
 	void print();
 
 	std::string my_name;
+	uint32_t allocated_memory_stack;
 
 private:
 	
@@ -62,7 +63,6 @@ private:
 	std::unordered_map<std::string, hx_symbol> symbols;
 	std::unordered_map<std::string, hx_symbol_table*> symbol_tables;
 
-	
 	hx_symbol_table* parent;
 	
 	
