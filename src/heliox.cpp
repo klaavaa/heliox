@@ -8,6 +8,7 @@
 
 void hx_compile(const std::string& file_path, const std::string& output_path)
 {
+	
 	hx_sptr<hx_error> error = make_shared<hx_error>();
 
 	if (file_path.substr(file_path.size() - 3) != ".hx")
@@ -20,6 +21,7 @@ void hx_compile(const std::string& file_path, const std::string& output_path)
 		exit(1);
 	}
 
+	
 	// get last part of absolute path (example home/dir1/dir2/file.hx -> file.hx)
 	std::string file_path_stripped = file_path.substr(file_path.find_last_of("/") + 1, file_path.size());
 

@@ -125,59 +125,21 @@ uint32_t hx_get_size(hx_data_type dt)
 void generate_conditional_symbols(hx_symbol_table* table, hx_sptr<hx_conditional_statement> statement, int32_t& relative_stack_pos, uint32_t& index)
 {
 
-	int32_t relative_stack_p = relative_stack_pos;
-	std::string name = std::to_string(index);
-	hx_sptr<hx_conditional_statement> cond_stat = std::dynamic_pointer_cast<hx_conditional_statement>(statement);
-
-	switch (cond_stat->statement->s_type)
-	{
-	case statement_type::COMPOUND:
-	{
-		table->add_symbol_table(name, generate_compound_symbol_table(
-			std::dynamic_pointer_cast<hx_compound_statement>(cond_stat->statement), relative_stack_p));
-		index++;
-		break;
-	}
-	case statement_type::DEFINITION:
-	{
-		generate_definition_symbols(table, std::dynamic_pointer_cast<hx_definition_statement>(cond_stat->statement), relative_stack_p);
-		break;
-	}
-	}
 	
-	if (cond_stat->else_statement.has_value())
+	generate_statement_symbols(table, statement->statement, relative_stack_pos, index, "");
+
+	if (statement->else_statement.has_value())
 	{
-		std::string name = std::to_string(index);
-
-		switch (cond_stat->else_statement.value()->s_type)
-		{
-		case statement_type::COMPOUND:
-		{
-			table->add_symbol_table(name, generate_compound_symbol_table(
-				std::dynamic_pointer_cast<hx_compound_statement>(cond_stat->else_statement.value()), relative_stack_p));
-			index++;
-			break;
-		}
-		case statement_type::CONDITIONAL:
-		{
-
-			generate_conditional_symbols(table, 
-				std::dynamic_pointer_cast<hx_conditional_statement>(cond_stat->else_statement.value()), relative_stack_p, index);
-			break;
-		}
-		case statement_type::DEFINITION:
-		{
-			generate_definition_symbols(table, 
-				std::dynamic_pointer_cast<hx_definition_statement>(cond_stat->else_statement.value()), relative_stack_p);
-			break;
-		}
-		default:
-		{
-			break;
-		}
-		}
+		generate_statement_symbols(table, statement->else_statement.value(), relative_stack_pos, index, "");
 	}
 
+}
+
+void generate_while_symbols(hx_symbol_table* table, hx_sptr<hx_while_statement> statement, int32_t& relative_stack_pos, uint32_t& index)
+{
+
+	std::string name = std::to_string(index);
+	generate_statement_symbols(table, statement->statement, relative_stack_pos, index, "");
 }
 
 void generate_definition_symbols(hx_symbol_table* table, hx_sptr<hx_definition_statement> statement, int32_t& relative_stack_pos)
@@ -219,6 +181,12 @@ void generate_statement_symbols(hx_symbol_table* table, hx_sptr<hx_statement> st
 	case statement_type::CONDITIONAL:
 	{
 		generate_conditional_symbols(table, std::dynamic_pointer_cast<hx_conditional_statement>(statement), relative_stack_pos, index);
+		break;
+	}
+
+	case statement_type::WHILE:
+	{
+		generate_while_symbols(table, std::dynamic_pointer_cast<hx_while_statement>(statement), relative_stack_pos, index);
 		break;
 	}
 

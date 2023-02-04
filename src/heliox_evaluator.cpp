@@ -72,6 +72,9 @@ std::optional<int64_t> evaluate_binop_expression(hx_sptr<hx_binop_expression> bi
 	case TK_NEQU:		 return left_value.value() != right_value.value();
 	case TK_LOGICAL_AND: return left_value.value() && right_value.value();
 	case TK_LOGICAL_OR:  return left_value.value() || right_value.value();
+	case TK_BITWISE_AND: return left_value.value() &  right_value.value();
+	case TK_BITWISE_OR:	 return left_value.value() |  right_value.value();
+	case TK_BITWISE_XOR: return left_value.value() ^  right_value.value();
 	default:
 	{
 		hx_error err;

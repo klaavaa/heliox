@@ -12,6 +12,7 @@ enum class expression_type : uint32_t
 	IDENTIFIER_LITERAL,
 	FUNCTION_CALL,
 	BINOP,
+	UNARYOP
 
 };
 
@@ -94,6 +95,24 @@ struct hx_binop_expression : public hx_expression
 	}
 };
 
+struct hx_unary_expression : public hx_expression
+{
+	hx_unary_expression() { e_type = expression_type::UNARYOP; }
+
+	hx_sptr<hx_expression> expression;
+	std::string op;
+
+	void print() override
+	{
+
+		printf("(");
+		printf(" %s ", op.c_str());
+		expression->print();
+		printf(")");
+
+	}
+
+};
 
 enum class statement_type : uint32_t
 {
@@ -106,6 +125,7 @@ enum class statement_type : uint32_t
 	DEFINITION,
 	
 	CONDITIONAL,
+	WHILE,
 
 	EXPRESSION,
 	NOOP
@@ -209,6 +229,23 @@ struct hx_conditional_statement : public hx_statement
 		}
 	}
 
+};
+
+struct hx_while_statement : public hx_statement
+{
+	hx_while_statement() { s_type = statement_type::WHILE; }
+
+	hx_sptr<hx_expression> expression;
+	hx_sptr<hx_statement> statement;
+
+	void print() override
+	{
+		printf("WHILE(");
+		expression->print();
+		printf(")\n");
+		statement->print();
+		printf("\n");
+	}
 };
 
 struct hx_expression_statement : public hx_statement

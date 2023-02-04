@@ -233,6 +233,15 @@ static bool get_associativity(tk_type token_type)
 		// 5
 	case tk_type::TK_LOGICAL_AND:
 		return true;
+	
+		// 6
+	case tk_type::TK_BITWISE_OR:
+		return true;
+
+		// 8
+	case tk_type::TK_BITWISE_AND:
+		return true;
+
 
 		// 9
 	case tk_type::TK_DOUBLE_EQU:
@@ -285,6 +294,19 @@ static std::optional<uint32_t> get_precedence_level(tk_type token_type)
 	// 5
 	case tk_type::TK_LOGICAL_AND:
 		return 5;
+
+	// 6
+	case tk_type::TK_BITWISE_OR:
+		return 6;
+	// 7
+	
+	case tk_type::TK_BITWISE_XOR:
+		return 7;
+	
+	// 8
+	case tk_type::TK_BITWISE_AND:
+		return 8;
+
 
 	// 9
 	case tk_type::TK_DOUBLE_EQU:

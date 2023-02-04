@@ -25,6 +25,7 @@ private:
 	hx_sptr<hx_statement> parse_keyword_statement(hx_sptr<hx_error> error);
 	hx_sptr<hx_return_statement> parse_return_statement(hx_sptr<hx_error> error);
 	hx_sptr<hx_conditional_statement> parse_if_statement(hx_sptr<hx_error> error);
+	hx_sptr<hx_while_statement> parse_while_statement(hx_sptr<hx_error> error);
 	hx_sptr<hx_definition_statement> parse_definition_statement(hx_sptr<hx_error> error);
 	hx_sptr<hx_type_decl_statement> parse_type_decl_statement(hx_sptr<hx_error> error);
 	hx_sptr<hx_expression_statement> parse_expression_statement(hx_sptr<hx_error> error);

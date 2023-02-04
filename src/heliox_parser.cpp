@@ -176,7 +176,7 @@ hx_sptr<hx_statement> hx_parser::parse_keyword_statement(hx_sptr<hx_error> error
 	{
 	case hx_kwords::RETURN: return parse_return_statement(error);
 	case hx_kwords::IF:		return parse_if_statement(error);
-	
+	case hx_kwords::WHILE:	return parse_while_statement(error);
 
 	default:
 	{
@@ -224,6 +224,24 @@ hx_sptr<hx_conditional_statement> hx_parser::parse_if_statement(hx_sptr<hx_error
 	}
 
 	return conditional_statement;
+}
+
+hx_sptr<hx_while_statement> hx_parser::parse_while_statement(hx_sptr<hx_error> error)
+{
+	eat(TK_KEYWORD, error);
+	hx_sptr<hx_while_statement> while_statement(make_shared<hx_while_statement>());
+	while_statement->line_number = lexer->get_line();
+	eat(TK_L_PAREN, error);
+	while_statement->expression = parse_expression(error, parse_primary(error), 0);
+	while_statement->expression->line_number = lexer->get_line();
+	eat(TK_R_PAREN, error);
+
+	while_statement->statement = parse_statement(error);
+	while_statement->statement->line_number = lexer->get_line();
+
+
+
+	return while_statement;
 }
 
 hx_sptr<hx_definition_statement> hx_parser::parse_definition_statement(hx_sptr<hx_error> error)
@@ -292,7 +310,7 @@ hx_sptr<hx_expression> hx_parser::parse_primary(hx_sptr<hx_error> error)
 	{
 	case TK_INTEGER:	return parse_int_literal_expression(error);
 	case TK_IDENTIFIER:	return parse_identifier_expression(error);
-		
+
 	case TK_L_PAREN:
 	{
 		eat(TK_L_PAREN, error);
@@ -300,6 +318,7 @@ hx_sptr<hx_expression> hx_parser::parse_primary(hx_sptr<hx_error> error)
 		eat(TK_R_PAREN, error);
 		return expression;
 	} 
+
 	default:
 		error->ok = false;
 		error->error_type = HX_SYNTAX_ERROR;

@@ -110,6 +110,8 @@ private:
 		}
 		case statement_type::CONDITIONAL: 
 			return generate_conditional_asm(std::dynamic_pointer_cast<hx_conditional_statement>(statement));
+		case statement_type::WHILE:
+			return generate_while_asm(std::dynamic_pointer_cast<hx_while_statement>(statement));
 		case statement_type::RETURN: 
 			return generate_return_asm(std::dynamic_pointer_cast<hx_return_statement>(statement));
 		case statement_type::NOOP:  return "";
@@ -179,6 +181,26 @@ private:
 
 		std::cout << base << "\n";
 
+		return base;
+	}
+
+	std::string generate_while_asm(hx_sptr<hx_while_statement> statement)
+	{
+		std::string base;
+
+		uint32_t cur_label = label_counter;
+		label_counter++;
+
+		base += string_format("WHILESTART%d:\n", cur_label);
+		base += generate_expression_asm(statement->expression);
+		base += "\ttest rax, rax\n";
+		base += string_format("\tjz WHILEEND%d\n", cur_label);
+
+		base += generate_statement_asm(statement->statement);
+		base += string_format("\tjmp WHILESTART%d\n", cur_label);
+		base += string_format("WHILEEND%d:\n", cur_label);
+
+	
 		return base;
 	}
 
@@ -260,8 +282,9 @@ private:
 			}
 			else
 			{
+				/*
 				std::dynamic_pointer_cast<hx_binop_expression>(expression)->print();
-				printf("\n");
+				printf("\n"); */
 				base += generate_binop_asm(std::dynamic_pointer_cast<hx_binop_expression>(expression));
 
 			}
@@ -307,6 +330,7 @@ private:
 		return base;
 	}
 
+
 	std::string generate_binop_asm(hx_sptr<hx_binop_expression> expression)
 	{
 		
@@ -315,8 +339,11 @@ private:
 		expression_type left_type = expression->left->e_type;
 		expression_type right_type = expression->right->e_type;
 
-		
+
 		hx_operator op(expression->op);
+
+		uint32_t cur_label = label_counter;
+		label_counter++;
 
 		if (!op.left_associative)
 		{
@@ -329,21 +356,30 @@ private:
 			base += generate_binop_asm(std::dynamic_pointer_cast<hx_binop_expression>(expression->left));
 			base += "\tmov r8, rax\n";
 		}
+		else
+			base += generate_expr_to_reg("rax", expression->left);
+
+		// if left evaluates to false it doesnt evaluate the right 
+		if (op.tk == TK_LOGICAL_AND)
+		{
+			base += "\ttest rax, rax\n";
+			base += string_format("\tjz ANDMID%d\n", cur_label);
+		}
+
 		if (right_type == expression_type::BINOP)
 		{
 			base += generate_binop_asm(std::dynamic_pointer_cast<hx_binop_expression>(expression->right));
 			base += "\tmov r9, rax\n";
 		}
-		if (left_type == expression_type::BINOP)
-			base += "\tmov rax, r8\n";
-		
-		else 
-			base += generate_expr_to_reg("rax", expression->left);
-		
-		if (right_type == expression_type::BINOP)
-			base += "\tmov rbx, r9\n";
 		else
 			base += generate_expr_to_reg("rbx", expression->right);
+
+		if (left_type == expression_type::BINOP)
+			base += "\tmov rax, r8\n";
+	
+		if (right_type == expression_type::BINOP)
+			base += "\tmov rbx, r9\n";
+		
 	
 		switch (op.tk)
 		{
@@ -429,12 +465,46 @@ private:
 			);
 			label_counter++;
 			break;
-		case tk_type::TK_LOGICAL_AND:
-			base += "\tand rax, rbx\n";
+		case tk_type::TK_LOGICAL_AND:			
+			base += "\ttest rbx, rbx\n";
+			base += "\tmov rax, 1\n";
+			base += string_format("\tjnz ANDEND%d\n", cur_label);
+			
+			base += string_format("ANDMID%d:\n", cur_label);
+			base += "\tmov rax, 0\n";
+			base += string_format("ANDEND%d:\n", cur_label);
 			break;
 		case tk_type::TK_LOGICAL_OR:
+			base += "\ttest rax, rax\n";
+			base += "\tmov rax, 1\n";
+			base += string_format("\tjnz ORMID%d\n", label_counter);
+			base += "\tmov rax, 0\n";
+			base += string_format("ORMID%d:\n", label_counter);
+
+			base += "\ttest rbx, rbx\n";
+			base += "\tmov rbx, 1\n";
+			base += string_format("\tjnz OREND%d\n", label_counter);
+			base += "\tmov rbx, 0\n";
+			base += string_format("OREND%d:\n", label_counter);
+
+			base += "\tor rax, rbx\n";
+				
+			break;
+
+		case tk_type::TK_BITWISE_AND:
+			base += "\tand rax, rbx\n";
+			break;
+
+		case tk_type::TK_BITWISE_OR:
 			base += "\tor rax, rbx\n";
 			break;
+
+		case tk_type::TK_BITWISE_XOR:
+			base += "\txor rax, rbx\n";
+			break;
+
+			
+
 		}
 		
 		return base;
