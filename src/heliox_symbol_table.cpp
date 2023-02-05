@@ -124,15 +124,12 @@ uint32_t hx_get_size(hx_data_type dt)
 
 void generate_conditional_symbols(hx_symbol_table* table, hx_sptr<hx_conditional_statement> statement, int32_t& relative_stack_pos, uint32_t& index)
 {
-
-	
 	generate_statement_symbols(table, statement->statement, relative_stack_pos, index, "");
 
 	if (statement->else_statement.has_value())
 	{
 		generate_statement_symbols(table, statement->else_statement.value(), relative_stack_pos, index, "");
 	}
-
 }
 
 void generate_while_symbols(hx_symbol_table* table, hx_sptr<hx_while_statement> statement, int32_t& relative_stack_pos, uint32_t& index)
@@ -250,8 +247,9 @@ hx_symbol_table* generate_symbol_table(hx_sptr<hx_program> program)
 		hx_symbol_table* func_table = global_table->get_symbol_table(function->name);
 	
 		
-		func_table->allocated_memory_stack = (relative_stack_pos - 8) + (16 - ((relative_stack_pos - 8) % 16)) + 8;
-
+	
+		if (relative_stack_pos > 0)
+			func_table->allocated_memory_stack = (relative_stack_pos) + (16 - ((relative_stack_pos) % 16)) - 8;
 	
 
 		for (const auto param : function->parameters)

@@ -76,10 +76,12 @@ private:
 				"_%s:\n"
 				"\tpush rbp\n"
 				"\tmov rbp, rsp\n"
-				"\tsub rsp, %d\n"
-				, function->name.c_str(), function->name.c_str(), current_scope_table->allocated_memory_stack
+				, function->name.c_str(), function->name.c_str()
 				
 			);
+
+		if (current_scope_table->allocated_memory_stack > 0)
+			base += string_format("\tsub rsp, %d\n", current_scope_table->allocated_memory_stack);
 
 		base += generate_statement_asm(function->statement);
 
@@ -242,6 +244,18 @@ private:
 
 		std::string base;
 
+		std::optional<int64_t> opt = evaluate_expression(expression);
+		if (opt.has_value())
+		{
+			int64_t value = opt.value();
+
+			base = string_format(
+				"\tmov rax, qword %lld\n"
+				, value
+			);
+			return base;
+		}
+
 		switch (expression->e_type)
 		{
 
@@ -256,38 +270,19 @@ private:
 			base += generate_function_call_asm(f_expr);
 			break;
 		}
-		case expression_type::INT_LITERAL:
+
+		case expression_type::UNARYOP:
 		{
-			std::optional<int64_t> opt = evaluate_expression(expression);
-			int64_t value = opt.value();
-
-			base = string_format(
-				"\tmov rax, qword %lld\n"
-				, value
-			);
-
+			generate_unary_asm(std::dynamic_pointer_cast<hx_unary_expression>(expression));
 			break;
 		}
+
 		case expression_type::BINOP:
 		{
-			std::optional<int64_t> opt = evaluate_expression(expression);
-
-			if (opt.has_value())
-			{
-				int64_t value = opt.value();
-				base = string_format(
-					"\tmov rax, qword %lld\n"
-					, value
-				);
-			}
-			else
-			{
-				/*
-				std::dynamic_pointer_cast<hx_binop_expression>(expression)->print();
-				printf("\n"); */
-				base += generate_binop_asm(std::dynamic_pointer_cast<hx_binop_expression>(expression));
-
-			}
+			/*
+			std::dynamic_pointer_cast<hx_binop_expression>(expression)->print();
+			printf("\n"); */
+			base += generate_binop_asm(std::dynamic_pointer_cast<hx_binop_expression>(expression));
 			break;
 		}
 		}
@@ -510,6 +505,35 @@ private:
 		return base;
 	}
 
+	std::string generate_unary_asm(hx_sptr<hx_unary_expression> expression)
+	{
+
+		std::string base;
+		hx_operator op(expression->op);
+
+		generate_expression_asm(expression->expression);
+		
+		switch (op.tk)
+		{
+		case TK_MINUS:
+			base += "\tneg rax\n";
+			break;
+		case TK_PLUS:
+			break;
+		case TK_NOT:
+			base += "\ttest rax, rax\n";
+			base += "\tmov rax, 1\n";
+			base += string_format("\tjz NOTEND%d\n", label_counter);
+			base += "\tmov rax, 0\n";
+			base += string_format("NOTEND%d:\n", label_counter);
+
+			label_counter++;
+			break;
+		}
+	
+		return base;
+	}
+
 	std::string generate_int_literal_asm(hx_sptr<hx_int_literal_expression> expression)
 	{
 		return string_format("qword %lld", expression->value);
@@ -521,14 +545,6 @@ private:
 		base += "\tmov " + reg + ", ";
 		switch (expression->e_type)
 		{
-			case expression_type::BINOP:
-	
-				base += generate_binop_asm(std::dynamic_pointer_cast<hx_binop_expression>(expression)) + "\n";
-			
-				base += "\tmov " + reg + ", rax\n";
-		
-				break;
-
 			case expression_type::INT_LITERAL:
 				base += generate_int_literal_asm(std::dynamic_pointer_cast<hx_int_literal_expression>(expression)) + "\n";
 				break;

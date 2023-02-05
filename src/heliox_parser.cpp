@@ -319,6 +319,11 @@ hx_sptr<hx_expression> hx_parser::parse_primary(hx_sptr<hx_error> error)
 		return expression;
 	} 
 
+	case TK_MINUS:
+	case TK_PLUS:
+	case TK_NOT:
+		return parse_unary_expression(error);
+
 	default:
 		error->ok = false;
 		error->error_type = HX_SYNTAX_ERROR;
@@ -424,6 +429,21 @@ hx_sptr<hx_expression> hx_parser::parse_expression(hx_sptr<hx_error> error, hx_s
 	}
 
 	return lhs;
+}
+
+hx_sptr<hx_unary_expression> hx_parser::parse_unary_expression(hx_sptr<hx_error> error)
+{
+	hx_sptr<hx_unary_expression> unary_op(make_shared<hx_unary_expression>());
+
+	unary_op->op = tk_type_to_str::get_str(token.type);
+	eat(token.type, error);
+
+	unary_op->expression = parse_expression(error, parse_primary(error), 0);
+
+	return unary_op;
+	
+
+
 }
 
 hx_sptr<hx_expression> hx_parser::parse_identifier_expression(hx_sptr<hx_error> error)

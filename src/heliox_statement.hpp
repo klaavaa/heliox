@@ -68,11 +68,14 @@ struct hx_function_call_expression : public hx_expression
 	void print() override
 	{
 		identifier->print();
+		printf("(");
 		for (size_t i = 0; i < arguments.size(); i++)
 		{
-			printf("argument %zd", i);
+			
 			arguments[i]->print();
-		}
+			
+		}	
+		printf(")\n");
 	}
 };
 
@@ -106,7 +109,7 @@ struct hx_unary_expression : public hx_expression
 	{
 
 		printf("(");
-		printf(" %s ", op.c_str());
+		printf("%s", op.c_str());
 		expression->print();
 		printf(")");
 
@@ -184,7 +187,7 @@ struct hx_type_decl_statement : public hx_statement
 
 	void print() override
 	{
-		printf("type: %s\tname: %s\n", type.c_str(), name.c_str());
+		printf("%s %s", type.c_str(), name.c_str());
 	}
 };
 
@@ -198,9 +201,11 @@ struct hx_definition_statement : public hx_statement
 	void print() override
 	{
 		type_decl->print();
-		printf("equ ");
+		printf(" = ");
 		if (is_declaration)
 			expression->print();
+
+		printf("\n");
 	}
 	
 };
@@ -274,7 +279,7 @@ struct hx_function
 	hx_sptr<hx_statement> statement;
 	bool is_declaration;
 	uint32_t line_number;
-	bool is_extern = false;
+
 
 	void print()
 	{
@@ -283,6 +288,7 @@ struct hx_function
 		{
 			printf("%d. param\t", i);
 			parameters[i]->print();
+			printf("\n");
 		}
 
 		printf("return type: %s\n", return_type.c_str());

@@ -31,6 +31,7 @@ private:
 	hx_sptr<hx_expression_statement> parse_expression_statement(hx_sptr<hx_error> error);
 	hx_sptr<hx_expression> parse_primary(hx_sptr<hx_error> error);
 	hx_sptr<hx_expression> parse_expression(hx_sptr<hx_error> error, hx_sptr<hx_expression> lhs, uint32_t depth, uint32_t precedence=0);
+	hx_sptr<hx_unary_expression> parse_unary_expression(hx_sptr<hx_error> error);
 	hx_sptr<hx_expression> parse_identifier_expression(hx_sptr<hx_error> error);
 	hx_sptr<hx_int_literal_expression> parse_int_literal_expression(hx_sptr<hx_error> error);
 	hx_sptr<hx_string_literal_expression> parse_string_literal_expression(hx_sptr<hx_error> error);

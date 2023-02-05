@@ -47,7 +47,7 @@ public:
 	
 	hx_symbol get_symbol(const std::string& name);
 	hx_symbol find_symbol(const std::string& name, hx_symbol_type symbol_type, uint32_t line_number);
-	hx_symbol_table*  get_symbol_table(const std::string& name);
+	hx_symbol_table* get_symbol_table(const std::string& name);
 	hx_symbol_table* get_parent();
 	hx_symbol_table* get_table_based_on_index(uint32_t index);
 

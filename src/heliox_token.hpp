@@ -277,6 +277,7 @@ static bool get_associativity(tk_type token_type)
 
 }
 
+
 static std::optional<uint32_t> get_precedence_level(tk_type token_type)
 {
 
@@ -328,6 +329,7 @@ static std::optional<uint32_t> get_precedence_level(tk_type token_type)
 	// 14
 	case tk_type::TK_MULTIPLY:
 	case tk_type::TK_DIVIDE:
+
 		return 14;
 
 	// 15
