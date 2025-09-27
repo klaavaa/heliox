@@ -5,6 +5,7 @@
 #include "heliox_file.hpp"
 #include "heliox_assembly.hpp"
 #include "heliox_error.hpp"
+#include "heliox_symbol_table.hpp"
 #include "heliox_timer.hpp"
 #include "heliox_flags.hpp"
 
@@ -71,7 +72,8 @@ void hx_compile(const std::string& file_path, const std::string& output_path)
 
 
     hx_assembly generator;
-    std::string generated_text = generator.generate_asm(program);
+    hx_symbol_table* global_table = generate_symbol_table(program);
+    std::string generated_text = generator.generate_asm(program, global_table);
 
     //	std::cout << generated_text << std::endl;
 
