@@ -1,8 +1,9 @@
-*
-!*.hpp
-!*.cpp
-!CMakeLists.txt
-!build.sh
-!compile.sh
+*.obj
+*.hx
+*.asm
+*.cmake
+CMakeFiles
+Makefile
+CMakeCache.txt
 
 
