@@ -36,7 +36,7 @@ private:
 	hx_sptr<hx_int_literal_expression> parse_int_literal_expression(hx_sptr<hx_error> error);
 	hx_sptr<hx_string_literal_expression> parse_string_literal_expression(hx_sptr<hx_error> error);
 	hx_sptr<hx_identifier_literal_expression> parse_identifier_literal_expression(hx_sptr<hx_error> error);
-
+	hx_sptr<hx_expression> copy_expression(hx_sptr<hx_expression> expr);
 private:
 
 	hx_token token;

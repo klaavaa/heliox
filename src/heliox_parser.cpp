@@ -1,5 +1,4 @@
 #include "heliox_parser.hpp"
-#include "heliox_token.hpp"
 
 hx_parser::hx_parser(hx_lexer* lexer, hx_sptr<hx_error> error)
 	:
@@ -21,6 +20,7 @@ hx_sptr<hx_program> hx_parser::parse(hx_sptr<hx_error> error)
 		{
 			error->ok = false;
 			error->line = lexer->get_line();
+
 			error->info = "Unexpected token: " + token.value;
 			error->error_type = HX_SYNTAX_ERROR;
 			return nullptr;
@@ -32,7 +32,6 @@ hx_sptr<hx_program> hx_parser::parse(hx_sptr<hx_error> error)
 	
 	if (!(lexer->is_finished()))
 	{
-        std::cout << "token type: " << tk_type_to_str::get_str(token.type) << "\n";
 		error->ok = false;
 		error->line = lexer->get_line();
 		error->info = "Unexpected token: " + token.value;
@@ -274,19 +273,28 @@ hx_sptr<hx_type_decl_statement> hx_parser::parse_type_decl_statement(hx_sptr<hx_
 	type_decl_statement->line_number = lexer->get_line();
 	type_decl_statement->type = token.value;
 	eat(TK_KEYWORD, error);
+	
+	// check if ptr
+	// i.e. int* a;
 
-	if (token.type == TK_L_BRACK)
+	while (token.type == TK_MULTIPLY)
 	{
-		eat(TK_L_BRACK, error);
-		eat(TK_R_BRACK, error);
+		type_decl_statement->ptr_depth++;
+		eat(TK_MULTIPLY, error);
 	}
-
-
+	
 	if (token.type == TK_IDENTIFIER)
 	{
 		type_decl_statement->name = token.value;
 		eat(TK_IDENTIFIER, error);
 	}
+	/* TODO ARRAY
+	if (token.type == TK_L_BRACK)
+	{
+		eat(TK_L_BRACK, error);
+		eat(TK_R_BRACK, error);
+	}
+	*/
 
 	return type_decl_statement;
 }
@@ -311,7 +319,6 @@ hx_sptr<hx_expression> hx_parser::parse_primary(hx_sptr<hx_error> error)
 	{
 	case TK_INTEGER:	return parse_int_literal_expression(error);
 	case TK_IDENTIFIER:	return parse_identifier_expression(error);
-
 	case TK_L_PAREN:
 	{
 		eat(TK_L_PAREN, error);
@@ -320,14 +327,14 @@ hx_sptr<hx_expression> hx_parser::parse_primary(hx_sptr<hx_error> error)
 		return expression;
 	} 
 
+	
 	case TK_MINUS:
 	case TK_PLUS:
 	case TK_NOT:
+	case TK_MULTIPLY:
+	case TK_AT:
 		return parse_unary_expression(error);
-
-    case TK_STRING:
-        return parse_string_literal_expression(error);
-
+	
 	default:
 		error->ok = false;
 		error->error_type = HX_SYNTAX_ERROR;
@@ -341,12 +348,19 @@ hx_sptr<hx_expression> hx_parser::parse_primary(hx_sptr<hx_error> error)
 hx_sptr<hx_expression> hx_parser::parse_expression(hx_sptr<hx_error> error, hx_sptr<hx_expression> lhs, uint32_t depth, uint32_t precedence)
 {
 	
-    
 	hx_sptr<hx_binop_expression> binop_expression(make_shared<hx_binop_expression>());
 
 	while (true)
 	{
-
+		if (token.type == tk_type::TK_AT)
+		{
+			hx_sptr<hx_unary_expression> unary(make_shared<hx_unary_expression>());
+			unary->line_number = lexer->get_line();
+			unary->prefix = false;
+			unary->op = tk_type_to_str::get_str(token.type);
+			unary->expression = 
+			lhs = unary;
+		}
 		std::optional<uint32_t> opt = get_precedence_level(token.type);
 
 		if (!opt.has_value())
@@ -356,6 +370,7 @@ hx_sptr<hx_expression> hx_parser::parse_expression(hx_sptr<hx_error> error, hx_s
 
 		if (token.type == TK_EQU)
 		{
+			// TODO: REMOVE THIS
 			if (depth > 0)
 			{
 
@@ -400,133 +415,148 @@ hx_sptr<hx_expression> hx_parser::parse_expression(hx_sptr<hx_error> error, hx_s
 		}
 		
 		
-		switch (lhs->e_type)
-		{
-		case expression_type::INT_LITERAL:
-			binop_expression->left = 
-				make_shared<hx_int_literal_expression>
-                (*std::dynamic_pointer_cast<hx_int_literal_expression>(lhs));
-            break;
-        case expression_type::STRING_LITERAL:
-            binop_expression->left = 
-                make_shared<hx_string_literal_expression>
-                (*std::dynamic_pointer_cast<hx_string_literal_expression>(lhs));
-            break;
+		binop_expression->left = copy_expression(lhs);
 
-        case expression_type::IDENTIFIER_LITERAL:
-            binop_expression->left = 
-                make_shared<hx_identifier_literal_expression>
-                (*std::dynamic_pointer_cast<hx_identifier_literal_expression>(lhs));
-            break;
-        case expression_type::FUNCTION_CALL:
-            {
-                binop_expression->left =
-                    make_shared<hx_function_call_expression>
-                    (*std::dynamic_pointer_cast<hx_function_call_expression>(lhs));
-                break;
-            }
-        case expression_type::BINOP:
-            binop_expression->left = 
-                make_shared<hx_binop_expression>(*std::dynamic_pointer_cast<hx_binop_expression>(lhs));
-            break;
-        case expression_type::UNARYOP:
-            binop_expression->left =
-                make_shared<hx_unary_expression>(*std::dynamic_pointer_cast<hx_unary_expression>(lhs));
-        }
+		binop_expression->right = rhs;
+		binop_expression->op = op;
 
-        binop_expression->right = rhs;
-        binop_expression->op = op;
+		lhs = binop_expression;
 
-        lhs = binop_expression;
+		depth++;
+	}
 
-        depth++;
-    }
-
-    return lhs;
+	return lhs;
 }
 
 hx_sptr<hx_unary_expression> hx_parser::parse_unary_expression(hx_sptr<hx_error> error)
 {
-    hx_sptr<hx_unary_expression> unary_op(make_shared<hx_unary_expression>());
+	hx_sptr<hx_unary_expression> unary_op(make_shared<hx_unary_expression>());
 
-    unary_op->op = tk_type_to_str::get_str(token.type);
-    eat(token.type, error);
+	unary_op->op = tk_type_to_str::get_str(token.type);
+	eat(token.type, error);
+
+	unary_op->expression = parse_primary(error);
 
 
-    unary_op->expression = parse_expression(error, parse_primary(error), 0, 20);
+	//unary_op->expression = parse_expression(error, parse_primary(error), 0);
 
-    return unary_op;
-
+	return unary_op;
+	
 
 
 }
 
 hx_sptr<hx_expression> hx_parser::parse_identifier_expression(hx_sptr<hx_error> error)
 {
-    std::string name = token.value;
+	
+	hx_sptr<hx_identifier_literal_expression> identifier_literal_expression(make_shared<hx_identifier_literal_expression>());
+
+	std::string name = token.value;
 
 
-    hx_sptr<hx_identifier_literal_expression> identifier_literal_expression(make_shared<hx_identifier_literal_expression>());
-    identifier_literal_expression->line_number = lexer->get_line();
-    identifier_literal_expression->name = name;
-    eat(TK_IDENTIFIER, error);
+	identifier_literal_expression->line_number = lexer->get_line();
+	identifier_literal_expression->name = name;
+	eat(TK_IDENTIFIER, error);
 
-    if (token.type == TK_L_PAREN)		// if there is a '(' after identifier then it must be a function call
-    {
+	if (token.type == TK_L_PAREN)		// if there is a '(' after identifier then it must be a function call
+	{
 
-        hx_sptr<hx_function_call_expression> function_call_expression(make_shared<hx_function_call_expression>());
-        function_call_expression->identifier = identifier_literal_expression;
-        function_call_expression->line_number = lexer->get_line();
+		hx_sptr<hx_function_call_expression> function_call_expression(make_shared<hx_function_call_expression>());
+		function_call_expression->identifier = identifier_literal_expression;
+		function_call_expression->line_number = lexer->get_line();
 
-        eat(TK_L_PAREN, error);
+		eat(TK_L_PAREN, error);
 
 
-        while (token.type != TK_R_PAREN)
-        {
-            function_call_expression->arguments.push_back(parse_expression(error, parse_primary(error), 1));
+		while (token.type != TK_R_PAREN)
+		{
+			function_call_expression->arguments.push_back(parse_expression(error, parse_primary(error), 1));
 
-            if (token.type != TK_R_PAREN)
-                eat(TK_COMMA, error);
-        }
+			if (token.type != TK_R_PAREN)
+				eat(TK_COMMA, error);
+		}
 
-        eat(TK_R_PAREN, error);
+		eat(TK_R_PAREN, error);
 
-        return function_call_expression;
-    }
+		return function_call_expression;
+	}
 
-    return identifier_literal_expression;
+
+
+	return identifier_literal_expression;
 }
 
 hx_sptr<hx_int_literal_expression> hx_parser::parse_int_literal_expression(hx_sptr<hx_error> error)
 {
-    hx_sptr<hx_int_literal_expression> int_literal_expression(make_shared<hx_int_literal_expression>());
+	hx_sptr<hx_int_literal_expression> int_literal_expression(make_shared<hx_int_literal_expression>());
 
-    int_literal_expression->value = std::stoll(token.value);
-    int_literal_expression->line_number = lexer->get_line();
+	int_literal_expression->value = std::stoll(token.value);
+	int_literal_expression->line_number = lexer->get_line();
 
-    eat(TK_INTEGER, error);
+	eat(TK_INTEGER, error);
 
-    return int_literal_expression;
+	return int_literal_expression;
 }
 
 hx_sptr<hx_string_literal_expression> hx_parser::parse_string_literal_expression(hx_sptr<hx_error> error)
 {
-    hx_sptr<hx_string_literal_expression> string_literal_expression(make_shared<hx_string_literal_expression>());
-    string_literal_expression->line_number = lexer->get_line();
-    string_literal_expression->literal = token.value;
-    eat(TK_STRING, error);
+	hx_sptr<hx_string_literal_expression> string_literal_expression(make_shared<hx_string_literal_expression>());
+	string_literal_expression->line_number = lexer->get_line();
+	string_literal_expression->literal = token.value;
+	eat(TK_STRING, error);
 
-    return string_literal_expression;
+	return string_literal_expression;
 }
 
 hx_sptr<hx_identifier_literal_expression> hx_parser::parse_identifier_literal_expression(hx_sptr<hx_error> error)
 {
-    hx_sptr<hx_identifier_literal_expression> identifier_literal_expression(make_shared<hx_identifier_literal_expression>());
-    identifier_literal_expression->line_number = lexer->get_line();
-    identifier_literal_expression->name = token.value;
+	hx_sptr<hx_identifier_literal_expression> identifier_literal_expression(make_shared<hx_identifier_literal_expression>());
+	identifier_literal_expression->line_number = lexer->get_line();
+	identifier_literal_expression->name = token.value;
 
-    eat(TK_IDENTIFIER, error);
+	eat(TK_IDENTIFIER, error);
 
-    return identifier_literal_expression;
+	return identifier_literal_expression;
+}
+
+hx_sptr<hx_expression> hx_parser::copy_expression(hx_sptr<hx_expression> expr)
+{
+	switch (expr->e_type)
+	{
+	case expression_type::INT_LITERAL:
+		return
+			make_shared<hx_int_literal_expression>
+			(*std::dynamic_pointer_cast<hx_int_literal_expression>(expr));
+	case expression_type::IDENTIFIER_LITERAL:
+		return
+			make_shared<hx_identifier_literal_expression>
+			(*std::dynamic_pointer_cast<hx_identifier_literal_expression>(expr));
+
+	case expression_type::FUNCTION_CALL:
+	{
+		return
+			make_shared<hx_function_call_expression>
+			(*std::dynamic_pointer_cast<hx_function_call_expression>(expr));
+
+	}
+	case expression_type::BINOP:
+		return
+			make_shared<hx_binop_expression>(*std::dynamic_pointer_cast<hx_binop_expression>(expr));
+
+	case expression_type::UNARYOP:
+		return
+			make_shared<hx_unary_expression>(*std::dynamic_pointer_cast<hx_unary_expression>(expr));
+	default:
+	{
+		hx_error err;
+		err.line = expr->line_number;
+		err.error_type = HX_SYNTAX_ERROR;
+		err.info = "Unknown expression type";
+		err.ok = false;
+		hx_logger::log_and_exit(err);
+	}
+	}
+
+	return make_shared<hx_expression>();
 }
 
