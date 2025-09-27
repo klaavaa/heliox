@@ -106,15 +106,10 @@ int main(int argc, char** argv)
         std::cout << "Please specify the file you want to compile" << "\n";
         return 0;
     }
-
-    hx_compile(file_path, "./");
-
-    /* 
-       std::string file_path = "assembly_build/heliox.hx";
-
-       hx_compile(file_path, "linux/");
-       */
-
+    
+    auto func = fn<void, const std::string&, const std::string&>(hx_compile);
+    double time = hx_timeit<void, const std::string&, const std::string&>(func, file_path, "./");
+    std::cout << "Compile time: " << time << "s\n";
 
 
     return 0;
