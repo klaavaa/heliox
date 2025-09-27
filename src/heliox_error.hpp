@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include <vector>
+#include <cstdint>
 #include "heliox_tools.hpp"
 
 #define HX_UNDEFINED_ERROR "UndefinedError"

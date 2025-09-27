@@ -224,7 +224,6 @@ hx_symbol_table* generate_symbol_table(hx_sptr<hx_program> program)
 		func_symbol.type = hx_symbol_type::FUNC;
 		func_symbol.line_number = function->line_number;
 
-		printf("FUNC JÄRJESTYS %s\n", function->name.c_str());
 
 		bool ok = global_table->insert(function->name, func_symbol);
 

@@ -1,6 +1,10 @@
 #pragma once
-#include <iostream>
+
 #include <unordered_map>
+#include <algorithm>
+#include <cstring>
+#include <string>
+#include <cstdint>
 #include <optional>
 
 #define COMMA						','

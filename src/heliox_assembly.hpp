@@ -1,11 +1,14 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include "heliox_parser.hpp"
 #include "heliox_evaluator.hpp"
+#include "heliox_statement.hpp"
 #include "heliox_symbol_table.hpp"
 #include "heliox_tools.hpp"
+#include "heliox_flags.hpp"
 
 class hx_assembly
 {
@@ -16,7 +19,10 @@ public:
 
 	 	global_table = generate_symbol_table(program);
 		current_scope_table = global_table;
-		global_table->print();
+        if (HX_IS_FLAG("-d") || HX_IS_FLAG("--debug"))
+        {
+		    global_table->print();
+        }
 		std::string entry;
 		entry =
 			"section .data\n"
@@ -181,7 +187,7 @@ private:
 			base += string_format("ELSEEND%d:\n", cur_label);
 		}
 
-		std::cout << base << "\n";
+		//std::cout << base << "\n";
 
 		return base;
 	}
@@ -538,6 +544,10 @@ private:
 	{
 		return string_format("qword %lld", expression->value);
 	}
+    std::string generate_string_literal_asm(hx_sptr<hx_string_literal_expression> expression)
+    {
+        return "";
+    } 
 
 	std::string generate_expr_to_reg(std::string reg, hx_sptr<hx_expression> expression)
 	{
@@ -556,6 +566,10 @@ private:
 			case expression_type::FUNCTION_CALL:
 				base = generate_function_call_asm(std::dynamic_pointer_cast<hx_function_call_expression>(expression));
 				break;
+
+            case expression_type::STRING_LITERAL:
+                base = generate_string_literal_asm(std::dynamic_pointer_cast<hx_string_literal_expression>(expression)) + "\n";
+
 
 			default:
 			{

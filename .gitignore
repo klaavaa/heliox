@@ -284,3 +284,7 @@ MrcUtils.mak
 launchSettings.json
 *.binlog
 *.bak
+
+*.obj
+*.asm
+*.hx

@@ -1,4 +1,5 @@
 #include "heliox_evaluator.hpp"
+#include "heliox_statement.hpp"
 
 std::optional<int64_t> evaluate_int_literal(hx_sptr<hx_int_literal_expression> literal)
 {
@@ -115,6 +116,9 @@ std::optional<int64_t> evaluate_expression(hx_sptr<hx_expression> expression)
 
 	case expression_type::FUNCTION_CALL:
 		return {};
+
+    case expression_type::STRING_LITERAL:
+        return {};
 
 	default:
 	{

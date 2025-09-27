@@ -40,7 +40,7 @@ public:
 		{
 			if (!advance()) return hx_token(tk_type::TK_EOF, "");
 
-		} while (cur_char == SPACE || cur_char == TAB || cur_char == NEWLINE);
+		} while (cur_char == SPACE || cur_char == TAB || cur_char == NEWLINE || cur_char == '\r');
 
 
 		switch (cur_char)
