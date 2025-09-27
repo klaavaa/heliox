@@ -104,7 +104,7 @@ struct hx_unary_expression : public hx_expression
 
 	hx_sptr<hx_expression> expression;
 	std::string op;
-
+	bool prefix = true;
 	void print() override
 	{
 
@@ -184,6 +184,8 @@ struct hx_type_decl_statement : public hx_statement
 
 	std::string type;
 	std::string name;
+
+	uint32_t ptr_depth = 0;
 
 	void print() override
 	{
