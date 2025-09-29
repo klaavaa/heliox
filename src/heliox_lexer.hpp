@@ -32,7 +32,7 @@ public:
 	}
 
 
-	hx_token get_next(hx_sptr<hx_error> error)
+	hx_token get_next()
 	{
 		
 
@@ -61,11 +61,11 @@ public:
 			{
 				if (peek_next() == -1)
 				{
-					error->ok = false;
-					error->error_type = HX_SYNTAX_ERROR;
-					error->line = get_line();
-					error->info = "Undisclosed quotation mark";
-					return hx_token(tk_type::TK_NOT_A_TOKEN, "");
+                    hx_error error;
+					error.error_type = HX_SYNTAX_ERROR;
+					error.line = get_line();
+					error.info = "Undisclosed quotation mark";
+                    hx_logger::log_and_exit(error);
 				}
 				advance();
 				s += cur_char;
@@ -148,16 +148,15 @@ public:
 
 				std::cout << cur_char << std::endl;
 
-				return get_next(error);
+				return get_next();
 
 			error_label:
-				hx_error err;
-				err.ok = false;
-				err.error_type = HX_SYNTAX_ERROR;
-				err.info = "No matching '*/' found";
-				err.line = get_line();
+				hx_error error;
+				error.error_type = HX_SYNTAX_ERROR;
+				error.info = "No matching '*/' found";
+				error.line = get_line();
 				
-				hx_logger::log_and_exit(err);
+				hx_logger::log_and_exit(error);
 
 			}
 			
@@ -171,7 +170,7 @@ public:
 
 				} while (cur_char != NEWLINE && cur_char != EOF);
 
-				return get_next(error);
+				return get_next();
 			}
 
 

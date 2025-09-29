@@ -13,15 +13,14 @@ void hx_compile(const std::string& file_path, const std::string& output_path)
 {
 
 
-    hx_sptr<hx_error> error = make_shared<hx_error>();
 
     if (file_path.substr(file_path.size() - 3) != ".hx")
     {
-        error->ok = false;
-        error->error_type = HX_NOT_HELIOX_FILE;
-        error->line = 0;
-        error->info = "Not a heliox file (.hx)";
-        hx_logger::log_error(*error);
+        hx_error error;
+        error.error_type = HX_NOT_HELIOX_FILE;
+        error.line = 0;
+        error.info = "Not a heliox file (.hx)";
+        hx_logger::log_error(error);
         exit(1);
     }
 
@@ -29,24 +28,18 @@ void hx_compile(const std::string& file_path, const std::string& output_path)
     // get last part of absolute path (example home/dir1/dir2/file.hx -> file.hx)
     std::string file_path_stripped = file_path.substr(file_path.find_last_of("/") + 1, file_path.size());
 
-    error->file = file_path_stripped;
 
     // strip file extension (example file.hx -> file)
     file_path_stripped = file_path_stripped.substr(0, file_path_stripped.size() - 3);
 
 
-    std::string text = load_hx_file(file_path, error);
+    std::string text = load_hx_file(file_path);
+
 
 
     hx_lexer lexer = hx_lexer(text);
-    hx_parser parser(&lexer, error);
-    hx_sptr<hx_program> program = parser.parse(error);
-
-    if (!error->ok)
-    {
-        hx_logger::log_error(*error);
-        exit(-1);
-    }
+    hx_parser parser(&lexer);
+    hx_sptr<hx_program> program = parser.parse();
 
     if (HX_IS_FLAG("--debug") || HX_IS_FLAG("-d"))
     {
@@ -62,12 +55,11 @@ void hx_compile(const std::string& file_path, const std::string& output_path)
 
     if (!main_exists)
     {
-        error->ok = false;
-        error->error_type = HX_NO_MAIN_ERROR;
-        error->line = 0;
-        error->info = "No main function found";
-        hx_logger::log_error(*error);
-        exit(-1);
+        hx_error error;
+        error.error_type = HX_NO_MAIN_ERROR;
+        error.line = 0;
+        error.info = "No main function found";
+        hx_logger::log_and_exit(error);
     }
 
 
@@ -75,10 +67,8 @@ void hx_compile(const std::string& file_path, const std::string& output_path)
     hx_symbol_table* global_table = generate_symbol_table(program);
     std::string generated_text = generator.generate_asm(program, global_table);
 
-    //	std::cout << generated_text << std::endl;
 
-
-    create_assembly_file(output_path + file_path_stripped, generated_text, error);
+    create_assembly_file(output_path + file_path_stripped, generated_text);
 
     
     system(("./compile.sh " + file_path_stripped).c_str());

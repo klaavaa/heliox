@@ -124,13 +124,11 @@ private:
 
 		default:
 		{
-			hx_error err;
-			err.ok = false;
-			err.line = statement->line_number;
-			err.error_type = HX_SYNTAX_ERROR;
-			err.info = "Unexpected statement found";
-			hx_logger::log_and_exit(err);
-			return {};
+			hx_error error;
+			error.line = statement->line_number;
+			error.error_type = HX_SYNTAX_ERROR;
+			error.info = "Unexpected statement found";
+			hx_logger::log_and_exit(error);
 		}
 		}
 

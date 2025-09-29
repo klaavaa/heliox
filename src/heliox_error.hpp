@@ -18,9 +18,7 @@ struct hx_error
 	std::string info;
 	std::string file;
 	uint32_t line;
-	bool ok = true;
 };
-
 
 class hx_logger
 {

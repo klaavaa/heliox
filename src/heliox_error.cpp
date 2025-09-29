@@ -9,8 +9,7 @@ void hx_logger::log_error(hx_error error_data)
 
 void hx_logger::log_and_exit(hx_error error_data)
 {
-	std::string formatted_string = format_error(error_data);
-	printf(formatted_string.c_str());
+    log_error(error_data);
 	exit(-1);
 }
 

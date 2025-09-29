@@ -26,12 +26,11 @@ std::optional<int64_t> evaluate_unop_expression(hx_sptr<hx_unary_expression> uno
 	case TK_NOT:	return !value.value();
 	default:
 	{
-		hx_error err;
-		err.ok = false;
-		err.line = unop->line_number;
-		err.error_type = HX_SYNTAX_ERROR;
-		err.info = "Unexpected operator found";
-		hx_logger::log_and_exit(err);
+		hx_error error;
+		error.line = unop->line_number;
+		error.error_type = HX_SYNTAX_ERROR;
+		error.info = "Unexpected operator found";
+		hx_logger::log_and_exit(error);
 		return {};
 	}
 
@@ -86,12 +85,11 @@ std::optional<int64_t> evaluate_binop_expression(hx_sptr<hx_binop_expression> bi
 	case TK_BITWISE_XOR: return left_value.value() ^  right_value.value();
 	default:
 	{
-		hx_error err;
-		err.ok = false;
-		err.line = binop->line_number;
-		err.error_type = HX_SYNTAX_ERROR;
-		err.info = "Unexpected operator found";
-		hx_logger::log_and_exit(err);
+		hx_error error;
+		error.line = binop->line_number;
+		error.error_type = HX_SYNTAX_ERROR;
+		error.info = "Unexpected operator found";
+		hx_logger::log_and_exit(error);
 		return {};
 	}
 	}
@@ -122,12 +120,11 @@ std::optional<int64_t> evaluate_expression(hx_sptr<hx_expression> expression)
 
 	default:
 	{
-		hx_error err;
-		err.ok = false;
-		err.line = expression->line_number;
-		err.error_type = HX_SYNTAX_ERROR;
-		err.info = "Unexpected expression found";
-		hx_logger::log_and_exit(err);
+		hx_error error;
+		error.line = expression->line_number;
+		error.error_type = HX_SYNTAX_ERROR;
+		error.info = "Unexpected expression found";
+		hx_logger::log_and_exit(error);
 		return {};
 	}
 	}

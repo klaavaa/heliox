@@ -45,13 +45,12 @@ hx_symbol hx_symbol_table::find_symbol(const std::string& name, hx_symbol_type s
 	if (this->parent)
 		return this->parent->find_symbol(name, symbol_type, line_number);
 
-	hx_error err;
-	err.line = line_number;
-	err.ok = false;
-	err.file = "";
-	err.error_type = HX_SYMBOL_NOT_FOUND;
-	err.info = "No symbol called: " + name + " found";
-	hx_logger::log_and_exit(err);
+	hx_error error;
+	error.line = line_number;
+	error.file = "";
+	error.error_type = HX_SYMBOL_NOT_FOUND;
+	error.info = "No symbol called: " + name + " found";
+	hx_logger::log_and_exit(error);
 	return {};
 }
 
