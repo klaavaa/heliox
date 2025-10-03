@@ -71,7 +71,11 @@ void hx_compile(const std::string& file_path, const std::string& output_path)
     create_assembly_file(output_path + file_path_stripped, generated_text);
 
     
-    system(("./compile.sh " + file_path_stripped).c_str());
+    system(string_format("nasm -f elf64 %s.asm -o %s.obj",
+                file_path_stripped.c_str(), file_path_stripped.c_str()).c_str());
+    
+    system(string_format("gcc %s.obj -o %s", file_path_stripped.c_str(), file_path_stripped.c_str()).c_str());
+    
 }
 
 int main(int argc, char** argv)
