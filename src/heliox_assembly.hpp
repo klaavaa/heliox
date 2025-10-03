@@ -129,6 +129,7 @@ private:
 			error.error_type = HX_SYNTAX_ERROR;
 			error.info = "Unexpected statement found";
 			hx_logger::log_and_exit(error);
+            return "";
 		}
 		}
 

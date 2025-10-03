@@ -186,6 +186,7 @@ hx_sptr<hx_statement> hx_parser::parse_keyword_statement()
 		error.line = lexer->get_line();
 		error.info = "Unexpected token: " + get_string_from_kword(keyword.keyword) + " (possibly missing matching '}')";
 		hx_logger::log_and_exit(error);
+        return nullptr;
 	}
 	}
 }
@@ -339,6 +340,7 @@ hx_sptr<hx_expression> hx_parser::parse_primary()
 		error.info = "Expected int, identifier or ()";
 		error.line = lexer->get_line();
 		hx_logger::log_and_exit(error);
+        return nullptr;
 	}
 }
 
@@ -549,6 +551,7 @@ hx_sptr<hx_expression> hx_parser::copy_expression(hx_sptr<hx_expression> expr)
 		error.error_type = HX_SYNTAX_ERROR;
 		error.info = "Unknown expression type";
 		hx_logger::log_and_exit(error);
+        return nullptr;
 	}
 	}
 
