@@ -29,4 +29,5 @@ public:
 	static void log_error(hx_error error_data);
 	static void log_and_exit(hx_error error_data);
 
+
 };

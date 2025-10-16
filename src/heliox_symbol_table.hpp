@@ -2,11 +2,12 @@
 #include <vector>
 #include <unordered_map>
 #include <string>
+#include <optional>
 
 #include "heliox_statement.hpp"
 #include "heliox_pointer.hpp"
 #include "heliox_error.hpp"
-
+#include <iostream>
 enum class hx_symbol_type : uint32_t
 {
 	ERR,
@@ -28,8 +29,10 @@ struct hx_symbol
 {
 	hx_symbol_type type;
 	hx_data_type data_type;
+    
 	int32_t stack_position;
 	uint32_t line_number;
+    std::optional<uint32_t> in_register;
 };
 
 

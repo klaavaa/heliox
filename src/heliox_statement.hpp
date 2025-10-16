@@ -4,6 +4,7 @@
 #include <vector>
 #include <optional>
 #include "heliox_pointer.hpp"
+#include <cstdint>
 
 enum class expression_type : uint32_t
 {

@@ -245,21 +245,32 @@ hx_symbol_table* generate_symbol_table(hx_sptr<hx_program> program)
 		hx_symbol_table* func_table = global_table->get_symbol_table(function->name);
 	
 		
-	
+        // me 3 years later.... wtf does this even mean	
+        // update:: need to be divisible by 16?
 		if (relative_stack_pos > 0)
 			func_table->allocated_memory_stack = (relative_stack_pos) + (16 - ((relative_stack_pos) % 16)) - 8;
 	
-
+        // first need to put first 6 into registers
+        uint32_t i = 0;
 		for (const auto param : function->parameters)
 		{
 			hx_symbol symbol;
+            if (i <= 5)
+            {
+                symbol.in_register = std::optional<uint32_t>(i);
+            }
+            else
+            {
+            symbol.in_register = std::nullopt;
 			param_stack_pos -= hx_get_size(hx_data_type::INT);
 			symbol.stack_position = param_stack_pos - 8; // subtract extra 8 because of push rbp call
+            }
 			symbol.data_type = hx_data_type::INT;
 			symbol.type = hx_symbol_type::VAR;
 			symbol.line_number = param->line_number;
 
 			func_table->insert(param->name, symbol);
+            i++;
 		}
 
 	}
