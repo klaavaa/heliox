@@ -247,9 +247,10 @@ hx_symbol_table* generate_symbol_table(hx_sptr<hx_program> program)
 		
         // me 3 years later.... wtf does this even mean	
         // update:: need to be divisible by 16?
+        // update:: need to be divisible by 8 because call adds 8 so becomes divisible by 16
 		if (relative_stack_pos > 0)
-			func_table->allocated_memory_stack = (relative_stack_pos) + (16 - ((relative_stack_pos) % 16)) - 8;
-	
+			func_table->allocated_memory_stack = relative_stack_pos + (16 - (relative_stack_pos % 16)) - 8;
+        std::cout << func_table->allocated_memory_stack << " ALLOCMEMSTACK\n";	
         // first need to put first 6 into registers
         uint32_t i = 0;
 		for (const auto param : function->parameters)

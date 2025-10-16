@@ -357,7 +357,7 @@ class hx_assembly
             }
 
             base += "\tcall _" + fn_call->identifier->name + "\n";
-            base += string_format("\tadd rsp, %d\n", fn_call->arguments.size() * 8);
+            base += string_format("\tadd rsp, %d\n", (fn_call->arguments.size() - function_arg_register_count) * 8);
             base +=  ";---generate_function_call_end---;\n";
 
             return base;
