@@ -1,328 +1,87 @@
 #pragma once
 
 #include <string>
+#include <utility>
 #include <vector>
 #include <optional>
+#include "heliox_keywords.hpp"
 #include "heliox_pointer.hpp"
-#include <cstdint>
-
-enum class expression_type : uint32_t
-{
-	INT_LITERAL,
-	STRING_LITERAL,
-	IDENTIFIER_LITERAL,
-	FUNCTION_CALL,
-	BINOP,
-	UNARYOP
-
-};
-
-struct hx_expression
-{
-	expression_type e_type;
-	uint32_t line_number;
-	virtual void print() {};
-};
-
-
-struct hx_int_literal_expression : public hx_expression
-{
-	hx_int_literal_expression() { e_type = expression_type::INT_LITERAL; }
-	int64_t value;
-
-	void print() override
-	{
-		printf("%lld", value);
-	}
-};
-
-struct hx_string_literal_expression : public hx_expression
-{
-	hx_string_literal_expression() { e_type = expression_type::STRING_LITERAL; }
-	std::string literal;
-	void print() override
-	{
-		printf("%s\n", literal.c_str());
-	}
-};
-struct hx_identifier_literal_expression : public hx_expression
-{
-	hx_identifier_literal_expression() { e_type = expression_type::IDENTIFIER_LITERAL; }
-
-	std::string name;
-
-	void print() override
-	{
-		printf("%s", name.c_str());
-	}
-
-};
-
-
-struct hx_function_call_expression : public hx_expression
-{
-	hx_function_call_expression() { e_type = expression_type::FUNCTION_CALL; }
-
-	hx_sptr<hx_identifier_literal_expression> identifier;
-	std::vector<hx_sptr<hx_expression>> arguments;
-
-	void print() override
-	{
-		identifier->print();
-		printf("(");
-		for (size_t i = 0; i < arguments.size(); i++)
-		{
-			
-			arguments[i]->print();
-			
-		}	
-		printf(")\n");
-	}
-};
-
-
-struct hx_binop_expression : public hx_expression
-{
-	hx_binop_expression() { e_type = expression_type::BINOP; }
-
-	hx_sptr<hx_expression> left;
-	hx_sptr<hx_expression> right;
-	std::string op;
-
-	void print() override
-	{
-		printf("(");
-		left->print();
-		printf(" %s ", op.c_str());
-		right->print();
-		printf(")");
-	}
-};
-
-struct hx_unary_expression : public hx_expression
-{
-	hx_unary_expression() { e_type = expression_type::UNARYOP; }
-
-	hx_sptr<hx_expression> expression;
-	std::string op;
-	bool prefix = true;
-	void print() override
-	{
-
-		printf("(");
-		printf("%s", op.c_str());
-		expression->print();
-		printf(")");
-
-	}
-
-};
-
-enum class statement_type : uint32_t
-{
-	STATEMENT,
-	COMPOUND,
-
-	RETURN,
-    EXTERN,
-
-	TYPE_DECLARATION,
-	DEFINITION,
-	
-	CONDITIONAL,
-	WHILE,
-
-	EXPRESSION,
-	NOOP
-};
-
-
-struct hx_statement
-{
-	statement_type s_type;
-	uint32_t line_number;
-	virtual void print() {};
-};
-
-struct hx_compound_statement : public hx_statement
-{
-	hx_compound_statement() { s_type = statement_type::COMPOUND; }
-
-	std::vector<hx_sptr<hx_statement>> statements;
-
-
-	void print() override
-	{
-		printf("{\n");
-		for (const auto statement : statements)
-		{
-			statement->print();
-			printf("\n");
-		}
-
-		printf("}\n");
-
-	}
-};
-
-struct hx_return_statement :public hx_statement
-{
-	hx_return_statement() { s_type = statement_type::RETURN; }
-
-	hx_sptr<hx_expression> expression;
-
-	void print() override
-	{
-		printf("return ");
-		expression->print();
-		printf("\n");
-	}
-
-};
-
-struct hx_type_decl_statement : public hx_statement
-{
-	hx_type_decl_statement() { s_type = statement_type::TYPE_DECLARATION; }
-
-	std::string type;
-	std::string name;
-
-	uint32_t ptr_depth = 0;
-    bool is_pointer = false;
-
-	void print() override
-	{
-        for (uint32_t i = 0; i < ptr_depth; i++)
-            type += "*";
-		printf("%s %s", type.c_str(), name.c_str());
-	}
-};
-
-struct hx_definition_statement : public hx_statement
-{
-	hx_definition_statement() { s_type = statement_type::DEFINITION; }
-
-	hx_sptr<hx_type_decl_statement> type_decl;
-	hx_sptr<hx_expression> expression;
-	bool is_declaration;
-	void print() override
-	{
-		type_decl->print();
-		printf(" = ");
-		if (is_declaration)
-			expression->print();
-
-		printf("\n");
-	}
-	
-};
-
-struct hx_conditional_statement : public hx_statement
-{
-	hx_conditional_statement() { s_type = statement_type::CONDITIONAL; }
-
-	hx_sptr<hx_expression>	expression;
-	hx_sptr<hx_statement>	statement;
-	std::optional<hx_sptr<hx_statement>> else_statement;
-
-	void print() override
-	{
-		printf("IF(");
-		expression->print();
-		printf(")\n");
-
-		statement->print();
-
-		if (else_statement.has_value())
-		{
-			printf("ELSE\n");
-			else_statement.value()->print();
-			printf("\n");
-		}
-	}
-
-};
-
-struct hx_while_statement : public hx_statement
-{
-	hx_while_statement() { s_type = statement_type::WHILE; }
-
-	hx_sptr<hx_expression> expression;
-	hx_sptr<hx_statement> statement;
-
-	void print() override
-	{
-		printf("WHILE(");
-		expression->print();
-		printf(")\n");
-		statement->print();
-		printf("\n");
-	}
-};
-
-struct hx_expression_statement : public hx_statement
-{
-	hx_expression_statement() { s_type = statement_type::EXPRESSION; }
-
-	hx_sptr<hx_expression> expression;
-
-	void print()
-	{
-		expression->print();
-	}
-};
-
-struct hx_noop_statement : public hx_statement
-{
-	hx_noop_statement() { s_type = statement_type::NOOP; }
-};
-
-
-struct hx_function
-{
-	std::string name;
-	std::vector<hx_sptr<hx_type_decl_statement>> parameters;
-	std::string return_type;
-	hx_sptr<hx_statement> statement;
-	bool is_declaration;
-	uint32_t line_number;
-
-
-	void print()
-	{
-		printf("FUNCTION DECLARATION\nname:%s\n", name.c_str());
-		for (uint32_t i = 0; i < parameters.size(); i++)
-		{
-			printf("%d. param\t", i);
-			parameters[i]->print();
-			printf("\n");
-		}
-
-		printf("return type: %s\n", return_type.c_str());
-
-		printf("BODY\n");
-
-		statement->print();
-	}
-
-};
-
-struct hx_extern_statement: public hx_statement
-{
-	hx_extern_statement() { s_type = statement_type::EXTERN; }
-
-    std::string externed_name;
-	hx_sptr<hx_function> externed_function;
-
-	void print() override
-	{
-		printf("extern %s{\n", externed_name.c_str());
-		externed_function->print();
-		printf("}\n");
-	}
-
-};
-
+#include "heliox_types.hpp"
+#include "heliox_expression.hpp"
+#include <variant>
+
+namespace hx {
+
+    struct compound_statement;
+    struct return_statement;
+    struct variable_declaration_statement;
+    struct conditional_statement;
+    struct while_statement;
+    struct expression_statement;
+    struct noop_statement;
+
+    using statement = std::variant<
+        uptr<compound_statement>,
+        uptr<return_statement>,
+        uptr<variable_declaration_statement>,
+        uptr<conditional_statement>,
+        uptr<while_statement>,
+        uptr<expression_statement>,
+        uptr<noop_statement>
+            >;
+
+    using stat_uptr = uptr<statement>;
+    using stat_vector = std::vector<stat_uptr>;
+
+    struct compound_statement
+    {
+        compound_statement(stat_vector statements)
+            : statements(std::move(statements)) {}
+        stat_vector statements;
+    };
+    struct return_statement
+    {
+        return_statement(expr_uptr return_expression)
+            : return_expression(std::move(return_expression)) {}
+        expr_uptr return_expression;
+    };
+    struct variable_declaration_statement
+    {
+        variable_declaration_statement(type_data var_type,
+                uptr<identifier_literal_expr> var_identifier)
+            : var_type(var_type), var_identifier(std::move(var_identifier)) {}
+        type_data var_type;
+        uptr<identifier_literal_expr> var_identifier;
+    };
+    struct conditional_statement
+    {
+        conditional_statement(expr_uptr condition, stat_uptr then_stat, stat_uptr else_stat)
+            : condition(std::move(condition)), then_stat(std::move(then_stat)),
+            else_stat(std::move(else_stat)) {}
+        
+        expr_uptr condition;
+        stat_uptr then_stat;
+        stat_uptr else_stat;
+    };
+    struct while_statement
+    {
+        while_statement(expr_uptr condition, stat_uptr loop)
+            : condition(std::move(condition)), loop(std::move(loop)) {}
+
+        expr_uptr condition;
+        stat_uptr loop;
+    };
+    struct expression_statement
+    {
+        expression_statement(expr_uptr expr)
+            : expr(std::move(expr)) {}
+        expr_uptr expr;
+    };
+    struct noop_statement
+    {
+        noop_statement() = default;
+    };
+        /*
 struct hx_program
 {
 	std::vector<hx_sptr<hx_function>> functions;
@@ -346,13 +105,5 @@ struct hx_program
 
 
 };
-
-
-
-
-
-
-
-
-
-
+*/
+}

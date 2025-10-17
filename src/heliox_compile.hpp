@@ -9,17 +9,18 @@
 #include "heliox_flags.hpp"
 #include "heliox_file.hpp"
 #include "heliox_error.hpp"
-
-void hx_compile(const std::string& file_path, const std::string& output_path)
+namespace hx  
+{
+void compile(const std::string& file_path, const std::string& output_path)
 {
 
     if (file_path.substr(file_path.size() - 3) != ".hx")
     {
-        hx_error error;
+        hx::error error;
         error.error_type = HX_NOT_HELIOX_FILE;
         error.line = 0;
         error.info = "Not a heliox file (.hx)";
-        hx_logger::log_error(error);
+        hx::logger::log_error(error);
         exit(1);
     }
 
@@ -36,8 +37,8 @@ void hx_compile(const std::string& file_path, const std::string& output_path)
 
 
 
-    hx_lexer lexer = hx_lexer(text);
-    hx_parser parser(&lexer);
+    hx::lexer lexer = hx::lexer(text);
+    hx::parser parser(&lexer);
     hx_sptr<hx_program> program = parser.parse();
 
     std::cout << "succesfully parsed\n";
@@ -77,5 +78,5 @@ void hx_compile(const std::string& file_path, const std::string& output_path)
     system(string_format("gcc -no-pie %s.o -o %s", file_path_stripped.c_str(), file_path_stripped.c_str()).c_str());
     
 }
-
+}
 

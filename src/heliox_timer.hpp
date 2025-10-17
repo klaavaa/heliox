@@ -4,11 +4,13 @@
 #include <initializer_list>
 
 
+namespace hx 
+{
 template <typename ret, typename... param>
 using fn = std::function<ret(param...)>;
 
 template <typename ret, typename... param>
-double hx_timeit(fn<ret, param...> func, param&... elements)
+double timeit(fn<ret, param...> func, param&... elements)
 {
 	auto start = std::chrono::high_resolution_clock::now();
 	func(elements...);
@@ -17,7 +19,7 @@ double hx_timeit(fn<ret, param...> func, param&... elements)
 	return static_cast<double>(microseconds) * 0.000001;
 
 }
-
+}
 
 
 

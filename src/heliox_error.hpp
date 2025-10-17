@@ -11,8 +11,9 @@
 #define HX_NOT_HELIOX_FILE "NotHelioxFileError"
 #define HX_SYMBOL_NOT_FOUND "SymbolNotFoundError"
 
-
-struct hx_error
+namespace hx 
+{
+struct error
 {
 	std::string error_type;
 	std::string info;
@@ -20,14 +21,14 @@ struct hx_error
 	uint32_t line;
 };
 
-class hx_logger
+class logger
 {
 public:
 
 	
-	static std::string format_error(hx_error error_data);
-	static void log_error(hx_error error_data);
-	static void log_and_exit(hx_error error_data);
-
+	static std::string format_error(hx::error error_data);
+	static void log_error(hx::error error_data);
+	static void log_and_exit(hx::error error_data);
 
 };
+}

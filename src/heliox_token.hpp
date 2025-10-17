@@ -7,48 +7,48 @@
 #include <cstdint>
 #include <optional>
 
-#define COMMA						','
-#define DOT							'.'
-#define DOLLAR						'$'
+#define HX_COMMA						','
+#define HX_DOT							'.'
+#define HX_DOLLAR						'$'
 
-#define AMPERSAND					'&'
-#define PIPE						'|'
-#define CIRCUMFLEX					'^'
+#define HX_AMPERSAND					'&'
+#define HX_PIPE						    '|'
+#define HX_CIRCUMFLEX					'^'
 
-#define EXCLAMATION_MARK			'!'
-#define QUESTION_MARK				'?'
+#define HX_EXCLAMATION_MARK		    	'!'
+#define HX_QUESTION_MARK				'?'
 
-#define PLUS						'+'
-#define MINUS						'-'
-#define DIVIDE						'/'
-#define STAR						'*'
+#define HX_PLUS					    	'+'
+#define HX_MINUS						'-'
+#define HX_DIVIDE						'/'
+#define HX_STAR					    	'*'
 
-#define EQUALS						'='
-
-
-#define LEFT_BRACE					'{'
-#define RIGHT_BRACE					'}'
-#define LEFT_PAREN					'('
-#define RIGHT_PAREN					')'
-#define LEFT_BRACK					'['
-#define RIGHT_BRACK					']'
-
-#define SEMICOLON					';'
-#define COLON						':'
-
-#define QUOT_MARK					'"'
-
-#define AT							'@'
-
-#define LEFT_ARROW					'<'
-#define RIGHT_ARROW					'>'
-
-#define SPACE						' '
-#define TAB							'\t'
-#define NEWLINE						'\n'
+#define HX_EQUALS						'='
 
 
+#define HX_LEFT_BRACE					'{'
+#define HX_RIGHT_BRACE					'}'
+#define HX_LEFT_PAREN					'('
+#define HX_RIGHT_PAREN					')'
+#define HX_LEFT_BRACK					'['
+#define HX_RIGHT_BRACK					']'
 
+#define HX_SEMICOLON					';'
+#define HX_COLON						':'
+
+#define HX_QUOT_MARK					'"'
+
+#define HX_AT							'@'
+
+#define HX_LEFT_ARROW					'<'
+#define HX_RIGHT_ARROW					'>'
+
+#define HX_SPACE						' '
+#define HX_TAB							'\t'
+#define HX_NEWLINE						'\n'
+#define HX_EOF                          (-1)
+
+namespace hx {
 constexpr const char* characters = "abcdefghijklmnopqrstuvwxyzåäöABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ_§";
 constexpr const char* numbers = "0123456789";
 constexpr const char* characters_numbers = "0123456789abcdefghijklmnopqrstuvwxyzåäöABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ_§";
@@ -157,7 +157,7 @@ static const std::unordered_map<tk_type, const char*>  token_to_string =
 
 };
 
-
+/*
 struct tk_type_to_str
 {
 
@@ -197,15 +197,11 @@ private:
 		
 	}
 };
-
-
-
-
-
-struct hx_token
+*/
+struct token
 {
 
-	hx_token(tk_type tok_type, std::string tok_value)
+	token(tk_type tok_type, std::string tok_value)
 		:
 		type(tok_type),
 		value(tok_value)
@@ -217,159 +213,6 @@ struct hx_token
 	std::string value;
 
 };
-
-
-// true = left associative, false = right associative
-static bool get_associativity(tk_type token_type)
-{
-
-	switch (token_type)
-	{
-
-		// 2
-	case tk_type::TK_EQU:
-		return false;
-
-		// 4
-	case tk_type::TK_LOGICAL_OR:
-		return true;
-
-		// 5
-	case tk_type::TK_LOGICAL_AND:
-		return true;
-	
-		// 6
-	case tk_type::TK_BITWISE_OR:
-		return true;
-
-		// 8
-	case tk_type::TK_BITWISE_AND:
-		return true;
-
-
-		// 9
-	case tk_type::TK_DOUBLE_EQU:
-	case tk_type::TK_NEQU:
-		return true;
-
-		// 10
-	case tk_type::TK_LT:
-	case tk_type::TK_LTE:
-	case tk_type::TK_GT:
-	case tk_type::TK_GTE:
-		return true;
-
-		// 12
-	case tk_type::TK_PLUS:
-	case tk_type::TK_MINUS:
-		return true;
-
-		// 14
-	case tk_type::TK_MULTIPLY:
-	case tk_type::TK_DIVIDE:
-		return true;
-
-		// 15
-	case tk_type::TK_L_PAREN:
-	case tk_type::TK_ARROW:
-	case tk_type::TK_DOT:
-		return true;
-	default:
-		return {};
-
-	}
-
 }
 
 
-static std::optional<uint32_t> get_precedence_level(tk_type token_type)
-{
-
-	switch (token_type)
-	{
-
-	// 2
-	case tk_type::TK_EQU:
-		return 2;
-
-	// 4
-	case tk_type::TK_LOGICAL_OR:
-		return 4;
-
-	// 5
-	case tk_type::TK_LOGICAL_AND:
-		return 5;
-
-	// 6
-	case tk_type::TK_BITWISE_OR:
-		return 6;
-	// 7
-	
-	case tk_type::TK_BITWISE_XOR:
-		return 7;
-	
-	// 8
-	case tk_type::TK_BITWISE_AND:
-		return 8;
-
-
-	// 9
-	case tk_type::TK_DOUBLE_EQU:
-	case tk_type::TK_NEQU:
-		return 9;
-
-	// 10
-	case tk_type::TK_LT:
-	case tk_type::TK_LTE:
-	case tk_type::TK_GT:
-	case tk_type::TK_GTE:
-		return 10;
-
-	// 12
-	case tk_type::TK_PLUS:
-	case tk_type::TK_MINUS:
-		return 12;
-
-	// 14
-	case tk_type::TK_MULTIPLY:
-	case tk_type::TK_DIVIDE:
-
-		return 14;
-
-	// 15
-        
-    case tk_type::TK_AT: 
-	case tk_type::TK_L_PAREN:
-	case tk_type::TK_ARROW:
-	case tk_type::TK_DOT:
-    case tk_type::TK_NOT:
-		return 15;
-	default:
-		return {};
-
-	}
-
-}
-struct hx_operator
-{
-
-	hx_operator(std::string op)
-		:
-		op(op)
-	{
-		tk = tk_type_to_str::get_tk(op.c_str());
-		left_associative = get_associativity(tk);
-        if (!get_precedence_level(tk).has_value())
-        {
-            precedence_level = get_precedence_level(tk).value();
-        }
-
-	    	
-	}
-
-	std::string op;
-	tk_type tk;
-	bool left_associative;
-	uint32_t precedence_level;
-
-};

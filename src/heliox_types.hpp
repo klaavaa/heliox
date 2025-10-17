@@ -1,0 +1,79 @@
+#pragma once
+
+#include <cstdint>
+#include <string>
+#include <unordered_map>
+
+namespace hx {
+enum class primitive_type
+{
+    VOID,
+    U8,
+    U16,
+    U32,
+    U64,
+    I8,
+    I16,
+    I32,
+    I64,
+    
+};
+
+inline std::unordered_map<std::string, primitive_type> type_name_map = 
+{
+    {"u8",   primitive_type::U8},
+    {"u16",  primitive_type::U16},
+    {"u32",  primitive_type::U32},
+    {"u64",  primitive_type::U64},
+    {"i8",   primitive_type::I8},
+    {"i16",  primitive_type::I16},
+    {"i32",  primitive_type::I32},
+    {"i64",  primitive_type::I64},
+    {"void", primitive_type::VOID}
+ 
+};
+
+constexpr uint32_t get_byte_size_from_known_type(primitive_type type)
+{
+    switch (type)
+    {
+        case primitive_type::U8:  return 1;
+        case primitive_type::U16: return 2;
+        case primitive_type::U32: return 4;
+        case primitive_type::U64: return 8;
+
+        case primitive_type::I8:  return 1;
+        case primitive_type::I16: return 2;
+        case primitive_type::I32: return 4;
+        case primitive_type::I64: return 8;
+        
+        case primitive_type::VOID: return 0;
+   }     
+}
+constexpr uint32_t get_ptr_byte_size()
+{
+    return 8;
+}
+
+struct type_data
+{
+    type_data(primitive_type type, uint32_t ptr_depth)
+        :
+            type(type),
+            ptr_depth(ptr_depth)
+    {
+        byte_size = get_ptr_byte_size();
+    }
+
+
+    type_data(primitive_type type)
+        : type(type), ptr_depth(0)
+    {
+        byte_size = get_byte_size_from_known_type(type);
+    }
+   primitive_type type; 
+   uint32_t byte_size;
+   uint32_t ptr_depth;
+    
+};
+}

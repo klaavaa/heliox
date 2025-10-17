@@ -19,18 +19,4 @@ std::string string_format(const std::string& format, Args ... args)
 	return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
 }
 
-/*
-void compile_assembly(const std::string& file_path_stripped)
-{
 
-	std::string cmds =
-		"nasm -fwin64 %s.asm -o %s.obj\n"
-		"golink /console /entry _start %s.obj kernel32.dll user32.dll\n";
-
-
-	const char* c_str_fps = file_path_stripped.c_str();
-
-	system(string_format(cmds, c_str_fps, c_str_fps, c_str_fps).c_str());
-	
-}
-*/

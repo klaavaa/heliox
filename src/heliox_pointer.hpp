@@ -1,11 +1,13 @@
 #pragma once
 #include <memory>
 
-template<typename T>
-using hx_uptr = std::unique_ptr<T>;
+namespace hx
+{
 
 template<typename T>
-using hx_sptr = std::shared_ptr<T>;
+using uptr = std::unique_ptr<T>;
 
-using std::make_shared;
-using std::make_unique;
+template<typename T>
+using sptr = std::shared_ptr<T>;
+}
+

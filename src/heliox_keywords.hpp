@@ -4,13 +4,12 @@
 #include <string>
 #include <unordered_map>
 #include <cstdint>
+#include "heliox_error.hpp"
 
-enum class hx_kwords : uint32_t
+namespace hx {
+    
+enum class keyword : uint32_t
 {
-	ERR = 0,
-	INT = 1,
-	FLOAT,
-	STRING,
 	FUN,
 	VOID,
 	RETURN,
@@ -18,79 +17,43 @@ enum class hx_kwords : uint32_t
 	ELSE,
 	WHILE,
     EXTERN,
-
 };
 
-struct hx_keyword
+
+inline const std::unordered_map<std::string, keyword> keywords = {
+	{"fun",			 keyword::FUN},
+	{"return",		 keyword::RETURN},
+	{"if",           keyword::IF},
+	{"else",		 keyword::ELSE},
+	{"while",		 keyword::WHILE},
+    {"extern",       keyword::EXTERN},
+};
+
+inline keyword get_kword_from_string(const std::string& name)
 {
-
-	enum hx_kword_type : uint32_t
-	{
-		ERROR,
-		TYPE_DECL,
-		STATEMENT
-	};
-
-	hx_keyword(hx_kword_type t, hx_kwords kword)
-		:
-		type(t),
-		keyword(kword)
-	{
-
-	}
-
-	hx_kword_type type;
-	hx_kwords keyword;
-
-};
-
-
-static const std::unordered_map<std::string, hx_keyword> keywords = {
-
-	/* ====ERROR==== */
-	{"",			{hx_keyword::ERROR, hx_kwords::ERR}},
-
-	/* ====TYPE DECL==== */
-	{"int",			{hx_keyword::TYPE_DECL, hx_kwords::INT}	},
-	{"i32",			{hx_keyword::TYPE_DECL, hx_kwords::INT}	},
-	{"float",		{hx_keyword::TYPE_DECL, hx_kwords::FLOAT}	},
-	{"string",		{hx_keyword::TYPE_DECL, hx_kwords::STRING}},
-	{"void",		{hx_keyword::TYPE_DECL, hx_kwords::VOID} },
-	/* ====STATEMENT==== */
-	{"fun",			{hx_keyword::STATEMENT, hx_kwords::FUN}},
-	{"return",		{hx_keyword::STATEMENT, hx_kwords::RETURN}},
-	{"if",          {hx_keyword::STATEMENT, hx_kwords::IF}},
-	{"else",		{hx_keyword::STATEMENT, hx_kwords::ELSE}},
-	{"while",		{hx_keyword::STATEMENT, hx_kwords::WHILE}},
-    {"extern",      {hx_keyword::STATEMENT, hx_kwords::EXTERN}},
-};
-
-inline hx_keyword get_kword_from_string(const std::string& name)
-{
-
 	if (!keywords.count(name))
-		return { hx_keyword::ERROR, hx_kwords::ERR };
-	return keywords.at(name);
+    {
+        hx::error error;
+        error.error_type = HX_SYNTAX_ERROR;
+        error.info = "unknown keyword: '" + name + "'";
+        hx::logger::log_and_exit(error);
+    }
+    return keywords.at(name);
 
 }
 
 
-inline std::string get_string_from_kword(const hx_kwords kword)
+inline std::string get_string_from_kword(const keyword keyword)
 {
 
-	std::unordered_map<hx_kwords, std::string> reversed;
+    for (const auto& [key, value] : keywords)
+        if (value == keyword)
+            return key;
 
-	for ( const auto& kw : keywords)
-	{
-		reversed[kw.second.keyword] = kw.first;
-	}
-
-	return reversed[kword];
-
+    // if this case is reached then the fabric of the universe has teared
+    // so return empty string i guess?
+    return {};
 }
-
-
-
-
+}
 
 
