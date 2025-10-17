@@ -337,9 +337,12 @@ static std::optional<uint32_t> get_precedence_level(tk_type token_type)
 		return 14;
 
 	// 15
+        
+    case tk_type::TK_AT: 
 	case tk_type::TK_L_PAREN:
 	case tk_type::TK_ARROW:
 	case tk_type::TK_DOT:
+    case tk_type::TK_NOT:
 		return 15;
 	default:
 		return {};
@@ -347,7 +350,6 @@ static std::optional<uint32_t> get_precedence_level(tk_type token_type)
 	}
 
 }
-
 struct hx_operator
 {
 
@@ -357,7 +359,12 @@ struct hx_operator
 	{
 		tk = tk_type_to_str::get_tk(op.c_str());
 		left_associative = get_associativity(tk);
-		precedence_level = get_precedence_level(tk).value();
+        if (!get_precedence_level(tk).has_value())
+        {
+            precedence_level = get_precedence_level(tk).value();
+        }
+
+	    	
 	}
 
 	std::string op;

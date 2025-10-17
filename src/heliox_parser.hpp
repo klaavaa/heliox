@@ -23,6 +23,7 @@ private:
 	hx_sptr<hx_statement> parse_statement();
 	hx_sptr<hx_compound_statement> parse_compound_statement();
 	hx_sptr<hx_statement> parse_keyword_statement();
+    hx_sptr<hx_extern_statement> parse_extern_statement();
 	hx_sptr<hx_return_statement> parse_return_statement();
 	hx_sptr<hx_conditional_statement> parse_if_statement();
 	hx_sptr<hx_while_statement> parse_while_statement();

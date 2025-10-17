@@ -1,56 +1,139 @@
 #pragma once
 
+#include <cmath>
+#include <exception>
+#include <memory>
+#include <optional>
+#include <regex>
 #include <string>
 #include <unordered_map>
 #include <algorithm>
+#include "heliox_error.hpp"
 #include "heliox_parser.hpp"
 #include "heliox_evaluator.hpp"
+#include "heliox_statement.hpp"
 #include "heliox_symbol_table.hpp"
+#include "heliox_token.hpp"
 #include "heliox_tools.hpp"
 
+enum class register_name{
+    RAX = 0,
+    RBX,
+    RCX,
+    RDX,
+    RDI,
+    RSI,
+    RBP,
+    RSP,
+    R8,
+    R9,
+    R10,
+    R11,
+    R12,
+    R13,
+    R14,
+    R15
+};
+
+/*
+class hx_register_manager
+{
+    
+public:
+
+    std::string string_from_register_name(register_name name)
+    {
+        switch (name)
+        {
+            case register_name::RAX: return "rax";
+            case register_name::RBX: return "rbx";
+            case register_name::RCX: return "rcx";
+            case register_name::RDX: return "rdx";
+            case register_name::RDI: return "rdi";
+            case register_name::RSI: return "rsi";
+            case register_name::RBP: return "rbp";
+            case register_name::RSP: return "rsp";
+            case register_name::R8:  return "r8";
+            case register_name::R9:  return "r9";
+            case register_name::R10: return "r10";
+            case register_name::R11: return "r11";
+            case register_name::R12: return "r12";
+            case register_name::R13: return "r13";
+            case register_name::R14: return "r14";
+            case register_name::R15: return "r15";
+        };
+    }
+    register_name get_unused_register()
+    {
+        auto it = std::find_if(register_states.begin(), register_states.end(),
+                [](const std::pair<register_name, register_state>& t) -> bool {return t.second.content.has_value();});
+        return it->first;
+    }
+    void set_register(register_name name, const hx_symbol symbol)
+    {
+       register_states.at(name).content = std::optional(symbol);
+    }
+    void unset_register(register_name name)
+    {
+        register_states.at(name).content = std::nullopt;
+    }
+
+private:
+    struct register_state{
+        std::optional<hx_symbol> content = std::nullopt;
+    };
+
+
+    std::unordered_map<register_name, register_state> register_states;
+};
+*/
 class hx_assembly
 {
     public:
-
         std::string generate_asm(hx_sptr<hx_program> program, hx_symbol_table* _global_table)
         {
-
+            
             global_table = _global_table;
             current_scope_table = global_table;
             //global_table->print();
             std::string entry;
-            entry =
+            for (const auto& ext : program->externs)
+            {
+                entry += "extern " + ext->externed_name + "\n";
+            }
+            entry +=
+                "extern printf\n"
                 "section .data\n"
                 "\tfmt: db \"%lld\", 10, 0\n"
-                "extern printf\n"
-                "section .text\n"
-                "global main\n"
+                "section .text\n";
+              /*  "global main\n"
                 "main:\n"
                 "\tpush rbp\n"
                 "\tmov rbp, rsp\n"
                 "\tcall _main\n"
 
                 "\tleave\n"
+                "\tmov rdi, rax\n"
                 "\tmov rax, 60\n"
-                "\tsyscall\n";
-
+                "\tsyscall\n"; */
+            
             entry +=
                 "global _print\n"
                 "_print:\n"
                 "\tpush rbp\n"
                 "\tmov rbp, rsp\n"
 
-                "\tmov rsi, qword[rbp--16]\n"
+                "\tmov rsi, rdi\n"
                 "\tpush rax\n"
                 "\tpush rbx\n"
                 "\tmov rdi, fmt\n"
                 "\txor rax, rax\n"
-                "\tcall printf WRT ..plt\n"
+                "\tcall printf\n"
                 "\tpop rbx\n"
                 "\tpop rax\n"
                 "\tleave\n"
                 "\tret\n";
-
+            
             for (const auto& function : program->functions)
             {
                 if (function->is_declaration)
@@ -60,6 +143,7 @@ class hx_assembly
                 current_scope_table = global_table->get_symbol_table(function->name);
                 std::string function_assembly = generate_function_asm(function);
                 entry += function_assembly;
+               
             }
 
             return entry;
@@ -71,8 +155,8 @@ class hx_assembly
         {
             std::string base =
                 string_format(
-                        "global _%s\n"
-                        "_%s:\n"
+                        "global %s\n"
+                        "%s:\n"
                         "\tpush rbp\n"
                         "\tmov rbp, rsp\n"
                         , function->name.c_str(), function->name.c_str()
@@ -81,12 +165,11 @@ class hx_assembly
 
             if (current_scope_table->allocated_memory_stack > 0)
                 base += string_format("\tsub rsp, %d\n", current_scope_table->allocated_memory_stack);
-
+            
             base += generate_statement_asm(function->statement);
-
+            
             base += "\tleave\n";
             base += "\tret\n";
-            //delete function;
 
             return base;
 
@@ -191,6 +274,7 @@ class hx_assembly
 
             uint32_t cur_label = label_counter;
             label_counter++;
+            
 
             base += string_format("WHILESTART%d:\n", cur_label);
             base += generate_expression_asm(statement->expression, "rax");
@@ -242,8 +326,9 @@ class hx_assembly
 
 
             std::string base;
-
+             
             std::optional<int64_t> opt = evaluate_expression(expression);
+
             if (opt.has_value())
             {
                 int64_t value = opt.value();
@@ -269,12 +354,13 @@ class hx_assembly
                 case expression_type::FUNCTION_CALL:
                     {
                         base = generate_function_call_asm(std::dynamic_pointer_cast<hx_function_call_expression>(expression));
+                        base += "\tmov " + reg + ", rax\n";
                         break;
                     }
 
                 case expression_type::UNARYOP:
                     {
-                        generate_unary_asm(std::dynamic_pointer_cast<hx_unary_expression>(expression), reg);
+                        base = generate_unary_asm(std::dynamic_pointer_cast<hx_unary_expression>(expression), reg);
                         break;
                     }
 
@@ -284,6 +370,7 @@ class hx_assembly
                            std::dynamic_pointer_cast<hx_binop_expression>(expression)->print();
                            printf("\n"); */
                         base = generate_binop_asm(std::dynamic_pointer_cast<hx_binop_expression>(expression));
+                        base += "\tmov " + reg + ", rax\n";
                         break;
                     }
             }
@@ -303,10 +390,20 @@ class hx_assembly
                 base = get_register_from_index(symbol.in_register.value());
             }
             else {
-                base = string_format(
-                        "qword[rbp-%d]",
-                        symbol.stack_position
-                        );
+                if (symbol.stack_position > 0) // check if need to do rbp + or rbp - 
+                {
+                    base = string_format(
+                            "qword[rbp-%d]",
+                            symbol.stack_position
+                            );
+                }
+                else 
+                {
+                    base = string_format(
+                            "qword[rbp+%d]",
+                            -symbol.stack_position
+                            );
+                }
             }
 
 
@@ -355,9 +452,12 @@ class hx_assembly
                 std::string reg = get_register_from_index(i);
                 base += generate_expression_asm(fn_call->arguments[i], reg);
             }
-
-            base += "\tcall _" + fn_call->identifier->name + "\n";
-            base += string_format("\tadd rsp, %d\n", (fn_call->arguments.size() - function_arg_register_count) * 8);
+            
+            base += "\tand rsp, -16\n";
+            base += "\tcall " + fn_call->identifier->name + "\n";
+            int cleanup =  (fn_call->arguments.size() - (function_arg_register_count + 1)) * 8;
+            if (cleanup)
+                base += string_format("\tadd rsp, %d\n", cleanup);
             base +=  ";---generate_function_call_end---;\n";
 
             return base;
@@ -387,7 +487,7 @@ class hx_assembly
             if (left_type == expression_type::BINOP)
             {
                 base += generate_binop_asm(std::dynamic_pointer_cast<hx_binop_expression>(expression->left));
-                base += "\tmov r8, rax\n";
+                base += "\tmov r10, rax\n";
             }
             else
                 base += generate_expression_asm(expression->left, "rax");
@@ -410,16 +510,16 @@ class hx_assembly
             if (right_type == expression_type::BINOP)
             {
                 base += generate_binop_asm(std::dynamic_pointer_cast<hx_binop_expression>(expression->right));
-                base += "\tmov r9, rax\n";
+                base += "\tmov r11, rax\n";
             }
             else
                 base += generate_expression_asm(expression->right, "rbx");
 
             if (left_type == expression_type::BINOP)
-                base += "\tmov rax, r8\n";
+                base += "\tmov rax, r10\n";
 
             if (right_type == expression_type::BINOP)
-                base += "\tmov rbx, r9\n";
+                base += "\tmov rbx, r11\n";
 
 
             switch (op.tk)
@@ -440,8 +540,25 @@ class hx_assembly
                     base += "\tidiv rbx\n";
                     break;
                 case tk_type::TK_EQU:
-                    base += "\tmov " + generate_identifier_literal_asm(
-                            std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)) + ", rax\n";
+                    switch (expression->right->e_type)
+                    {
+                        case expression_type::IDENTIFIER_LITERAL:
+                            base += "\tmov " + generate_identifier_literal_asm(
+                             std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->right)) + ", rax\n";
+                            break;
+                        case expression_type::UNARYOP:
+                            auto e = std::dynamic_pointer_cast<hx_unary_expression>(expression->right);
+                            if (e->op != "*")
+                            {
+                                hx_error error;
+                                error.info = "TRIED TO ASSIGN RVALUE";
+                                error.error_type = HX_SYNTAX_ERROR;
+                                hx_logger::log_and_exit(error);
+                            }
+                            base += generate_expression_asm(e->expression, "r12");
+                            base += "\tmov [r12], rax\n";
+                            break;
+                    }
                     break;
                 case tk_type::TK_LTE:
                     base += string_format(
@@ -548,9 +665,7 @@ class hx_assembly
 
             std::string base;
             hx_operator op(expression->op);
-
-            generate_expression_asm(expression->expression, reg);
-
+            base += generate_expression_asm(expression->expression, reg);
             switch (op.tk)
             {
                 case TK_MINUS:
@@ -567,8 +682,29 @@ class hx_assembly
 
                     label_counter++;
                     break;
-
-
+                
+                case TK_BITWISE_AND: // address-of
+                    switch (expression->expression->e_type)
+                    {
+                    case expression_type::IDENTIFIER_LITERAL:
+                    {
+                        auto e = std::dynamic_pointer_cast<hx_identifier_literal_expression>(expression->expression);
+                        hx_symbol sym = current_scope_table->find_symbol(e->name, hx_symbol_type::VAR, e->line_number);
+                        base = string_format("\tlea " + reg + ", [rbp-%d]\n", sym.stack_position);
+                        break;
+                    }
+                    default:
+                        std::cout << (int)expression->expression->e_type << "\n"; 
+                        hx_error error;
+                        error.error_type = HX_SYNTAX_ERROR;
+                        error.line = expression->line_number;
+                        error.info = "Trying to get the address of a non identifier";
+                        hx_logger::log_and_exit(error);
+                    }
+                    break;
+                case TK_MULTIPLY: // dereference 
+                    base += "\tmov " + reg + ", " + "[" + reg + "]\n";
+                    break;
             }
 
             return base;

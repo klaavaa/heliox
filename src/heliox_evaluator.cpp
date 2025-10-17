@@ -5,25 +5,23 @@ std::optional<int64_t> evaluate_int_literal(hx_sptr<hx_int_literal_expression> l
 {
 	return literal->value;
 }
-
+#include <iostream>
 std::optional<int64_t> evaluate_unop_expression(hx_sptr<hx_unary_expression> unop)
 {
 	std::optional<int64_t> value{};
-
-
 	value = evaluate_expression(unop->expression);
 
 	if (!value.has_value())
 		return {};
 
 	tk_type op = tk_type_to_str::get_tk(unop->op.c_str());
-
 	switch (op)
 	{
 
 	case TK_MINUS:	return -value.value();
 	case TK_PLUS:	return +value.value();
 	case TK_NOT:	return !value.value();
+    case TK_AT:     return {};
 	default:
 	{
 		hx_error error;

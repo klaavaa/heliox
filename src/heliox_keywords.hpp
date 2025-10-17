@@ -3,7 +3,7 @@
 
 #include <string>
 #include <unordered_map>
-
+#include <cstdint>
 
 enum class hx_kwords : uint32_t
 {
@@ -16,7 +16,8 @@ enum class hx_kwords : uint32_t
 	RETURN,
 	IF,
 	ELSE,
-	WHILE
+	WHILE,
+    EXTERN,
 
 };
 
@@ -60,7 +61,8 @@ static const std::unordered_map<std::string, hx_keyword> keywords = {
 	{"return",		{hx_keyword::STATEMENT, hx_kwords::RETURN}},
 	{"if",          {hx_keyword::STATEMENT, hx_kwords::IF}},
 	{"else",		{hx_keyword::STATEMENT, hx_kwords::ELSE}},
-	{"while",		{hx_keyword::STATEMENT, hx_kwords::WHILE}}
+	{"while",		{hx_keyword::STATEMENT, hx_kwords::WHILE}},
+    {"extern",      {hx_keyword::STATEMENT, hx_kwords::EXTERN}},
 };
 
 inline hx_keyword get_kword_from_string(const std::string& name)

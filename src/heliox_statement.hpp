@@ -124,6 +124,7 @@ enum class statement_type : uint32_t
 	COMPOUND,
 
 	RETURN,
+    EXTERN,
 
 	TYPE_DECLARATION,
 	DEFINITION,
@@ -187,9 +188,12 @@ struct hx_type_decl_statement : public hx_statement
 	std::string name;
 
 	uint32_t ptr_depth = 0;
+    bool is_pointer = false;
 
 	void print() override
 	{
+        for (uint32_t i = 0; i < ptr_depth; i++)
+            type += "*";
 		printf("%s %s", type.c_str(), name.c_str());
 	}
 };
@@ -303,14 +307,34 @@ struct hx_function
 
 };
 
+struct hx_extern_statement: public hx_statement
+{
+	hx_extern_statement() { s_type = statement_type::EXTERN; }
+
+    std::string externed_name;
+	hx_sptr<hx_function> externed_function;
+
+	void print() override
+	{
+		printf("extern %s{\n", externed_name.c_str());
+		externed_function->print();
+		printf("}\n");
+	}
+
+};
+
 struct hx_program
 {
 	std::vector<hx_sptr<hx_function>> functions;
-
+    std::vector<hx_sptr<hx_extern_statement>> externs;
 	void print()
 	{
 
 		printf("--PROGRAM START--\n\n");
+		for (const auto ext : externs)
+		{
+			ext->print();
+		}
 		for (const auto func : functions)
 		{
 			func->print();

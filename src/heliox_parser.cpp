@@ -1,5 +1,8 @@
 #include "heliox_parser.hpp"
+#include "heliox_keywords.hpp"
+#include "heliox_statement.hpp"
 #include "heliox_token.hpp"
+#include <memory>
 
 hx_parser::hx_parser(hx_lexer* lexer)
 	:
@@ -17,17 +20,25 @@ hx_sptr<hx_program> hx_parser::parse()
 	while (token.type == TK_KEYWORD)
 	{
 		hx_kwords keyword = get_kword_from_string(token.value).keyword;
-		if (keyword != hx_kwords::FUN)
-		{
-            hx_error error;
-			error.line = lexer->get_line();
+        switch (keyword)
+        {
+            case hx_kwords::FUN:
+		        program->functions.push_back(parse_function());
+                break;
+            case hx_kwords::EXTERN:
+                program->externs.push_back(parse_extern_statement());
+                break;
+            default:
+                hx_error error;
+                error.line = lexer->get_line();
 
-			error.info = "Unexpected token: " + token.value;
-			error.error_type = HX_SYNTAX_ERROR;
-            hx_logger::log_and_exit(error);
-		}
+                error.info = "Unexpected token: " + token.value;
+                error.error_type = HX_SYNTAX_ERROR;
+                hx_logger::log_and_exit(error);
+		
+        }
+		
 
-		program->functions.push_back(parse_function());
 
 	}
 	
@@ -87,37 +98,20 @@ hx_sptr<hx_function> hx_parser::parse_function()
 	}
 	eat(TK_R_PAREN);
 
+    function->return_type = token.value;
+    eat(TK_KEYWORD);
 
-	if (token.type == TK_ARROW)
-	{
-		eat(TK_ARROW);
-
-		function->return_type = token.value;
-		eat(TK_KEYWORD);
-	}
-
-	else
-	{
-		function->return_type = get_string_from_kword(hx_kwords::VOID);
-	}
 
 	function->statement = parse_statement();
 
 	if (function->statement->s_type == statement_type::NOOP)
+    {
 		function->is_declaration = true;
-	else if (function->statement->s_type == statement_type::COMPOUND)
-		function->is_declaration = false;
+    }
 	else
 	{
-        hx_error error;
-		error.line = function->line_number;
-		error.error_type = HX_SYNTAX_ERROR;
-		error.info = "Function must have a body or a semicolon for declaration";
-		hx_logger::log_and_exit(error);
-	}
-
-
-	
+        function->is_declaration = false;
+    }
 
 	return function;
 }
@@ -178,7 +172,6 @@ hx_sptr<hx_statement> hx_parser::parse_keyword_statement()
 	case hx_kwords::RETURN: return parse_return_statement();
 	case hx_kwords::IF:		return parse_if_statement();
 	case hx_kwords::WHILE:	return parse_while_statement();
-
 	default:
 	{
         hx_error error;
@@ -189,6 +182,27 @@ hx_sptr<hx_statement> hx_parser::parse_keyword_statement()
         return nullptr;
 	}
 	}
+}
+
+hx_sptr<hx_extern_statement> hx_parser::parse_extern_statement()
+{
+    eat(TK_KEYWORD);
+    hx_sptr<hx_extern_statement> extern_statement = make_shared<hx_extern_statement>();
+    std::string name = parse_identifier_literal_expression()->name;
+    eat(TK_ARROW);
+    extern_statement->line_number = lexer->get_line();
+    extern_statement->externed_name = name;
+    extern_statement->externed_function = parse_function();
+    if (!extern_statement->externed_function->is_declaration)
+    {
+        hx_error error;
+		error.error_type = HX_SYNTAX_ERROR;
+		error.line = lexer->get_line();
+		error.info = "Gave an extern function a body";
+        hx_logger::log_and_exit(error);
+    } 
+     
+    return extern_statement;
 }
 
 hx_sptr<hx_return_statement> hx_parser::parse_return_statement()
@@ -279,6 +293,7 @@ hx_sptr<hx_type_decl_statement> hx_parser::parse_type_decl_statement()
 	while (token.type == TK_MULTIPLY)
 	{
 		type_decl_statement->ptr_depth++;
+        type_decl_statement->is_pointer = true;
 		eat(TK_MULTIPLY);
 	}
 	
@@ -331,7 +346,7 @@ hx_sptr<hx_expression> hx_parser::parse_primary()
 	case TK_PLUS:
 	case TK_NOT:
 	case TK_MULTIPLY:
-	case TK_AT:
+    case TK_BITWISE_AND:
 		return parse_unary_expression();
 	
 	default:
@@ -351,25 +366,18 @@ hx_sptr<hx_expression> hx_parser::parse_expression(hx_sptr<hx_expression> lhs, u
 
 	while (true)
 	{
-		if (token.type == tk_type::TK_AT)
-		{
-			hx_sptr<hx_unary_expression> unary(make_shared<hx_unary_expression>());
-			unary->line_number = lexer->get_line();
-			unary->prefix = false;
-			unary->op = tk_type_to_str::get_str(token.type);
-			unary->expression = 
-			lhs = unary;
-		}
-		std::optional<uint32_t> opt = get_precedence_level(token.type);
+
+    	std::optional<uint32_t> opt = get_precedence_level(token.type);
 
 		if (!opt.has_value())
 			break;
 
 		uint32_t precedence_level = opt.value();
-
+        /*
 		if (token.type == TK_EQU)
 		{
 			// TODO: REMOVE THIS
+            
 			if (depth > 0)
 			{
                 hx_error error;
@@ -386,7 +394,7 @@ hx_sptr<hx_expression> hx_parser::parse_expression(hx_sptr<hx_expression> lhs, u
 				error.info = "Left hand side of equality is not an identifier.";
 				hx_logger::log_and_exit(error);
 			}
-		}
+		} */
 	
 		if (precedence_level < precedence)
 			break;

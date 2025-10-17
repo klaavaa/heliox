@@ -40,6 +40,7 @@ void hx_compile(const std::string& file_path, const std::string& output_path)
     hx_parser parser(&lexer);
     hx_sptr<hx_program> program = parser.parse();
 
+    std::cout << "succesfully parsed\n";
     if (HX_IS_FLAG("--debug") || HX_IS_FLAG("-d"))
     {
         program->print();
@@ -61,14 +62,14 @@ void hx_compile(const std::string& file_path, const std::string& output_path)
         hx_logger::log_and_exit(error);
     }
 
-
     hx_assembly generator;
     hx_symbol_table* global_table = generate_symbol_table(program);
+    std::cout << "succesfully generated symbol table\n";
     std::string generated_text = generator.generate_asm(program, global_table);
 
-
     create_assembly_file(output_path + file_path_stripped, generated_text);
-
+    
+    std::cout << "successfully compiled to asm file\n";
     
     system(string_format("nasm -f elf64 %s.asm -o %s.o",
                 file_path_stripped.c_str(), file_path_stripped.c_str()).c_str());

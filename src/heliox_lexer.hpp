@@ -74,10 +74,11 @@ public:
 			return hx_token(tk_type::TK_STRING, s);
 
 		}
+        /*
 		case DOLLAR:
 		{
 			return hx_token(tk_type::TK_DOLLAR, "");
-		}
+		} */
 		case AMPERSAND:
 		{
 			if (peek_next() == AMPERSAND)
@@ -111,12 +112,13 @@ public:
 		}
 		case MINUS:
 		{
-
+            
 			if (peek_next() == RIGHT_ARROW)
 			{
 				advance();
 				return hx_token(tk_type::TK_ARROW, "");
 			}
+            
 			return hx_token(tk_type::TK_MINUS, "");
 		}
 		case DIVIDE:
@@ -204,11 +206,12 @@ public:
 		{
 			return hx_token(tk_type::TK_R_BRACK, "");
 		}
+        /*
 		case AT:
 		{
 			return hx_token(tk_type::TK_AT, "");
 		}
-
+        */
 		case LEFT_ARROW:
 		{
 			if (peek_next() == EQUALS)
@@ -250,11 +253,12 @@ public:
 			return hx_token(tk_type::TK_NOT, "");
 
 		}
+        /*
 		case QUESTION_MARK:
 		{
 
 			return hx_token(tk_type::TK_NOT_A_TOKEN, "");
-		}
+		}*/
 
 
 		case SEMICOLON:
