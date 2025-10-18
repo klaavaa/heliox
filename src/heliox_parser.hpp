@@ -18,8 +18,16 @@ public:
 private:	
 
     uptr<function> parse_function();
+    expression parse_identifier();
     uptr<identifier_literal_expr> parse_identifier_literal();
+    uptr<string_literal_expr> parse_string_literal();
+    uptr<int_literal_expr> parse_int_literal();
+
     expression parse_expression();
+    expression parse_expression_from_primary(expression primary, uint32_t min_precedence);
+    expression parse_primary(); 
+
+
     uptr<variable_declaration_statement> parse_variable_declaration();
 
     type_data parse_type();
@@ -27,7 +35,8 @@ private:
     statement parse_statement();
     uptr<compound_statement> parse_compound_statement();
     statement parse_type_statement(); // variable_declaration or variable_defenition 
-    uptr<expression_statement> parse_expression_statement();
+    statement parse_keyword_statement();
+    uptr<return_statement> parse_return_statement();
 
 	void eat(tk_type token_type);
      

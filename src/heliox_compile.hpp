@@ -7,12 +7,16 @@
 #include "heliox_parser.hpp"
 #include "heliox_error.hpp"
 #include "heliox_file.hpp"
+#include "heliox_visitor.hpp"
+#include "heliox_debug_visitor.hpp"
+
+
 
 namespace hx  
 {
 inline void compile(const std::string& file_path, const std::string& output_path)
 {
-
+    
     if (file_path.substr(file_path.size() - 3) != ".hx")
     {
         hx::error error;
@@ -34,7 +38,7 @@ inline void compile(const std::string& file_path, const std::string& output_path
 
     std::string text = load_hx_file(file_path);
 
-
+    
 
     hx::lexer lex = hx::lexer(text);
     std::vector<token> tokens = lex.tokenize();
@@ -46,8 +50,10 @@ inline void compile(const std::string& file_path, const std::string& output_path
 
     hx::parser parsr = hx::parser(std::make_unique<lexer>(lex));
     uptr<program> prog = parsr.parse_program();
-    std::println("{}", *prog);
     
+    debug_visitor d_visitor;
+    d_visitor.visit_program(prog);
+
     /*
     hx::parser parser(&lexer);
     hx_sptr<hx_program> program = parser.parse();

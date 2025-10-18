@@ -3,7 +3,6 @@
 #include "heliox_pointer.hpp"
 #include "heliox_statement.hpp"
 #include <vector>
-#include <format>
 
 namespace hx
 {
@@ -29,14 +28,3 @@ struct function
 };
 }
 
-template <>
-struct std::formatter<hx::function> : std::formatter<std::string>
-{
-    auto format(const hx::function& func, auto& ctx) const
-    {
-        std::string formatted = std::format("function{}::begin\n", "main");
-         
-        return std::formatter<std::string>::format(formatted, ctx);
-    }
-
-};

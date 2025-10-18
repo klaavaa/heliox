@@ -26,9 +26,9 @@ using expression = std::variant<
 
 struct int_literal_expr
 {
-    int_literal_expr(int64_t value)
+    int_literal_expr(std::string value)
         : value(value) {}
-    int64_t value;
+    std::string value;
 };
 
 struct string_literal_expr
