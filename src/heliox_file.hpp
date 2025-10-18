@@ -19,11 +19,11 @@ std::string load_hx_file(const std::string& file_path)
 	}
 	else
 	{
-        hx_error error;
+        hx::error error;
 		error.error_type = HX_FILE_OPEN_ERROR;
 		error.line = 0;
 		error.info = "Error opening file for reading";
-		hx_logger::log_and_exit(error);
+        hx::logger::log_and_exit(error);
 	}
 	
 	return buffer.str();
@@ -51,11 +51,11 @@ void create_assembly_file(const std::string& file_path, const std::string& assem
 	}
 	else
 	{
-        hx_error error;
+        hx::error error;
 		error.error_type = HX_FILE_OPEN_ERROR;
 		error.line = 0;
 		error.info = "Error opening file for writing";
-		hx_logger::log_and_exit(error);
+        hx::logger::log_and_exit(error);
 	}
 }
 

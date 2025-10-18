@@ -54,60 +54,59 @@ constexpr const char* numbers = "0123456789";
 constexpr const char* characters_numbers = "0123456789abcdefghijklmnopqrstuvwxyzåäöABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ_§";
 
 
-
-enum tk_type : uint32_t
+enum class tk_type
 {
 
-	TK_EOF = 0,
+	END_OF_FILE = 0,
 
-	TK_NOT_A_TOKEN,
+	NOT_A_TOKEN,
 
-	TK_KEYWORD,
-	TK_IDENTIFIER,
+	KEYWORD,
+	IDENTIFIER,
 
-	TK_COMMA,
-	TK_DOT,
-	TK_QUOT_MARK,
+	COMMA,
+	DOT,
+	QUOT_MARK,
 
-	TK_SEMICOLON,
-	TK_COLON,
+	SEMICOLON,
+	COLON,
 
-	TK_PLUS,
-	TK_MINUS,
-	TK_DIVIDE,
-	TK_MULTIPLY,
+	PLUS,
+	MINUS,
+	DIVIDE,
+	MULTIPLY,
 
-	TK_L_PAREN,
-	TK_R_PAREN,
+	L_PAREN,
+	R_PAREN,
 
-	TK_L_BRACE,
-	TK_R_BRACE,
+	L_BRACE,
+	R_BRACE,
 
-	TK_L_BRACK,
-	TK_R_BRACK,
+	L_BRACK,
+	R_BRACK,
 
-	TK_DOLLAR,
-	TK_BITWISE_AND,
-	TK_BITWISE_OR,
-	TK_BITWISE_XOR,
-	TK_EQU,
-	TK_NOT,
-	TK_INTEGER,
-	TK_FLOAT,
-	TK_STRING,
+	DOLLAR,
+	BITWISE_AND,
+	BITWISE_OR,
+	BITWISE_XOR,
+	EQU,
+	NOT,
+	INTEGER,
+	FLOAT,
+	STRING,
 
-	TK_AT,
+	AT,
 
-	TK_LOGICAL_AND,
-	TK_LOGICAL_OR,
-	TK_GT,
-	TK_GTE,
-	TK_LT,
-	TK_LTE,
-	TK_DOUBLE_EQU,
-	TK_NEQU,
+	LOGICAL_AND,
+	LOGICAL_OR,
+	GT,
+	GTE,
+	LT,
+	LTE,
+	DOUBLE_EQU,
+	NEQU,
 
-	TK_ARROW
+	ARROW
 
 
 };
@@ -115,44 +114,44 @@ enum tk_type : uint32_t
 static const std::unordered_map<tk_type, const char*>  token_to_string =
 {
 
-{ tk_type::TK_EOF,								"EOF" },
-{ tk_type::TK_KEYWORD,							"KEYWORD" },
-{ tk_type::TK_IDENTIFIER,						"IDENTIFIER" },
+{ tk_type::END_OF_FILE,	    				"EOF" },
+{ tk_type::KEYWORD,							"KEYWORD" },
+{ tk_type::IDENTIFIER,						"IDENTIFIER" },
 
-{ tk_type::TK_COMMA,							"," },
-{ tk_type::TK_DOT,								"." },
-{ tk_type::TK_QUOT_MARK,                        "\""},
-{ tk_type::TK_SEMICOLON,						";" },
-{ tk_type::TK_COLON,							":" },
-{ tk_type::TK_PLUS,								"+" },
-{ tk_type::TK_MINUS,							"-" },
-{ tk_type::TK_DIVIDE,							"/" },
-{ tk_type::TK_MULTIPLY,							"*" },
-{ tk_type::TK_L_PAREN,							"(" },
-{ tk_type::TK_R_PAREN,							")" },
-{ tk_type::TK_L_BRACE,							"{" },
-{ tk_type::TK_R_BRACE,							"}" },
-{ tk_type::TK_L_BRACK,							"[" },
-{ tk_type::TK_R_BRACK,							"]" },
-{ tk_type::TK_DOLLAR ,							"$" },
-{ tk_type::TK_AT ,								"@" },
-{ tk_type::TK_BITWISE_AND,						"&" },
-{ tk_type::TK_BITWISE_OR ,						"|" },
-{ tk_type::TK_BITWISE_XOR ,						"^" },
-{ tk_type::TK_LOGICAL_AND,						"&&"},
-{ tk_type::TK_LOGICAL_OR,						"||"},
-{ tk_type::TK_EQU,								"=" },
-{ tk_type::TK_DOUBLE_EQU,						"=="},
-{ tk_type::TK_NOT,								"!" },
-{ tk_type::TK_NEQU,								"!="},
-{ tk_type::TK_INTEGER,							"INTEGER" },
-{ tk_type::TK_FLOAT,							"FLOAT" },
-{ tk_type::TK_STRING,							"STRING"},
-{ tk_type::TK_LT,								"<" },
-{ tk_type::TK_LTE,								"<="}, 
-{ tk_type::TK_GTE,								">="},
-{ tk_type::TK_GT,								">" },
-{ tk_type::TK_ARROW,							"->"}				
+{ tk_type::COMMA,							"," },
+{ tk_type::DOT,								"." },
+{ tk_type::QUOT_MARK,                        "\""},
+{ tk_type::SEMICOLON,						";" },
+{ tk_type::COLON,							":" },
+{ tk_type::PLUS,								"+" },
+{ tk_type::MINUS,							"-" },
+{ tk_type::DIVIDE,							"/" },
+{ tk_type::MULTIPLY,							"*" },
+{ tk_type::L_PAREN,							"(" },
+{ tk_type::R_PAREN,							")" },
+{ tk_type::L_BRACE,							"{" },
+{ tk_type::R_BRACE,							"}" },
+{ tk_type::L_BRACK,							"[" },
+{ tk_type::R_BRACK,							"]" },
+{ tk_type::DOLLAR ,							"$" },
+{ tk_type::AT ,								"@" },
+{ tk_type::BITWISE_AND,						"&" },
+{ tk_type::BITWISE_OR ,						"|" },
+{ tk_type::BITWISE_XOR ,						"^" },
+{ tk_type::LOGICAL_AND,						"&&"},
+{ tk_type::LOGICAL_OR,						"||"},
+{ tk_type::EQU,								"=" },
+{ tk_type::DOUBLE_EQU,						"=="},
+{ tk_type::NOT,								"!" },
+{ tk_type::NEQU,								"!="},
+{ tk_type::INTEGER,							"INTEGER" },
+{ tk_type::FLOAT,							"FLOAT" },
+{ tk_type::STRING,							"STRING"},
+{ tk_type::LT,								"<" },
+{ tk_type::LTE,								"<="}, 
+{ tk_type::GTE,								">="},
+{ tk_type::GT,								">" },
+{ tk_type::ARROW,							"->"}				
 
 
 };
@@ -178,7 +177,7 @@ struct tk_type_to_str
 		auto it = std::find_if(string_to_token.begin(), string_to_token.end(), [str](const std::pair<const char*, tk_type>& t)->bool
 			{return !strcmp(str, t.first); });
 
-		if (it == string_to_token.end()) return tk_type::TK_NOT_A_TOKEN;
+		if (it == string_to_token.end()) return tk_type::NOT_A_TOKEN;
 
 		return it->second;
 	}
@@ -200,7 +199,9 @@ private:
 */
 struct token
 {
-
+    token() : type(tk_type::NOT_A_TOKEN), value()
+    {
+    }
 	token(tk_type tok_type, std::string tok_value)
 		:
 		type(tok_type),

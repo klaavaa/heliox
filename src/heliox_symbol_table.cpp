@@ -1,3 +1,4 @@
+/*
 #include "heliox_symbol_table.hpp"
 
 bool hx_symbol_table::check_if_exists(const std::string& name, hx_symbol_type symbol_type)
@@ -291,4 +292,4 @@ hx_symbol_table* generate_symbol_table(hx_sptr<hx_program> program)
 
 }
 
-
+*/

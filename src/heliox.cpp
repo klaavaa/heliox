@@ -30,8 +30,8 @@ int main(int argc, char** argv)
         return 0;
     }
     
-    auto func = fn<void, const std::string&, const std::string&>(hx_compile);
-    double time = hx_timeit<void, const std::string&, const std::string&>(func, file_path, "./");
+    auto func = fn<void, const std::string&, const std::string&>(hx::compile);
+    double time = timeit<void, const std::string&, const std::string&>(func, file_path, "./");
     std::cout << "Compile time: " << time << "s\n";
 
 

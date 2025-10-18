@@ -31,14 +31,14 @@ private:
 
 private:
 
-	std::string text;
-	char cur_char;
+	std::string m_text;
+	char m_cur_char;
 
 
-	uint32_t len_text;
-	uint32_t index=0;
+	uint32_t m_len_text;
+	uint32_t m_index=0;
 
-	uint32_t line_number = 1;
+	uint32_t m_line_number = 1;
 
 };
 }		

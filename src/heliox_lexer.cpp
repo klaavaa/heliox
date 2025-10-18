@@ -4,19 +4,19 @@ namespace hx {
 
 lexer::lexer(std::string text)
 {
-		this->text = text;
-		this->index = 0;
-		this->len_text = (uint32_t)text.size();
-		this->cur_char = -1;
+		this->m_text = text;
+		this->m_index = 0;
+		this->m_len_text = (uint32_t)text.size();
+		this->m_cur_char = -1;
 
 }
 uint32_t lexer::get_line() 
 {
-    return line_number;
+    return m_line_number;
 }
 bool lexer::is_finished()
 {
-    return this->index == this->len_text;
+    return this->m_index == this->m_len_text;
 }
 token lexer::get_next()
 {
@@ -24,21 +24,21 @@ token lexer::get_next()
 
     do
     {
-        if (!advance()) return token(tk_type::TK_EOF, "");
+        if (!advance()) return token(tk_type::END_OF_FILE, "");
 
-    } while (cur_char == HX_SPACE || cur_char == HX_TAB || cur_char == HX_NEWLINE || cur_char == '\r');
+    } while (m_cur_char == HX_SPACE || m_cur_char == HX_TAB || m_cur_char == HX_NEWLINE || m_cur_char == '\r');
 
 
-    switch (cur_char)
+    switch (m_cur_char)
     {
 
     case HX_COMMA:
     {
-        return token(tk_type::TK_COMMA, "");
+        return token(tk_type::COMMA, "");
     }
     case HX_DOT:
     {
-        return token(tk_type::TK_DOT, "");
+        return token(tk_type::DOT, "");
     }
     case HX_QUOT_MARK:
     {
@@ -54,32 +54,32 @@ token lexer::get_next()
                 logger::log_and_exit(error);
             }
             advance();
-            s += cur_char;
+            s += m_cur_char;
         }
         advance();
-        return token(tk_type::TK_STRING, s);
+        return token(tk_type::STRING, s);
 
     }
     /*
     case DOLLAR:
     {
-        return token(tk_type::TK_DOLLAR, "");
+        return token(tk_type::DOLLAR, "");
     } */
     case HX_AMPERSAND:
     {
         if (peek_next() == HX_AMPERSAND)
         {
             advance();
-            return token(tk_type::TK_LOGICAL_AND, "");
+            return token(tk_type::LOGICAL_AND, "");
         }
 
-        return token(tk_type::TK_BITWISE_AND, "");
+        return token(tk_type::BITWISE_AND, "");
 
     }
 
     case HX_CIRCUMFLEX:
     {
-        return token(tk_type::TK_BITWISE_XOR, "");
+        return token(tk_type::BITWISE_XOR, "");
     }
 
     case HX_PIPE:
@@ -87,14 +87,14 @@ token lexer::get_next()
         if (peek_next() == HX_PIPE)
         {
             advance();
-            return token(tk_type::TK_LOGICAL_OR, "");
+            return token(tk_type::LOGICAL_OR, "");
         }
-        return token(tk_type::TK_BITWISE_OR, "");
+        return token(tk_type::BITWISE_OR, "");
     }
 
     case HX_PLUS:
     {
-        return token(tk_type::TK_PLUS, "");
+        return token(tk_type::PLUS, "");
     }
     case HX_MINUS:
     {
@@ -102,10 +102,10 @@ token lexer::get_next()
         if (peek_next() == HX_RIGHT_ARROW)
         {
             advance();
-            return token(tk_type::TK_ARROW, "");
+            return token(tk_type::ARROW, "");
         }
         
-        return token(tk_type::TK_MINUS, "");
+        return token(tk_type::MINUS, "");
     }
     case HX_DIVIDE:
     {
@@ -120,11 +120,11 @@ token lexer::get_next()
                 if (!advance())
                     goto error_label;
 
-                if (cur_char == HX_STAR)
+                if (m_cur_char == HX_STAR)
                 {
                     if (!advance())
                         goto error_label;
-                    if (cur_char == HX_DIVIDE)
+                    if (m_cur_char == HX_DIVIDE)
                     {
                         advance();
                         break;
@@ -155,46 +155,46 @@ token lexer::get_next()
             {
                 advance();
 
-            } while (cur_char != HX_NEWLINE && cur_char != HX_EOF);
+            } while (m_cur_char != HX_NEWLINE && m_cur_char != HX_EOF);
 
             return get_next();
         }
 
 
-        return token(tk_type::TK_DIVIDE, "");
+        return token(tk_type::DIVIDE, "");
     }
     case HX_STAR:
     {
-        return token(tk_type::TK_MULTIPLY, "");
+        return token(tk_type::MULTIPLY, "");
     }
     case HX_LEFT_BRACE:
     {
-        return token(tk_type::TK_L_BRACE, "");
+        return token(tk_type::L_BRACE, "");
     }
     case HX_RIGHT_BRACE:
     {
-        return token(tk_type::TK_R_BRACE, "");
+        return token(tk_type::R_BRACE, "");
     }
     case HX_LEFT_PAREN:
     {
-        return token(tk_type::TK_L_PAREN, "");
+        return token(tk_type::L_PAREN, "");
     }
     case HX_RIGHT_PAREN:
     {
-        return token(tk_type::TK_R_PAREN, "");
+        return token(tk_type::R_PAREN, "");
     }
     case HX_LEFT_BRACK:
     {
-        return token(tk_type::TK_L_BRACK, "");
+        return token(tk_type::L_BRACK, "");
     }
     case HX_RIGHT_BRACK:
     {
-        return token(tk_type::TK_R_BRACK, "");
+        return token(tk_type::R_BRACK, "");
     }
     /*
     case AT:
     {
-        return token(tk_type::TK_AT, "");
+        return token(tk_type::AT, "");
     }
     */
     case HX_LEFT_ARROW:
@@ -202,18 +202,18 @@ token lexer::get_next()
         if (peek_next() == HX_EQUALS)
         {
             advance();
-            return token(tk_type::TK_LTE, "");
+            return token(tk_type::LTE, "");
         }
-        return token(tk_type::TK_LT, "");
+        return token(tk_type::LT, "");
     }
     case HX_RIGHT_ARROW:
     {
         if (peek_next() == HX_EQUALS)
         {
             advance();
-            return token(tk_type::TK_GTE, "");
+            return token(tk_type::GTE, "");
         }
-        return token(tk_type::TK_GT, "");
+        return token(tk_type::GT, "");
     }
 
     case HX_EQUALS:
@@ -221,9 +221,9 @@ token lexer::get_next()
         if (peek_next() == HX_EQUALS)
         {
             advance();
-            return token(tk_type::TK_DOUBLE_EQU, "");
+            return token(tk_type::DOUBLE_EQU, "");
         }
-        return token(tk_type::TK_EQU, "");
+        return token(tk_type::EQU, "");
     }
 
     case HX_EXCLAMATION_MARK:
@@ -232,41 +232,41 @@ token lexer::get_next()
         if (peek_next() == HX_EQUALS)
         {
             advance();
-            return token(tk_type::TK_NEQU, "");
+            return token(tk_type::NEQU, "");
         }
 
-        return token(tk_type::TK_NOT, "");
+        return token(tk_type::NOT, "");
 
     }
     /*
     case QUESTION_MARK:
     {
 
-        return token(tk_type::TK_NOT_A_TOKEN, "");
+        return token(tk_type::NOT_A_TOKEN, "");
     }*/
 
 
     case HX_SEMICOLON:
     {
-        return token(tk_type::TK_SEMICOLON, "");
+        return token(tk_type::SEMICOLON, "");
     }
     case HX_COLON:
     {
-        return token(tk_type::TK_COLON, "");
+        return token(tk_type::COLON, "");
     }
     }
-    if (strchr(characters, cur_char))
+    if (strchr(characters, m_cur_char))
     {
         return make_identifier();
     }
 
-    else if (strchr(numbers, cur_char))
+    else if (strchr(numbers, m_cur_char))
     {
         return make_number();
     }
     
 
-    return token(tk_type::TK_NOT_A_TOKEN, "");
+    return token(tk_type::NOT_A_TOKEN, "");
 }
 
 token lexer::make_number()
@@ -275,16 +275,16 @@ token lexer::make_number()
 
     bool is_int = true;
 
-    while (cur_char != HX_SPACE && cur_char != HX_NEWLINE && cur_char != HX_TAB)
+    while (m_cur_char != HX_SPACE && m_cur_char != HX_NEWLINE && m_cur_char != HX_TAB)
     {
-        if (cur_char == HX_DOT)
+        if (m_cur_char == HX_DOT)
         {
             assert(is_int);//TODO ERROR;
             is_int = false;
         }
 
 
-        body += cur_char;
+        body += m_cur_char;
 
     
         if (!strchr(numbers, peek_next()))
@@ -297,7 +297,7 @@ token lexer::make_number()
     }
 
 
-    token tok = token(is_int ? tk_type::TK_INTEGER : tk_type::TK_FLOAT, body);
+    token tok = token(is_int ? tk_type::INTEGER : tk_type::FLOAT, body);
 
     return tok;
 
@@ -309,9 +309,9 @@ token lexer::make_identifier()
 
     std::string body;
 
-    while (cur_char != HX_SPACE && cur_char != HX_NEWLINE && cur_char != HX_TAB)
+    while (m_cur_char != HX_SPACE && m_cur_char != HX_NEWLINE && m_cur_char != HX_TAB)
     {
-        body += cur_char;
+        body += m_cur_char;
 
     
         if (!strchr(characters_numbers, peek_next()))
@@ -325,12 +325,10 @@ token lexer::make_identifier()
         [body](const auto& other)
         {return (body == other.first); }) != keywords.end())
     {
-        token tok(tk_type::TK_KEYWORD, body);
-        return tok;
-        return token(tk_type::TK_KEYWORD, body);
+        return token(tk_type::KEYWORD, body);
     }
         
-    token tok = token(tk_type::TK_IDENTIFIER, body);
+    token tok = token(tk_type::IDENTIFIER, body);
 
     return tok;
 
@@ -339,25 +337,25 @@ token lexer::make_identifier()
 char lexer::peek_next(uint32_t offset)
 {
 
-    if (index + 1 + offset > len_text)
+    if (m_index + 1 + offset > m_len_text)
         return -1;
     
-    return text[index + offset];
+    return m_text[m_index + offset];
 
 }
 bool lexer::advance()
 {
 
-    index++;
-    if (index > len_text)
+    m_index++;
+    if (m_index > m_len_text)
     {
-        index = len_text;
+        m_index = m_len_text;
         return false;
     }
-    cur_char = text[index - 1];
+    m_cur_char = m_text[m_index - 1];
 
-    if (cur_char == '\n')
-        line_number++;
+    if (m_cur_char == '\n')
+        m_line_number++;
 
     return true;
 }

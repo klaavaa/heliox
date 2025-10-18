@@ -24,8 +24,6 @@ using expression = std::variant<
     uptr<unary_expr>
     >;
 
-using expr_uptr = uptr<expression>;
-using expr_vector = std::vector<expr_uptr>;
 struct int_literal_expr
 {
     int_literal_expr(int64_t value)
@@ -45,27 +43,27 @@ struct identifier_literal_expr
         : name(name) {}
     std::string name;
 };
-struct function_call_expr
-{
-    function_call_expr(uptr<identifier_literal_expr> identifier, expr_vector parameters)
-        : identifier(std::move(identifier)), parameters(std::move(parameters)) {}
-    uptr<identifier_literal_expr> identifier;
-    expr_vector parameters;
-};
 struct binop_expr
 {
-    binop_expr(expr_uptr left, expr_uptr right, tk_type op_token)
+    binop_expr(expression left, expression right, tk_type op_token)
         : left(std::move(left)), right(std::move(right)), op_token(op_token) {} 
-    expr_uptr left;
-    expr_uptr right;
+    expression left;
+    expression right;
     tk_type op_token;
 };
 struct unary_expr
 {
-    unary_expr(expr_uptr expr, tk_type op_token)
+    unary_expr(expression expr, tk_type op_token)
         : expr(std::move(expr)), op_token(op_token) {}
-    expr_uptr expr;
+    expression expr;
     tk_type op_token;
+};
+struct function_call_expr
+{
+    function_call_expr(uptr<identifier_literal_expr> identifier, std::vector<expression> parameters)
+        : identifier(std::move(identifier)), parameters(std::move(parameters)) {}
+    uptr<identifier_literal_expr> identifier;
+    std::vector<expression> parameters;
 };
 }
 

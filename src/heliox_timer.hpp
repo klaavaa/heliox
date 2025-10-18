@@ -4,8 +4,6 @@
 #include <initializer_list>
 
 
-namespace hx 
-{
 template <typename ret, typename... param>
 using fn = std::function<ret(param...)>;
 
@@ -19,7 +17,7 @@ double timeit(fn<ret, param...> func, param&... elements)
 	return static_cast<double>(microseconds) * 0.000001;
 
 }
-}
+
 
 
 

@@ -1,5 +1,7 @@
 #pragma once
 
+/*
+
 #include <cmath>
 #include <exception>
 #include <memory>
@@ -86,7 +88,7 @@ private:
 
     std::unordered_map<register_name, register_state> register_states;
 };
-*/
+*/ /*
 class hx_assembly
 {
     public:
@@ -116,7 +118,7 @@ class hx_assembly
                 "\tmov rdi, rax\n"
                 "\tmov rax, 60\n"
                 "\tsyscall\n"; */
-            
+    /*        
             entry +=
                 "global _print\n"
                 "_print:\n"
@@ -366,9 +368,10 @@ class hx_assembly
 
                 case expression_type::BINOP:
                     {
-                        /*
+                        /* 
                            std::dynamic_pointer_cast<hx_binop_expression>(expression)->print();
                            printf("\n"); */
+                        /*
                         base = generate_binop_asm(std::dynamic_pointer_cast<hx_binop_expression>(expression));
                         base += "\tmov " + reg + ", rax\n";
                         break;
@@ -727,4 +730,4 @@ class hx_assembly
 
 
 };
-
+*/

@@ -4,8 +4,8 @@
 
 #include "heliox_lexer.hpp"
 #include "heliox_parser.hpp"
-#include "heliox_symbol_table.hpp"
-#include "heliox_assembly.hpp"
+//#include "heliox_symbol_table.hpp"
+//#include "heliox_assembly.hpp"
 #include "heliox_flags.hpp"
 #include "heliox_file.hpp"
 #include "heliox_error.hpp"
@@ -37,7 +37,9 @@ void compile(const std::string& file_path, const std::string& output_path)
 
 
 
-    hx::lexer lexer = hx::lexer(text);
+    hx::lexer lex = hx::lexer(text);
+    hx::parser parsr = hx::parser(std::make_unique<lexer>(lex));
+    /*
     hx::parser parser(&lexer);
     hx_sptr<hx_program> program = parser.parse();
 
@@ -77,6 +79,7 @@ void compile(const std::string& file_path, const std::string& output_path)
     
     system(string_format("gcc -no-pie %s.o -o %s", file_path_stripped.c_str(), file_path_stripped.c_str()).c_str());
     
+    */
 }
 }
 
