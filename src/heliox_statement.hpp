@@ -1,10 +1,7 @@
 #pragma once
 
-#include <string>
 #include <utility>
 #include <vector>
-#include <optional>
-#include "heliox_keywords.hpp"
 #include "heliox_pointer.hpp"
 #include "heliox_types.hpp"
 #include "heliox_expression.hpp"
@@ -15,15 +12,18 @@ namespace hx {
     struct compound_statement;
     struct return_statement;
     struct variable_declaration_statement;
+    struct variable_definition_statement;
     struct conditional_statement;
     struct while_statement;
     struct expression_statement;
     struct noop_statement;
 
+
     using statement = std::variant<
         uptr<compound_statement>,
         uptr<return_statement>,
         uptr<variable_declaration_statement>,
+        uptr<variable_definition_statement>,
         uptr<conditional_statement>,
         uptr<while_statement>,
         uptr<expression_statement>,
@@ -45,6 +45,17 @@ namespace hx {
         type_data var_type;
         uptr<identifier_literal_expr> var_identifier;
     };
+    
+    struct variable_definition_statement
+    {
+        variable_definition_statement(
+            uptr<variable_declaration_statement> declaration, expression definition)
+            : declaration(std::move(declaration)), definition(std::move(definition)) {}
+
+        uptr<variable_declaration_statement> declaration;
+        expression definition;
+    };
+
     struct conditional_statement
     {
         conditional_statement(expression condition, statement then_stat, statement else_stat)
@@ -79,4 +90,4 @@ namespace hx {
             : statements(std::move(statements)) {}
         std::vector<statement> statements;
     };
-    }
+}

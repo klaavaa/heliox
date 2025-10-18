@@ -1,12 +1,9 @@
 #pragma once
 #include <cassert>
 #include <string>
+#include <vector>
 
 #include "heliox_token.hpp"
-#include "heliox_keywords.hpp"
-#include "heliox_error.hpp"
-#include "heliox_pointer.hpp"
-
 
 namespace hx
 {
@@ -21,6 +18,8 @@ public:
 
 	token get_next();
 
+    std::vector<token> tokenize();
+    void reset();
 private:
 
 	token make_number();

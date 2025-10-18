@@ -1,4 +1,5 @@
 #pragma once
+/*
 #include <vector>
 #include <unordered_map>
 #include <string>
@@ -82,4 +83,4 @@ void generate_statement_symbols(hx_symbol_table* table, hx_sptr<hx_statement> st
 hx_symbol_table* generate_compound_symbol_table(hx_sptr<hx_compound_statement> compound, int32_t& relative_stack_pos);
 hx_symbol_table* generate_symbol_table(hx_sptr<hx_program> program);
 
-
+*/

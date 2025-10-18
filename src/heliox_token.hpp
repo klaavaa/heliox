@@ -111,92 +111,55 @@ enum class tk_type
 
 };
 
-static const std::unordered_map<tk_type, const char*>  token_to_string =
+static const std::unordered_map<tk_type, std::string>  token_to_string_map =
 {
 
 { tk_type::END_OF_FILE,	    				"EOF" },
 { tk_type::KEYWORD,							"KEYWORD" },
 { tk_type::IDENTIFIER,						"IDENTIFIER" },
 
-{ tk_type::COMMA,							"," },
-{ tk_type::DOT,								"." },
-{ tk_type::QUOT_MARK,                        "\""},
-{ tk_type::SEMICOLON,						";" },
-{ tk_type::COLON,							":" },
-{ tk_type::PLUS,								"+" },
-{ tk_type::MINUS,							"-" },
-{ tk_type::DIVIDE,							"/" },
-{ tk_type::MULTIPLY,							"*" },
-{ tk_type::L_PAREN,							"(" },
-{ tk_type::R_PAREN,							")" },
-{ tk_type::L_BRACE,							"{" },
-{ tk_type::R_BRACE,							"}" },
-{ tk_type::L_BRACK,							"[" },
-{ tk_type::R_BRACK,							"]" },
-{ tk_type::DOLLAR ,							"$" },
-{ tk_type::AT ,								"@" },
-{ tk_type::BITWISE_AND,						"&" },
-{ tk_type::BITWISE_OR ,						"|" },
-{ tk_type::BITWISE_XOR ,						"^" },
-{ tk_type::LOGICAL_AND,						"&&"},
-{ tk_type::LOGICAL_OR,						"||"},
-{ tk_type::EQU,								"=" },
-{ tk_type::DOUBLE_EQU,						"=="},
-{ tk_type::NOT,								"!" },
-{ tk_type::NEQU,								"!="},
+{ tk_type::COMMA,							"COMMA" },
+{ tk_type::DOT,								"DOT" },
+{ tk_type::QUOT_MARK,                       "QUOT_MARK"},
+{ tk_type::SEMICOLON,						"SEMICOLON" },
+{ tk_type::COLON,							"COLON" },
+{ tk_type::PLUS,							"PLUS" },
+{ tk_type::MINUS,							"MINUS" },
+{ tk_type::DIVIDE,							"SLASH" },
+{ tk_type::MULTIPLY,						"STAR" },
+{ tk_type::L_PAREN,							"LPAREN" },
+{ tk_type::R_PAREN,							"RPAREN" },
+{ tk_type::L_BRACE,							"LBRACE" },
+{ tk_type::R_BRACE,							"RBRACE" },
+{ tk_type::L_BRACK,							"LBRACK" },
+{ tk_type::R_BRACK,							"RBRACK" },
+{ tk_type::DOLLAR ,							"DOLLAR" },
+{ tk_type::AT ,								"AT" },
+{ tk_type::BITWISE_AND,						"AMPERSAND" },
+{ tk_type::BITWISE_OR ,						"PIPE" },
+{ tk_type::BITWISE_XOR ,					"HAT" },
+{ tk_type::LOGICAL_AND,						"AND"},
+{ tk_type::LOGICAL_OR,						"OR"},
+{ tk_type::EQU,								"EQUALS" },
+{ tk_type::DOUBLE_EQU,						"EQUAL_COMPARISON"},
+{ tk_type::NOT,								"EXCLAMATION" },
+{ tk_type::NEQU,							"NOT EQUALS"},
 { tk_type::INTEGER,							"INTEGER" },
 { tk_type::FLOAT,							"FLOAT" },
 { tk_type::STRING,							"STRING"},
-{ tk_type::LT,								"<" },
-{ tk_type::LTE,								"<="}, 
-{ tk_type::GTE,								">="},
-{ tk_type::GT,								">" },
-{ tk_type::ARROW,							"->"}				
-
-
+{ tk_type::LT,								"LESS THAN" },
+{ tk_type::LTE,								"LESS THAN OR EQUAL"}, 
+{ tk_type::GTE,								"GREATER THAN OR EQUAL"},
+{ tk_type::GT,								"GREATER THAN" },
+{ tk_type::ARROW,							"ARROW"}				
 };
 
-/*
-struct tk_type_to_str
+constexpr std::string get_string_from_token_type(tk_type type)
 {
+    if (!token_to_string_map.count(type)) return "COULDNT MATCH TOKEN WITH STRING";
+    return token_to_string_map.find(type)->second;
+}
 
-	tk_type_to_str() = delete;
-
-	static const char* get_str(tk_type tok_type)
-	{
-		if (!token_to_string.count(tok_type)) return "COULDNT MATCH TOKEN WITH STRING";
-		return token_to_string.find(tok_type)->second;
-	}
-
-
-	static tk_type get_tk(const char* str)
-	{
-		static std::unordered_map<const char*, tk_type> string_to_token = get_reversed();
-
-
-		auto it = std::find_if(string_to_token.begin(), string_to_token.end(), [str](const std::pair<const char*, tk_type>& t)->bool
-			{return !strcmp(str, t.first); });
-
-		if (it == string_to_token.end()) return tk_type::NOT_A_TOKEN;
-
-		return it->second;
-	}
-
-private:
-
-	static std::unordered_map<const char*, tk_type> get_reversed()
-	{
-		std::unordered_map<const char*, tk_type> string_to_token;
-		for (const auto& tok : token_to_string)
-		{
-			string_to_token[tok.second] = tok.first;
-		}
-	
-		return string_to_token;
-		
-	}
-};
-*/
 struct token
 {
     token() : type(tk_type::NOT_A_TOKEN), value()

@@ -1,14 +1,15 @@
 #include "heliox_lexer.hpp"
+#include "heliox_error.hpp"
+#include "heliox_keywords.hpp"
+
 
 namespace hx {
 
 lexer::lexer(std::string text)
 {
-		this->m_text = text;
-		this->m_index = 0;
-		this->m_len_text = (uint32_t)text.size();
-		this->m_cur_char = -1;
-
+    this->m_text = text;
+    this->m_len_text = (uint32_t)text.size();
+    reset();
 }
 uint32_t lexer::get_line() 
 {
@@ -18,6 +19,23 @@ bool lexer::is_finished()
 {
     return this->m_index == this->m_len_text;
 }
+
+std::vector<token> lexer::tokenize()
+{
+    std::vector<token> tokens;
+    while (!is_finished())
+    {
+        tokens.push_back(get_next());
+    }
+    reset();
+    return tokens;
+}
+void lexer::reset()
+{
+    this->m_index = 0;
+    this->m_cur_char = -1;
+}
+
 token lexer::get_next()
 {
     

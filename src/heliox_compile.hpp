@@ -1,17 +1,16 @@
 #pragma once
 
 #include <string>
+#include <print>
 
 #include "heliox_lexer.hpp"
 #include "heliox_parser.hpp"
-//#include "heliox_symbol_table.hpp"
-//#include "heliox_assembly.hpp"
-#include "heliox_flags.hpp"
-#include "heliox_file.hpp"
 #include "heliox_error.hpp"
+#include "heliox_file.hpp"
+
 namespace hx  
 {
-void compile(const std::string& file_path, const std::string& output_path)
+inline void compile(const std::string& file_path, const std::string& output_path)
 {
 
     if (file_path.substr(file_path.size() - 3) != ".hx")
@@ -38,7 +37,17 @@ void compile(const std::string& file_path, const std::string& output_path)
 
 
     hx::lexer lex = hx::lexer(text);
+    std::vector<token> tokens = lex.tokenize();
+    
+    for (const auto& tok : tokens)
+    {
+        std::println("{}", get_string_from_token_type(tok.type));
+    }
+
     hx::parser parsr = hx::parser(std::make_unique<lexer>(lex));
+    uptr<program> prog = parsr.parse_program();
+    std::println("{}", *prog);
+    
     /*
     hx::parser parser(&lexer);
     hx_sptr<hx_program> program = parser.parse();
