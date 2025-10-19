@@ -20,6 +20,8 @@ parser::parser(uptr<lexer> lex)
 uptr<program> parser::parse_program()
 {
     std::vector<uptr<function>> functions;
+    string_label = 0;
+    function_label = 0;
     while (m_current_token.type != tk_type::END_OF_FILE)
     {
         switch (m_current_token.type) 
@@ -82,10 +84,30 @@ uptr<function> parser::parse_function()
     eat(tk_type::R_PAREN);
 
     type_data td = parse_type(); 
+    
+    if (m_current_token.type == tk_type::SEMICOLON)
+    {
+        eat(tk_type::SEMICOLON);
 
-   statement body = parse_statement();
-   return std::make_unique<function>(std::move(identifier), std::move(parameters),
-           std::move(body), td, is_extern);
+        return std::make_unique<function>(std::move(identifier), std::move(parameters),
+                std::move(std::vector<statement>{}), td, is_extern);
+    }
+    if (is_extern)
+    {
+        //TODO ERROR
+        std::println("Extern function cannot have a definition");
+        exit(-1);
+    }
+    eat(tk_type::L_BRACE);
+    std::vector<statement> statements;
+    while (m_current_token.type != tk_type::R_BRACE)
+    {    
+        statements.push_back(parse_statement());
+    }
+    eat(tk_type::R_BRACE);
+
+    return std::make_unique<function>(std::move(identifier), std::move(parameters),
+           std::move(statements), td, is_extern);
 }
 
 uptr<identifier_literal_expr> parser::parse_identifier_literal()
@@ -114,7 +136,9 @@ expression parser::parse_identifier()
             }
             eat(tk_type::COMMA);
         }
-        return std::make_unique<function_call_expr>(std::move(identifier), std::move(expressions));
+        function_label++;
+        return std::make_unique<function_call_expr>(
+                std::move(identifier), std::move(expressions), function_label);
     }
     return identifier;
 }
@@ -122,7 +146,8 @@ uptr<string_literal_expr> parser::parse_string_literal()
 {
     std::string value = m_current_token.value;
     eat(tk_type::STRING);
-    return std::make_unique<string_literal_expr>(value);
+    string_label += 1;
+    return std::make_unique<string_literal_expr>(value, string_label);
 }
 uptr<int_literal_expr> parser::parse_int_literal()
 {
@@ -181,7 +206,7 @@ expression parser::parse_expression_from_primary(expression primary, uint32_t mi
             rhs = parse_expression_from_primary(std::move(rhs), new_precedence);
 
         }
-        return std::make_unique<binop_expr>(std::move(lhs), std::move(rhs), op);
+        lhs = make_unique<binop_expr>(std::move(lhs), std::move(rhs), op);
     }
     return lhs;
 }

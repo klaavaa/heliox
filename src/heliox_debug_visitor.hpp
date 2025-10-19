@@ -8,7 +8,6 @@ namespace hx
     class debug_visitor : public visitor
     {
 public:
-       ~debug_visitor() override {}
        void visit_function(uptr<function>& func) override 
        {
            std::println("visit::function({})", func->identifier->name);
@@ -18,7 +17,10 @@ public:
                 visit_variable_declaration(param); 
            }
            std::println("visit::function::stat::");
-           visit_statement(func->body);
+           for (auto& stat : func->statements)
+           {
+                visit_statement(stat);
+           }
        }
 
        void visit_int_literal(uptr<int_literal_expr>& int_literal) override 

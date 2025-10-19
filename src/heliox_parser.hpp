@@ -44,5 +44,7 @@ private:
 
     token m_current_token;
     uptr<lexer> m_lexer;
+    uint32_t string_label = 0;
+    uint32_t function_label = 0;
 };
 }

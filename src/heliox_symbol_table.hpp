@@ -1,86 +1,50 @@
 #pragma once
-/*
-#include <vector>
+
 #include <unordered_map>
-#include <string>
+#include <vector>
 #include <optional>
-
-#include "heliox_statement.hpp"
+#include "heliox_types.hpp"
 #include "heliox_pointer.hpp"
-#include "heliox_error.hpp"
-#include <iostream>
-enum class hx_symbol_type : uint32_t
+
+namespace hx
 {
-	ERR,
-	VAR,
-	FUNC
-
-};
-
-enum class hx_data_type : uint32_t
-{
-	VOID,
-	INT,
-	STRING
-};
+    enum class symbol_type
+    {
+        VARIABLE,
+        FUNCTION
+    };
 
 
+    struct symbol
+    {
+        symbol(symbol_type sym_type,
+                type_data type_info,
+                uint32_t stack_position)
+            : sym_type(sym_type), type_info(type_info), stack_position(stack_position) {}
 
-struct hx_symbol
-{
-	hx_symbol_type type;
-	hx_data_type data_type;
-    
-	int32_t stack_position;
-	uint32_t line_number;
-    std::optional<uint32_t> in_register;
-};
+        symbol_type sym_type;
+        type_data type_info;
+        uint32_t stack_position;
+    };
 
+    class symbol_table
+    {
+    public:        
+        symbol_table(uint32_t next_stack_position = 8);
+        sptr<symbol_table> add_table(bool is_function_body); 
+        void add_symbol(std::string name, symbol_type sym_type, type_data type_info); 
+        symbol find_symbol(const std::string& name, symbol_type sym_type);
+         
+        symbol_table* get_parent();
+    private:
+        
+        uint32_t calculate_stack_position(const type_data& type_info);
 
+    private:
+        std::unordered_map<std::string, symbol> symbols;
+        std::vector<sptr<symbol_table>> child_tables;
+        symbol_table* parent = nullptr;
+        uint32_t next_stack_position;
+    };
 
-struct hx_symbol_table
-{
-public:
-
-	hx_symbol_table() = default;
-	
-	bool check_if_exists(const std::string& name, hx_symbol_type symbol_type);
-	bool insert(std::string name, hx_symbol symbol);
-	void add_symbol_table(std::string name, hx_symbol_table* symbol_table);
-
-	
-	hx_symbol get_symbol(const std::string& name);
-	hx_symbol find_symbol(const std::string& name, hx_symbol_type symbol_type, uint32_t line_number);
-	hx_symbol_table* get_symbol_table(const std::string& name);
-	hx_symbol_table* get_parent();
-	hx_symbol_table* get_table_based_on_index(uint32_t index);
-
-
-	void print();
-
-	std::string my_name;
-	uint32_t allocated_memory_stack;
-
-private:
-	
-	
-	std::unordered_map<std::string, hx_symbol> symbols;
-	std::unordered_map<std::string, hx_symbol_table*> symbol_tables;
-
-	hx_symbol_table* parent;
-	
-	
-
-	
-};
-
-
-uint32_t hx_get_size(hx_data_type dt);
-void generate_conditional_symbols(hx_symbol_table* table, hx_sptr<hx_conditional_statement> statement, int32_t& relative_stack_pos, uint32_t& index);
-void generate_while_symbols(hx_symbol_table* table, hx_sptr<hx_conditional_statement> statement, int32_t& relative_stack_pos, uint32_t& index);
-void generate_definition_symbols(hx_symbol_table* table, hx_sptr<hx_definition_statement> statement, int32_t& relative_stack_pos);
-void generate_statement_symbols(hx_symbol_table* table, hx_sptr<hx_statement> statement, int32_t& relative_stack_pos, uint32_t& index, std::string func_name);
-hx_symbol_table* generate_compound_symbol_table(hx_sptr<hx_compound_statement> compound, int32_t& relative_stack_pos);
-hx_symbol_table* generate_symbol_table(hx_sptr<hx_program> program);
-
-*/
+}

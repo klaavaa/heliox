@@ -10,9 +10,9 @@ namespace hx
         visitor();
         virtual ~visitor();
 
-        void visit_program(uptr<program>& prog);
-        void visit_expression(expression& expr);
-        void visit_statement(statement& stat);
+        virtual void visit_program(uptr<program>& prog);
+        virtual void visit_expression(expression& expr);
+        virtual void visit_statement(statement& stat);
         
         virtual void visit_function(uptr<function>& func) = 0;
 

@@ -33,9 +33,10 @@ struct int_literal_expr
 
 struct string_literal_expr
 {
-    string_literal_expr(std::string value)
-        : value(value) {}
+    string_literal_expr(std::string value, uint32_t label)
+        : value(value), label(label) {}
     std::string value;
+    uint32_t label;
 };
 struct identifier_literal_expr
 {
@@ -60,10 +61,14 @@ struct unary_expr
 };
 struct function_call_expr
 {
-    function_call_expr(uptr<identifier_literal_expr> identifier, std::vector<expression> parameters)
-        : identifier(std::move(identifier)), parameters(std::move(parameters)) {}
+    function_call_expr(uptr<identifier_literal_expr> identifier,
+            std::vector<expression> parameters, uint32_t label)
+        : identifier(std::move(identifier)),
+          parameters(std::move(parameters)),
+          label(label) {}
     uptr<identifier_literal_expr> identifier;
     std::vector<expression> parameters;
+    uint32_t label;
 };
 }
 
