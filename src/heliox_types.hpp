@@ -4,6 +4,7 @@
 #include <string>
 #include <optional>
 #include <unordered_map>
+#include <print>
 
 namespace hx {
 enum class primitive_type
@@ -49,6 +50,10 @@ constexpr uint32_t get_byte_size_from_known_type(primitive_type type)
         case primitive_type::I64: return 8;
         
         case primitive_type::VOID: return 0;
+        default:
+            // TODO ERROR
+           std::println("Type not implemented");
+           exit(-1);
    }     
 }
 constexpr uint32_t get_ptr_byte_size()
@@ -69,7 +74,11 @@ struct type_data
             type(type),
             ptr_depth(ptr_depth)
     {
-        byte_size = get_ptr_byte_size();
+        if (ptr_depth) 
+            byte_size = get_ptr_byte_size();
+        else
+            byte_size = get_byte_size_from_known_type(type);
+
     }
 
 

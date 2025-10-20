@@ -37,6 +37,7 @@ class instruction_generator : public visitor
 
         std::queue<instruction_function> instruction_functions;
         virtual_register current_virtual_register = 0;
+        virtual_register effective_register = 0;
         
         uptr<symbol_table> global_table;
         symbol_table* current_table;

@@ -20,8 +20,6 @@ parser::parser(uptr<lexer> lex)
 uptr<program> parser::parse_program()
 {
     std::vector<uptr<function>> functions;
-    string_label = 0;
-    function_label = 0;
     while (m_current_token.type != tk_type::END_OF_FILE)
     {
         switch (m_current_token.type) 
@@ -136,9 +134,8 @@ expression parser::parse_identifier()
             }
             eat(tk_type::COMMA);
         }
-        function_label++;
         return std::make_unique<function_call_expr>(
-                std::move(identifier), std::move(expressions), function_label);
+                std::move(identifier), std::move(expressions));
     }
     return identifier;
 }
@@ -146,8 +143,7 @@ uptr<string_literal_expr> parser::parse_string_literal()
 {
     std::string value = m_current_token.value;
     eat(tk_type::STRING);
-    string_label += 1;
-    return std::make_unique<string_literal_expr>(value, string_label);
+    return std::make_unique<string_literal_expr>(value);
 }
 uptr<int_literal_expr> parser::parse_int_literal()
 {
