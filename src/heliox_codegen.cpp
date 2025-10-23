@@ -5,20 +5,17 @@ namespace hx
 {
     
     codegen::codegen(uptr<symbol_table> global_table)
-        : global_table(global_table)
+        : global_table(std::move(global_table))
     {
 
     }
     
-    void codegen::generate(std::queue<instruction_function>& function_instructions)
+    void codegen::generate(std::vector<instruction_function>& function_instructions)
     {
         
-
-        while (!function_instructions.empty())
+        for (auto& func : function_instructions)
         {
-            instruction_function& instruc_func = function_instructions.front(); 
-            generate_instruction_function(instruc_func); 
-            function_instructions.pop();
+            generate_instruction_function(func); 
         }
     }
 
@@ -26,11 +23,9 @@ namespace hx
     {
         std::string body = std::format("global {}\n{}:\n", instruc_func.name, instruc_func.name);
 
-        while (!instruc_func.triplet_queue.empty())
+        for (auto& triplet : instruc_func.instruction_triplets)
         {
-            instruction_triplet& triplet = instruc_func.triplet_queue.front();
             generate_instruction_triplet(triplet);
-            instruc_func.triplet_queue.pop();
         }
         text_section += body;
     }

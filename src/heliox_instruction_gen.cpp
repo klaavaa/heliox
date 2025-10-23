@@ -17,13 +17,57 @@ void instruction_generator::visit_program(uptr<program>& prog)
        visit_function(func); 
     }
 
+    calculate_live_ranges(); 
+}
+
+void instruction_generator::calculate_live_ranges()
+{
+    
+    uint32_t instruc_count = 0;
+    for (auto& func : instruc_data.instruction_functions)
+    {
+        for (auto& triplet : func.instruction_triplets)
+        {
+            std::vector<virtual_register> used_registers;
+            used_registers.push_back(triplet.dst);
+            for (auto& i : triplet.items)
+            {
+               if (i.it == item_type::VIRTUAL_REGISTER)
+               {
+                    used_registers.push_back(i.value);
+               }
+            }
+            
+            if (triplet.dst >= instruc_data.live_ranges.size())
+                instruc_data.live_ranges.push_back(live_range{instruc_count, 0});
+
+            for (auto& vreg : used_registers)
+            {
+                if (vreg < instruc_data.live_ranges.size() )
+                {
+                    instruc_data.live_ranges[vreg].last_use = instruc_count; 
+                }
+            }
+            instruc_count++;
+
+        }
+    }
+    
+
+    for (size_t i = 0; i < instruc_data.live_ranges.size(); i++)
+    {
+        std::println("r{} [{} -> {}]", i, instruc_data.live_ranges[i].first_use,
+                instruc_data.live_ranges[i].last_use);
+    }
 }
     
 void instruction_generator::emit_instruction(instruction_triplet triplet, uint32_t increment)
 {
+    triplet.instruc_count = instruction_count;
+    instruction_count ++;
     print_instruction(triplet);
     current_virtual_register += increment;
-    instruction_functions.back().triplet_queue.push(triplet);
+    instruc_data.instruction_functions.back().instruction_triplets.push_back(triplet);
 }
 
 void instruction_generator::visit_function(uptr<function>& func)
@@ -37,7 +81,7 @@ void instruction_generator::visit_function(uptr<function>& func)
                 param->var_type, true);
     }
 
-    instruction_functions.push({func->identifier->name});
+    instruc_data.instruction_functions.push_back({func->identifier->name});
     for (auto& stat : func->statements)
     {
         visit_statement(stat);
@@ -166,8 +210,8 @@ void instruction_generator::visit_return(uptr<return_statement>& return_s)
     visit_expression(return_s->return_expression);
     instruction_triplet triplet = 
         instruction_triplet(instruction::RETURN, 
-                 current_virtual_register,
-                {item{item_type::VIRTUAL_REGISTER, effective_register}},
+                 effective_register,
+                {},
                 register_size::BIT64);
     effective_register = current_virtual_register;
     emit_instruction(triplet, 0);

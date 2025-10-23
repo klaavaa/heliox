@@ -1,10 +1,39 @@
 #pragma once
 #include <print>
 #include <format>
-#include <queue>
+#include <vector>
 
 namespace hx
 {
+
+
+enum class registers: int
+{
+    A=0, B, C, D, SP, BP, SI, DI, R8, R9, R10, R11, R12, R13, R14, R15
+};
+enum class bit64_registers: int
+{
+    RAX=0, RBX, RCX, RDX, RSP, RBP, RSI, RDI, R8, R9, R10, R11, R12, R13, R14, R15
+};
+enum class bit32_registers: int
+{
+    EAX=0, EBX, ECX, EDX, ESP, EBP, ESI, EDI, R8D, R9D, R10D, R11D, R12D, R13D, R14D, R15D
+};
+enum class bit16_registers: int
+{
+    AX=0, BX, CX, DX, SP, BP, SI, DI, R8W, R9W, R10W, R11W, R12W, R13W, R14W, R15W
+};
+enum class bit8_registers: int
+{
+    AL=0, BL, CL, DL, SPL, BPL, SIL, DIL, R8B, R9B, R10B, R11B, R12B, R13B, R14B, R15B
+
+};
+
+inline registers param_registers[6] = 
+{
+    registers::DI, registers::SI, registers::D, registers::C, registers::R8, registers::R9
+};
+
 enum class instruction 
 {
     LOAD_INT,
@@ -107,8 +136,9 @@ struct instruction_triplet
 {
     instruction_triplet(instruction instruc, virtual_register dst, std::vector<item> items,
             register_size reg_size)
-        : instruc(instruc), dst(dst), items(items), reg_size(reg_size)  {}
+        : instruc(instruc), dst(dst), items(items), reg_size(reg_size) {}
     instruction instruc;
+    uint32_t instruc_count;
     virtual_register dst;
     std::vector<item> items;
     register_size reg_size; 
@@ -119,30 +149,47 @@ struct instruction_function
     instruction_function(const std::string& name)
         : name(name) {}
     std::string name;
-    std::queue<instruction_triplet> triplet_queue;
+    std::vector<instruction_triplet> instruction_triplets;
+};
+
+
+struct live_range
+{
+    uint32_t first_use;
+    uint32_t last_use;
+};
+
+struct instruction_data
+{
+    std::vector<instruction_function> instruction_functions;
+    std::vector<live_range> live_ranges;
 };
 
 inline void print_instruction(const instruction_triplet& triplet)
 {
     std::string prefix;
+    prefix += std::format("{:4}\t", triplet.instruc_count);
+
     switch (triplet.reg_size)
     {
     case register_size::BIT64:
-        prefix = "(64)";
+        prefix += std::format("{:4}", "(64)");
         break;
     case register_size::BIT32:
-        prefix = "(32)";
+        prefix += std::format("{:4}", "(32)");
+
         break;
     case register_size::BIT16:
-        prefix = "(16)";
+        prefix += std::format("{:4}", "(16)");
         break;
     case register_size::BIT8:
-        prefix = " (8)";
+        prefix += std::format("{:4}", "(8)");
         break;
     default:
         // TODO ERROR
         std::println("Unknown register size in print_instruction");
         exit(-1);
+
     }
     switch (triplet.instruc)
     {
@@ -164,7 +211,7 @@ inline void print_instruction(const instruction_triplet& triplet)
             std::println("");
             break;
         case instruction::RETURN:
-            std::println("{} RET   {}", prefix, triplet.items[0].get_string());
+            std::println("{} RET   {}", prefix, triplet.dst);
             break;
         case instruction::ADD:
             std::println("{} ADD   r{} {}", prefix, triplet.dst, 

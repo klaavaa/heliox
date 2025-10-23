@@ -34,13 +34,15 @@ class instruction_generator : public visitor
         void visit_expression_s(uptr<expression_statement>& expr) override;
         void visit_noop(uptr<noop_statement>& noop) override;
         
+        void calculate_live_ranges();
 
-        std::queue<instruction_function> instruction_functions;
+        instruction_data instruc_data;
         virtual_register current_virtual_register = 0;
         virtual_register effective_register = 0;
-        
+        uint32_t instruction_count = 0; 
         uptr<symbol_table> global_table;
         symbol_table* current_table;
+
 };
 
 }
