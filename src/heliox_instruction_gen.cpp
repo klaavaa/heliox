@@ -14,7 +14,8 @@ void instruction_generator::visit_program(uptr<program>& prog)
     }
     for (auto& func : prog->functions)
     {
-       visit_function(func); 
+        std::println("-------{}-------", func->identifier->name);
+        visit_function(func); 
     }
 
     calculate_live_ranges(); 
