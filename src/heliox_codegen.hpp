@@ -12,8 +12,8 @@ namespace hx
         codegen(uptr<symbol_table> global_table);
         void generate(std::vector<instruction_function>& function_instructions);
     private:
-        void generate_instruction_function(instruction_function& instruc_func); 
-        void generate_instruction_triplet(instruction_triplet& triplet); 
+        void emit_instruction_function(instruction_function& instruc_func); 
+        void emit_instruction_triplet(instruction_triplet& triplet); 
          
 
     private:

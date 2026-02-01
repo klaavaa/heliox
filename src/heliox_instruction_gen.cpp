@@ -29,18 +29,34 @@ void instruction_generator::calculate_live_ranges()
     {
         for (auto& triplet : func.instruction_triplets)
         {
+            switch (triplet.instruc)
+            {
+            case instruction::DIV:
+               // TODO: div idiv, unsigned vs signed division
+                // TODO: xor rdx, rdx
+                // reserves registers RAX, RDX, output in RAX
+                break;
+            case instruction::CALL:
+                // reservers registers RDI, RSI, RCX, RDX, R8, R9
+                // output in RAX
+                 
+                break;
+
+            default:
+                break;
+            }
             std::vector<virtual_register> used_registers;
             used_registers.push_back(triplet.dst);
             for (auto& i : triplet.items)
             {
-               if (i.it == item_type::VIRTUAL_REGISTER)
+               if(i.it == item_type::VIRTUAL_REGISTER)
                {
                     used_registers.push_back(i.value);
                }
             }
             
             if (triplet.dst >= instruc_data.live_ranges.size())
-                instruc_data.live_ranges.push_back(live_range{instruc_count, 0});
+                instruc_data.live_ranges.push_back(live_range{triplet.dst, instruc_count, 0});
 
             for (auto& vreg : used_registers)
             {

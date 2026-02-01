@@ -155,6 +155,7 @@ struct instruction_function
 
 struct live_range
 {
+    virtual_register reg;
     uint32_t first_use;
     uint32_t last_use;
 };
