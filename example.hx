@@ -1,146 +1,17 @@
-/*int argc, string[] argv*/
-
-//fun print(int num);
-
-
-fun main() -> int
+extern fun printf(u8* str) void;
+extern fun malloc(u32 size) void*;
+fun main(i32 argc, u8** argv) i32
 {
-
-	/*
-	OK = 0
-	ERROR CODES
-	fibonacci_series	= 1
-	add					= 2
-	sub					= 3
-	mul					= 4
-	div					= 5
-	calculations		= 6
-	if equal			= 21
-	*/
-	
-	
-	// if else if test
-	int ERROR = 0;
-
-
-	if (2 < 1)
-	{
-		ERROR = 4;
-	}
-	else if (2 == 1)
-	{
-		ERROR = 10;
-	}
-	else if (2 && 0)
-	{
-		ERROR = 123;
-	}
-
-	
-
-	
-	
-	if (fibonacci_series(0, 1, 79) != 14472334024676221)
-	{
-		ERROR = 1;
-	}
-	
-	
-
-	
-	if (add(1235, add(122, 7534)) != 8891)
-		ERROR = 2;
-
-	if (sub(888, 666) >= 223)
-		ERROR = 3;
-
-	if (mul(12, 14) != 168)
-		ERROR = 4;
-
-	
-
-	if (div(100, 9) < 10 || div(100, 9) > 12)
-		ERROR = 5;
-	
-	
-
-	int a = 3;
-	int b = 4;
-	int c = 5;
-	{
-	if ( a + 14472334024676 < 5)
-		ERROR = 6;
-
-	}
-
-	if ( 3-4 == 0-2)
-		ERROR = 21;
-
-	
-
-
-	int i = 0;
-
-	while(i < 10)
-	{
-		print(i);
-		i = i + 1;
-
-	}
-	
-	
-
-
-
-
-	ERROR = -3 * 4 + 2 - 15 + 34/(2+2);
-
-	//ERROR = -3 + 4;
-
-
-
-	print(ERROR);
-	return ERROR;
-
-	
-
-	
+    u8* str = "Hello, World!\n";  
+    
+    i8 a = 4 + str;
+    i16 b = 10;
+    printf(str);
+    a = 12;
+    return add(1, 2, 3, 4, 5, 6, 7, 8) - 15; 
 }
 
-
-
-fun fibonacci_series(int a, int b, int n) -> int
+fun add(i32 a, i32 b, i32 c, i64 d, i8 e, i16 f, i32 g, i32 h) i32
 {
-	if (n == 1) return 0;
-	int c = a + b;
-	print(c);
-	if (n < 3)
-	{
-		return c;
-	}
-	 
-	return fibonacci_series(b, c, n - 1);
+    return a + b + c + d + e + f + g + h;
 }
-
-fun add(int a, int b) -> int
-{
-	return a + b;
-}
-
-fun sub(int a, int b) -> int
-{
-	return a - b;
-}
-
-fun mul(int a, int b) -> int
-{
-	return a * b;
-}
-
-
-fun div(int a, int b) -> int
-{
-	return a / b;
-}
-
-
