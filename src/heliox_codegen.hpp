@@ -6,7 +6,7 @@ namespace hx
     
     struct register_allocation
     {
-        registers reg;
+        Register reg;
         virtual_register vr;
 
         int32_t stack_spill;
@@ -17,10 +17,10 @@ namespace hx
     {
     public:
         CodeGeneration(uptr<SymbolTable> global_table);
-        void generate(std::vector<instruction_function>& function_instructions);
+        void generate(std::vector<InstructionFunction>& function_instructions);
     private:
-        void emit_instruction_function(instruction_function& instruc_func); 
-        void emit_instruction_triplet(instruction_triplet& triplet); 
+        void emit_instruction_function(InstructionFunction& instruc_func); 
+        void emit_instruction_triplet(InstructionTriplet& triplet); 
          
          
 

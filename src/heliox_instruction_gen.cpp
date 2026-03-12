@@ -25,18 +25,18 @@ void InstructionGenerator::calculate_live_ranges()
 {
     
     uint32_t instruc_count = 0;
-    for (auto& func : instruc_data.instruction_functions)
+    for (auto& func : instruction_data.instruction_functions)
     {
         for (auto& triplet : func.instruction_triplets)
         {
             switch (triplet.instruc)
             {
-            case instruction::DIV:
+            case Instruction::DIV:
                // TODO: div idiv, unsigned vs signed division
                 // TODO: xor rdx, rdx
                 // reserves registers RAX, RDX, output in RAX
                 break;
-            case instruction::CALL:
+            case Instruction::CALL:
                 // reservers registers RDI, RSI, RCX, RDX, R8, R9
                 // output in RAX
                  
@@ -49,20 +49,20 @@ void InstructionGenerator::calculate_live_ranges()
             used_registers.push_back(triplet.dst);
             for (auto& i : triplet.items)
             {
-               if(i.it == item_type::VIRTUAL_REGISTER)
+               if(i.item_type == ItemType::VIRTUAL_REGISTER)
                {
                     used_registers.push_back(i.value);
                }
             }
             
-            if (triplet.dst >= instruc_data.live_ranges.size())
-                instruc_data.live_ranges.push_back(live_range{triplet.dst, instruc_count, 0});
+            if (triplet.dst >= instruction_data.live_ranges.size())
+                instruction_data.live_ranges.push_back(LiveRange{triplet.dst, instruc_count, 0});
 
             for (auto& vreg : used_registers)
             {
-                if (vreg < instruc_data.live_ranges.size() )
+                if (vreg < instruction_data.live_ranges.size() )
                 {
-                    instruc_data.live_ranges[vreg].last_use = instruc_count; 
+                    instruction_data.live_ranges[vreg].last_use = instruc_count; 
                 }
             }
             instruc_count++;
@@ -71,20 +71,20 @@ void InstructionGenerator::calculate_live_ranges()
     }
     
 
-    for (size_t i = 0; i < instruc_data.live_ranges.size(); i++)
+    for (size_t i = 0; i < instruction_data.live_ranges.size(); i++)
     {
-        std::println("r{} [{} -> {}]", i, instruc_data.live_ranges[i].first_use,
-                instruc_data.live_ranges[i].last_use);
+        std::println("r{} [{} -> {}]", i, instruction_data.live_ranges[i].first_use,
+                instruction_data.live_ranges[i].last_use);
     }
 }
     
-void InstructionGenerator::emit_instruction(instruction_triplet triplet, uint32_t increment)
+void InstructionGenerator::emit_instruction(InstructionTriplet triplet, uint32_t increment)
 {
     triplet.instruc_count = instruction_count;
     instruction_count ++;
     print_instruction(triplet);
     current_virtual_register += increment;
-    instruc_data.instruction_functions.back().instruction_triplets.push_back(triplet);
+    instruction_data.instruction_functions.back().instruction_triplets.push_back(triplet);
 }
 
 void InstructionGenerator::visit_function(uptr<function>& func)
@@ -98,7 +98,7 @@ void InstructionGenerator::visit_function(uptr<function>& func)
                 param->var_type, true);
     }
 
-    instruc_data.instruction_functions.push_back({func->identifier->name});
+    instruction_data.instruction_functions.push_back({func->identifier->name});
     for (auto& stat : func->statements)
     {
         visit_statement(stat);
@@ -107,22 +107,22 @@ void InstructionGenerator::visit_function(uptr<function>& func)
 
 void InstructionGenerator::visit_int_literal(uptr<int_literal_expr>& int_literal) 
 {
-    instruction_triplet triplet = 
-        instruction_triplet(instruction::LOAD_INT, 
+    InstructionTriplet triplet = 
+        InstructionTriplet(Instruction::LOAD_INT, 
                 current_virtual_register,
-                {item{item_type::IMMEDIATE_VALUE, std::stol(int_literal->value)}},
-                register_size::BIT64);
+                {Item{ItemType::IMMEDIATE_VALUE, std::stol(int_literal->value)}},
+                RegisterSize::BIT64);
     effective_register = current_virtual_register;
     emit_instruction(triplet);
 }
 void InstructionGenerator::visit_string_literal(uptr<string_literal_expr>& string_literal)  
 {
     uint32_t label = global_table->add_string(string_literal->value);
-    instruction_triplet triplet = 
-        instruction_triplet(instruction::LOAD_STRING, 
+    InstructionTriplet triplet = 
+        InstructionTriplet(Instruction::LOAD_STRING, 
                 current_virtual_register,
-                {item{item_type::LOOKUPTABLE_INDEX, label}},
-                register_size::BIT64);
+                {Item{ItemType::LOOKUPTABLE_INDEX, label}},
+                RegisterSize::BIT64);
     effective_register = current_virtual_register;
     emit_instruction(triplet);
 }
@@ -131,18 +131,18 @@ void InstructionGenerator::visit_identifier_literal(uptr<identifier_literal_expr
     // TODO SYMBOL TABLE
     
     Symbol sym = current_table->find_symbol(identifier_literal->name, SymbolType::VARIABLE);
-    register_size reg_size = get_register_size(sym.type_info.byte_size);
-    instruction_triplet triplet = 
-        instruction_triplet(instruction::LOAD_VAR, 
+    RegisterSize reg_size = get_register_size(sym.type_info.byte_size);
+    InstructionTriplet triplet = 
+        InstructionTriplet(Instruction::LOAD_VAR, 
                 current_virtual_register,
-                {item{item_type::RELATIVE_ADDRESS, sym.stack_position}},
+                {Item{ItemType::RELATIVE_ADDRESS, sym.stack_position}},
                 reg_size);
     if (sym.is_param)
     {
         triplet = 
-        instruction_triplet(instruction::LOAD_VAR, 
+        InstructionTriplet(Instruction::LOAD_VAR, 
                 current_virtual_register,
-                {item{item_type::PARAMETER_INDEX, sym.stack_position}},
+                {Item{ItemType::PARAMETER_INDEX, sym.stack_position}},
                 reg_size);
     }
     effective_register = current_virtual_register;
@@ -157,31 +157,31 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
     visit_expression(binop->right);
     virtual_register right = effective_register;
     
-    instruction instruc;
+    Instruction instruc;
     switch (binop->op_token)
     {
         case TokenType::PLUS:
-            instruc = instruction::ADD;
+            instruc = Instruction::ADD;
             break;
         case TokenType::MINUS:
-            instruc = instruction::SUB;
+            instruc = Instruction::SUB;
             break;
         case TokenType::MULTIPLY:
-            instruc = instruction::MUL;
+            instruc = Instruction::MUL;
             break;
         case TokenType::DIVIDE:
-            instruc = instruction::DIV;
+            instruc = Instruction::DIV;
             break;
         default:
             //TODO IMPLEMENT MORE
-            instruc = instruction::ADD;
+            instruc = Instruction::ADD;
             break;
     }
-    instruction_triplet triplet = 
-        instruction_triplet(instruc, 
+    InstructionTriplet triplet = 
+        InstructionTriplet(instruc, 
                 left,
-                {item{item_type::VIRTUAL_REGISTER, right}},
-                register_size::BIT64);
+                {Item{ItemType::VIRTUAL_REGISTER, right}},
+                RegisterSize::BIT64);
     effective_register = left;
     emit_instruction(triplet, 0);
 
@@ -194,21 +194,21 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
 {
     Symbol s = current_table->find_symbol(function_call->identifier->name, SymbolType::FUNCTION);
     uint32_t label = global_table->get_function_id(function_call->identifier->name);
-    std::vector<item> parameter_virtual_registers = 
-    {item{item_type::LOOKUPTABLE_INDEX, label}};
+    std::vector<Item> parameter_virtual_registers = 
+    {Item{ItemType::LOOKUPTABLE_INDEX, label}};
     for (auto& param : function_call->parameters)
     {
         visit_expression(param);
         // save previous current_virtual_register 
         parameter_virtual_registers.push_back(
-                item{item_type::VIRTUAL_REGISTER, effective_register}); 
+                Item{ItemType::VIRTUAL_REGISTER, effective_register}); 
     }
     
-    instruction_triplet triplet = 
-        instruction_triplet(instruction::CALL, 
+    InstructionTriplet triplet = 
+        InstructionTriplet(Instruction::CALL, 
                 current_virtual_register,
                 parameter_virtual_registers,
-                register_size::BIT64);
+                RegisterSize::BIT64);
     effective_register = current_virtual_register;
     emit_instruction(triplet);
 }
@@ -225,11 +225,11 @@ void InstructionGenerator::visit_compound(uptr<compound_statement>& compound)
 void InstructionGenerator::visit_return(uptr<return_statement>& return_s) 
 {
     visit_expression(return_s->return_expression);
-    instruction_triplet triplet = 
-        instruction_triplet(instruction::RETURN, 
+    InstructionTriplet triplet = 
+        InstructionTriplet(Instruction::RETURN, 
                  effective_register,
                 {},
-                register_size::BIT64);
+                RegisterSize::BIT64);
     effective_register = current_virtual_register;
     emit_instruction(triplet, 0);
 
@@ -252,12 +252,12 @@ void InstructionGenerator::visit_variable_definition(uptr<variable_definition_st
     Symbol sym = current_table->find_symbol(
             variable_definition->declaration->var_identifier->name, SymbolType::VARIABLE);
     
-    register_size reg_size = get_register_size(sym.type_info.byte_size);
-    instruction_triplet triplet = 
-        instruction_triplet(instruction::STORE, 
+    RegisterSize reg_size = get_register_size(sym.type_info.byte_size);
+    InstructionTriplet triplet = 
+        InstructionTriplet(Instruction::STORE, 
                  definition,
-                {item{item_type::RELATIVE_ADDRESS, sym.stack_position}
-                ,item{item_type::VIRTUAL_REGISTER, definition}},
+                {Item{ItemType::RELATIVE_ADDRESS, sym.stack_position}
+                ,Item{ItemType::VIRTUAL_REGISTER, definition}},
                 reg_size);
     emit_instruction(triplet, 0);
 

@@ -8,7 +8,7 @@
 
 namespace hx {
     
-enum class keyword : uint32_t
+enum class KeyWord : uint32_t
 {
 	FUN,
 	VOID,
@@ -20,16 +20,16 @@ enum class keyword : uint32_t
 };
 
 
-inline const std::unordered_map<std::string, keyword> keywords = {
-	{"fun",			 keyword::FUN},
-	{"return",		 keyword::RETURN},
-	{"if",           keyword::IF},
-	{"else",		 keyword::ELSE},
-	{"while",		 keyword::WHILE},
-    {"extern",       keyword::EXTERN},
+inline const std::unordered_map<std::string, KeyWord> keywords = {
+	{"fun",			 KeyWord::FUN},
+	{"return",		 KeyWord::RETURN},
+	{"if",           KeyWord::IF},
+	{"else",		 KeyWord::ELSE},
+	{"while",		 KeyWord::WHILE},
+    {"extern",       KeyWord::EXTERN},
 };
 
-inline keyword get_kword_from_string(const std::string& name)
+inline KeyWord get_kword_from_string(const std::string& name)
 {
 	if (!keywords.count(name))
     {
@@ -43,7 +43,7 @@ inline keyword get_kword_from_string(const std::string& name)
 }
 
 
-inline std::string get_string_from_kword(const keyword keyword)
+inline std::string get_string_from_kword(const KeyWord keyword)
 {
 
     for (const auto& [key, value] : keywords)

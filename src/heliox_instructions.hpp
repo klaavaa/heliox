@@ -7,34 +7,34 @@ namespace hx
 {
 
 
-enum class registers: int
+enum class Register: int
 {
     A=0, B, C, D, SP, BP, SI, DI, R8, R9, R10, R11, R12, R13, R14, R15
 };
-enum class bit64_registers: int
+enum class Bit64Register: int
 {
     RAX=0, RBX, RCX, RDX, RSP, RBP, RSI, RDI, R8, R9, R10, R11, R12, R13, R14, R15
 };
-enum class bit32_registers: int
+enum class Bit32Register: int
 {
     EAX=0, EBX, ECX, EDX, ESP, EBP, ESI, EDI, R8D, R9D, R10D, R11D, R12D, R13D, R14D, R15D
 };
-enum class bit16_registers: int
+enum class Bit16Register: int
 {
     AX=0, BX, CX, DX, SP, BP, SI, DI, R8W, R9W, R10W, R11W, R12W, R13W, R14W, R15W
 };
-enum class bit8_registers: int
+enum class Bit8Register: int
 {
     AL=0, BL, CL, DL, SPL, BPL, SIL, DIL, R8B, R9B, R10B, R11B, R12B, R13B, R14B, R15B
 
 };
 
-inline registers param_registers[6] = 
+inline Register param_registers[6] = 
 {
-    registers::DI, registers::SI, registers::D, registers::C, registers::R8, registers::R9
+    Register::DI, Register::SI, Register::D, Register::C, Register::R8, Register::R9
 };
 
-enum class instruction 
+enum class Instruction 
 {
     LOAD_INT,
     LOAD_VAR,
@@ -59,7 +59,7 @@ enum class instruction
 using virtual_register = int64_t;
 
 
-enum class item_type
+enum class ItemType
 {
     VIRTUAL_REGISTER,
     IMMEDIATE_VALUE,
@@ -69,24 +69,24 @@ enum class item_type
 };
 
 
-struct item
+struct Item
 {
-    item(item_type it, int64_t value)
-        : it(it), value(value)  {}
+    Item(ItemType it, int64_t value)
+        : item_type(item_type), value(value)  {}
     
     std::string get_string() const
     {
-        switch (it)
+        switch (item_type)
         {
-            case item_type::VIRTUAL_REGISTER:
+            case ItemType::VIRTUAL_REGISTER:
                 return std::format("r{}", value);
-            case item_type::IMMEDIATE_VALUE:
+            case ItemType::IMMEDIATE_VALUE:
                 return std::format("{}", value);
-            case item_type::RELATIVE_ADDRESS:
+            case ItemType::RELATIVE_ADDRESS:
                 return std::format("[rbp - {}]", value);
-            case item_type::LOOKUPTABLE_INDEX:
+            case ItemType::LOOKUPTABLE_INDEX:
                 return std::format("TABLE({})", value);
-            case item_type::PARAMETER_INDEX:
+            case ItemType::PARAMETER_INDEX:
                 return std::format("p{}", value);
             default:
                 //TODO ERROR
@@ -97,11 +97,11 @@ struct item
         }
         return {};
     }
-    item_type it;
+    ItemType item_type;
     int64_t value;
 };
 
-enum class register_size
+enum class RegisterSize
 {
     BIT64,
     BIT32,
@@ -110,18 +110,18 @@ enum class register_size
 };
 
 
-inline register_size get_register_size(uint32_t byte_size)
+inline RegisterSize get_register_size(uint32_t byte_size)
 {
     switch (byte_size)
     {
         case 8:
-            return register_size::BIT64;
+            return RegisterSize::BIT64;
         case 4:
-            return register_size::BIT32;
+            return RegisterSize::BIT32;
         case 2:
-            return register_size::BIT16;
+            return RegisterSize::BIT16;
         case 1:
-            return register_size::BIT8;
+            return RegisterSize::BIT8;
 
         default:
             //TODO ERROR
@@ -132,58 +132,58 @@ inline register_size get_register_size(uint32_t byte_size)
     
 }
 
-struct instruction_triplet
+struct InstructionTriplet
 {
-    instruction_triplet(instruction instruc, virtual_register dst, std::vector<item> items,
-            register_size reg_size)
-        : instruc(instruc), dst(dst), items(items), reg_size(reg_size) {}
-    instruction instruc;
+    InstructionTriplet(Instruction instruction, virtual_register dst, std::vector<Item> items,
+            RegisterSize reg_size)
+        : instruction(instruction), dst(dst), items(items), reg_size(reg_size) {}
+    Instruction instruction;
     uint32_t instruc_count;
     virtual_register dst;
-    std::vector<item> items;
-    register_size reg_size; 
+    std::vector<Item> items;
+    RegisterSize reg_size; 
 };
 
-struct instruction_function
+struct InstructionFunction
 {
-    instruction_function(const std::string& name)
+    InstructionFunction(const std::string& name)
         : name(name) {}
     std::string name;
-    std::vector<instruction_triplet> instruction_triplets;
+    std::vector<InstructionTriplet> instruction_triplets;
 };
 
 
-struct live_range
+struct LiveRange
 {
     virtual_register reg;
     uint32_t first_use;
     uint32_t last_use;
 };
 
-struct instruction_data
+struct InstructionData
 {
-    std::vector<instruction_function> instruction_functions;
-    std::vector<live_range> live_ranges;
+    std::vector<InstructionFunction> instruction_functions;
+    std::vector<LiveRange> live_ranges;
 };
 
-inline void print_instruction(const instruction_triplet& triplet)
+inline void print_instruction(const InstructionTriplet& triplet)
 {
     std::string prefix;
     prefix += std::format("{:4}\t", triplet.instruc_count);
 
     switch (triplet.reg_size)
     {
-    case register_size::BIT64:
+    case RegisterSize::BIT64:
         prefix += std::format("{:4}", "(64)");
         break;
-    case register_size::BIT32:
+    case RegisterSize::BIT32:
         prefix += std::format("{:4}", "(32)");
 
         break;
-    case register_size::BIT16:
+    case RegisterSize::BIT16:
         prefix += std::format("{:4}", "(16)");
         break;
-    case register_size::BIT8:
+    case RegisterSize::BIT8:
         prefix += std::format("{:4}", "(8)");
         break;
     default:
@@ -192,18 +192,18 @@ inline void print_instruction(const instruction_triplet& triplet)
         exit(-1);
 
     }
-    switch (triplet.instruc)
+    switch (triplet.instruction)
     {
-        case instruction::LOAD_INT:
+        case Instruction::LOAD_INT:
             std::println("{} LOADI r{} {}", prefix, triplet.dst, triplet.items[0].get_string());
             break;
-        case instruction::LOAD_STRING:
+        case Instruction::LOAD_STRING:
             std::println("{} LOADS r{} {}", prefix, triplet.dst, triplet.items[0].get_string());
             break;
-        case instruction::LOAD_VAR:
+        case Instruction::LOAD_VAR:
             std::println("{} LOADV r{} {}", prefix, triplet.dst, triplet.items[0].get_string());
             break;
-        case instruction::CALL:
+        case Instruction::CALL:
             std::print("{} CALL  r{} ", prefix, triplet.dst);
             for (const auto& i : triplet.items)
             {
@@ -211,29 +211,29 @@ inline void print_instruction(const instruction_triplet& triplet)
             }
             std::println("");
             break;
-        case instruction::RETURN:
+        case Instruction::RETURN:
             std::println("{} RET   {}", prefix, triplet.dst);
             break;
-        case instruction::ADD:
+        case Instruction::ADD:
             std::println("{} ADD   r{} {}", prefix, triplet.dst, 
                     triplet.items[0].get_string());
             break;
-        case instruction::SUB:
+        case Instruction::SUB:
             std::println("{} SUB   r{} {}", prefix, triplet.dst, 
                     triplet.items[0].get_string());
             break;
 
-        case instruction::DIV:
+        case Instruction::DIV:
             std::println("{} DIV   r{} {}", prefix, triplet.dst, 
                     triplet.items[0].get_string());
             break;
 
-        case instruction::MUL:
+        case Instruction::MUL:
             std::println("{} MUL   r{} {}", prefix, triplet.dst, 
                     triplet.items[0].get_string());
             break;
         
-        case instruction::STORE:
+        case Instruction::STORE:
             std::println("{} STORE {} {}", prefix,
                     triplet.items[0].get_string(), triplet.items[1].get_string());  
             break;

@@ -12,7 +12,7 @@ class InstructionGenerator : public Visitor
     public:
 
 
-        void emit_instruction(instruction_triplet triplet, uint32_t increment = 1);
+        void emit_instruction(InstructionTriplet triplet, uint32_t increment = 1);
        
         void visit_program(uptr<Program>& prog) override;
         void visit_function(uptr<function>& func) override;
@@ -36,7 +36,7 @@ class InstructionGenerator : public Visitor
         
         void calculate_live_ranges();
 
-        instruction_data instruc_data;
+        InstructionData instruction_data;
         virtual_register current_virtual_register = 0;
         virtual_register effective_register = 0;
         uint32_t instruction_count = 0; 

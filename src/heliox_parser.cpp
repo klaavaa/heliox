@@ -44,8 +44,8 @@ uptr<Program> Parser::parse_program()
 uptr<function> Parser::parse_function()
 {
     bool is_extern = false;
-    keyword kword = get_kword_from_string(m_current_token.value);
-    if (kword == keyword::EXTERN)
+    KeyWord kword = get_kword_from_string(m_current_token.value);
+    if (kword == KeyWord::EXTERN)
     {
         is_extern = true;
         eat(TokenType::KEYWORD);
@@ -53,7 +53,7 @@ uptr<function> Parser::parse_function()
         kword = get_kword_from_string(m_current_token.value);
         
     }
-    if (kword != keyword::FUN)
+    if (kword != KeyWord::FUN)
     {
         // TODO: unexpected token error (expected fun)
         std::println("Unexpected token '{}' at parser::parse_function", 
@@ -272,10 +272,10 @@ statement Parser::parse_statement()
 
 statement Parser::parse_keyword_statement()
 {
-    keyword kw = get_kword_from_string(m_current_token.value);
+    KeyWord kw = get_kword_from_string(m_current_token.value);
     switch (kw)
     {
-        case keyword::RETURN:
+        case KeyWord::RETURN:
             return parse_return_statement();
            
     default:

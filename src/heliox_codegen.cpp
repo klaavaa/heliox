@@ -10,7 +10,7 @@ namespace hx
 
     }
     
-    void CodeGeneration::generate(std::vector<instruction_function>& function_instructions)
+    void CodeGeneration::generate(std::vector<InstructionFunction>& function_instructions)
     {
         for (auto& func : function_instructions)
         {
@@ -18,7 +18,7 @@ namespace hx
         }
     }
 
-    void CodeGeneration::emit_instruction_function(instruction_function& instruc_func)
+    void CodeGeneration::emit_instruction_function(InstructionFunction& instruc_func)
     {
         std::string body = std::format("global {}\n{}:\n", instruc_func.name, instruc_func.name);
 
@@ -29,13 +29,13 @@ namespace hx
         text_section += body;
     }
     
-    void CodeGeneration::emit_instruction_triplet(instruction_triplet& triplet)
+    void CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet)
     {
         
         switch (triplet.instruc)
         {
     
-        case instruction::LOAD_STRING:
+        case Instruction::LOAD_STRING:
             
         default:
            //TODO ERROR
