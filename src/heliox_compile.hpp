@@ -20,11 +20,11 @@ inline void compile(const std::string& file_path, const std::string& output_path
     
     if (file_path.substr(file_path.size() - 3) != ".hx")
     {
-        hx::error error;
+        hx::Error error;
         error.error_type = HX_NOT_HELIOX_FILE;
         error.line = 0;
         error.info = "Not a heliox file (.hx)";
-        hx::logger::log_error(error);
+        hx::Logger::log_error(error);
         exit(1);
     }
 
@@ -38,20 +38,20 @@ inline void compile(const std::string& file_path, const std::string& output_path
 
     std::string text = load_hx_file(file_path);
 
-    lexer lex = lexer(text);
-    std::vector<token> tokens = lex.tokenize();
+    Lexer lexer = Lexer(text);
+    std::vector<Token> tokens = lexer.tokenize();
     
     for (const auto& tok : tokens)
     {
         std::println("{}", get_string_from_token_type(tok.type));
     }
 
-    parser parsr = parser(std::make_unique<lexer>(lex));
-    uptr<program> prog = parsr.parse_program();
+    Parser parser = Parser(std::make_unique<Lexer>(lexer));
+    uptr<Program> prog = parser.parse_program();
     
     debug_visitor d_visitor;
     d_visitor.visit_program(prog);
-    instruction_generator instruction_gen;
+    InstructionGenerator instruction_gen;
     instruction_gen.visit_program(prog);
     
     /*

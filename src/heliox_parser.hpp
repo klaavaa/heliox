@@ -7,13 +7,13 @@
 #include "heliox_program.hpp"
 
 namespace hx {
-class parser
+class Parser
 {
 
 public:
-    parser(uptr<lexer> lex);
+    Parser(uptr<Lexer> lex);
     
-    uptr<program> parse_program();
+    uptr<Program> parse_program();
 
 private:	
 
@@ -38,11 +38,11 @@ private:
     statement parse_keyword_statement();
     uptr<return_statement> parse_return_statement();
 
-	void eat(tk_type token_type);
+	void eat(TokenType token_type);
      
 private:
 
-    token m_current_token;
-    uptr<lexer> m_lexer;
+    Token m_current_token;
+    uptr<Lexer> m_lexer;
 };
 }

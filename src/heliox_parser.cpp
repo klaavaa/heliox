@@ -10,21 +10,21 @@
 
 namespace hx 
 {
-parser::parser(uptr<lexer> lex)
+Parser::Parser(uptr<Lexer> lex)
 	:
 	m_lexer(std::move(lex))
 {
 	m_current_token = m_lexer->get_next();
 }
 
-uptr<program> parser::parse_program()
+uptr<Program> Parser::parse_program()
 {
     std::vector<uptr<function>> functions;
-    while (m_current_token.type != tk_type::END_OF_FILE)
+    while (m_current_token.type != TokenType::END_OF_FILE)
     {
         switch (m_current_token.type) 
         {
-            case tk_type::KEYWORD:
+            case TokenType::KEYWORD:
                 functions.push_back(std::move(parse_function()));
                 break;
            
@@ -39,16 +39,16 @@ uptr<program> parser::parse_program()
 
     }
 
-    return std::make_unique<program>(std::move(functions));
+    return std::make_unique<Program>(std::move(functions));
 }
-uptr<function> parser::parse_function()
+uptr<function> Parser::parse_function()
 {
     bool is_extern = false;
     keyword kword = get_kword_from_string(m_current_token.value);
     if (kword == keyword::EXTERN)
     {
         is_extern = true;
-        eat(tk_type::KEYWORD);
+        eat(TokenType::KEYWORD);
         
         kword = get_kword_from_string(m_current_token.value);
         
@@ -60,32 +60,32 @@ uptr<function> parser::parse_function()
                 get_string_from_token_type(m_current_token.type)); 
         exit(-1);
     }
-    eat(tk_type::KEYWORD);
+    eat(TokenType::KEYWORD);
     
     uptr<identifier_literal_expr> identifier = parse_identifier_literal();
     
-    eat(tk_type::L_PAREN);
+    eat(TokenType::L_PAREN);
     std::vector<uptr<variable_declaration_statement>> parameters;
-    if (m_current_token.type != tk_type::R_PAREN) 
+    if (m_current_token.type != TokenType::R_PAREN) 
     {
         while (true)
         {
             uptr<variable_declaration_statement> parameter = parse_variable_declaration();
             parameters.push_back(std::move(parameter));
-            if (m_current_token.type == tk_type::R_PAREN)
+            if (m_current_token.type == TokenType::R_PAREN)
             {
                 break;
             }
-            eat(tk_type::COMMA);
+            eat(TokenType::COMMA);
         }
     }
-    eat(tk_type::R_PAREN);
+    eat(TokenType::R_PAREN);
 
     type_data td = parse_type(); 
     
-    if (m_current_token.type == tk_type::SEMICOLON)
+    if (m_current_token.type == TokenType::SEMICOLON)
     {
-        eat(tk_type::SEMICOLON);
+        eat(TokenType::SEMICOLON);
 
         return std::make_unique<function>(std::move(identifier), std::move(parameters),
                 std::move(std::vector<statement>{}), td, is_extern);
@@ -96,78 +96,78 @@ uptr<function> parser::parse_function()
         std::println("Extern function cannot have a definition");
         exit(-1);
     }
-    eat(tk_type::L_BRACE);
+    eat(TokenType::L_BRACE);
     std::vector<statement> statements;
-    while (m_current_token.type != tk_type::R_BRACE)
+    while (m_current_token.type != TokenType::R_BRACE)
     {    
         statements.push_back(parse_statement());
     }
-    eat(tk_type::R_BRACE);
+    eat(TokenType::R_BRACE);
 
     return std::make_unique<function>(std::move(identifier), std::move(parameters),
            std::move(statements), td, is_extern);
 }
 
-uptr<identifier_literal_expr> parser::parse_identifier_literal()
+uptr<identifier_literal_expr> Parser::parse_identifier_literal()
 {
     std::string name = m_current_token.value;
-    eat(tk_type::IDENTIFIER);
+    eat(TokenType::IDENTIFIER);
     return std::make_unique<identifier_literal_expr>(name);
 }
-expression parser::parse_identifier()
+expression Parser::parse_identifier()
 {
 
     uptr<identifier_literal_expr> identifier = parse_identifier_literal();
 
     // check if its a function call 
-    if (m_current_token.type == tk_type::L_PAREN)
+    if (m_current_token.type == TokenType::L_PAREN)
     {
-        eat(tk_type::L_PAREN);
+        eat(TokenType::L_PAREN);
         std::vector<expression> expressions;
-        while(m_current_token.type != tk_type::R_PAREN)
+        while(m_current_token.type != TokenType::R_PAREN)
         {
             expressions.push_back(parse_expression()); 
-            if (m_current_token.type == tk_type::R_PAREN)
+            if (m_current_token.type == TokenType::R_PAREN)
             {
-                eat(tk_type::R_PAREN);
+                eat(TokenType::R_PAREN);
                 break;
             }
-            eat(tk_type::COMMA);
+            eat(TokenType::COMMA);
         }
         return std::make_unique<function_call_expr>(
                 std::move(identifier), std::move(expressions));
     }
     return identifier;
 }
-uptr<string_literal_expr> parser::parse_string_literal()
+uptr<string_literal_expr> Parser::parse_string_literal()
 {
     std::string value = m_current_token.value;
-    eat(tk_type::STRING);
+    eat(TokenType::STRING);
     return std::make_unique<string_literal_expr>(value);
 }
-uptr<int_literal_expr> parser::parse_int_literal()
+uptr<int_literal_expr> Parser::parse_int_literal()
 {
     std::string value = m_current_token.value;
-    eat(tk_type::INTEGER);
+    eat(TokenType::INTEGER);
     return std::make_unique<int_literal_expr>(value);
 }
 
-expression parser::parse_primary()
+expression Parser::parse_primary()
 {
     
     switch (m_current_token.type)
     {
-    case tk_type::IDENTIFIER:
+    case TokenType::IDENTIFIER:
         return parse_identifier();
-    case tk_type::STRING:
+    case TokenType::STRING:
         return parse_string_literal();
-    case tk_type::INTEGER:
+    case TokenType::INTEGER:
         return parse_int_literal();
-    case tk_type::L_PAREN:
+    case TokenType::L_PAREN:
         {
-        eat(tk_type::L_PAREN);
+        eat(TokenType::L_PAREN);
         expression expr =  parse_expression();
-        eat(tk_type::R_PAREN);
+        eat(TokenType::R_PAREN);
         return expr;
         }
     default:
@@ -179,13 +179,13 @@ expression parser::parse_primary()
 
 }
 
-expression parser::parse_expression_from_primary(expression primary, uint32_t min_precedence)
+expression Parser::parse_expression_from_primary(expression primary, uint32_t min_precedence)
 {
     expression lhs = std::move(primary);
     while (is_valid_binary_operator(m_current_token.type) &&
             get_binop_precedence_level(m_current_token.type) >= min_precedence)
     {
-        tk_type op = m_current_token.type;
+        TokenType op = m_current_token.type;
         uint32_t op_precedence = get_binop_precedence_level(op);
         eat(op);
         expression rhs = parse_primary();
@@ -207,15 +207,15 @@ expression parser::parse_expression_from_primary(expression primary, uint32_t mi
     return lhs;
 }
 
-expression parser::parse_expression()
+expression Parser::parse_expression()
 {
     return parse_expression_from_primary(parse_primary(), 0);
 }
 
-type_data parser::parse_type()
+type_data Parser::parse_type()
 {
     std::optional<primitive_type> pt = get_primitive_type_from_string(m_current_token.value);
-    eat(tk_type::IDENTIFIER);
+    eat(TokenType::IDENTIFIER);
     if (!pt.has_value())
     {
         // TODO OWN TYPES 
@@ -226,38 +226,38 @@ type_data parser::parse_type()
     }
      
     uint32_t ptr_depth = 0;
-    while (m_current_token.type == tk_type::MULTIPLY)
+    while (m_current_token.type == TokenType::MULTIPLY)
     {
         ptr_depth++;
-        eat(tk_type::MULTIPLY);
+        eat(TokenType::MULTIPLY);
     }
     return type_data(pt.value(), ptr_depth);
 
 }
 
-uptr<variable_declaration_statement> parser::parse_variable_declaration()
+uptr<variable_declaration_statement> Parser::parse_variable_declaration()
 {
     type_data td = parse_type(); 
     uptr<identifier_literal_expr> identifier = parse_identifier_literal();
     return std::make_unique<variable_declaration_statement>(td, std::move(identifier));
 }
 
-statement parser::parse_statement()
+statement Parser::parse_statement()
 {
     switch (m_current_token.type)
     {
-        case tk_type::L_BRACE:
+        case TokenType::L_BRACE:
             return parse_compound_statement();
         
-        case tk_type::KEYWORD:
+        case TokenType::KEYWORD:
             return parse_keyword_statement();
             
-        case tk_type::SEMICOLON:
-            eat(tk_type::SEMICOLON);
+        case TokenType::SEMICOLON:
+            eat(TokenType::SEMICOLON);
             return std::make_unique<noop_statement>();
     // assume it is an expression statement if none of the above      
         default:
-            if (m_current_token.type == tk_type::IDENTIFIER)
+            if (m_current_token.type == TokenType::IDENTIFIER)
             {
                 if (get_primitive_type_from_string(m_current_token.value).has_value())
                 {
@@ -265,12 +265,12 @@ statement parser::parse_statement()
                 }
             }
             expression expr = parse_expression();
-            eat(tk_type::SEMICOLON);
+            eat(TokenType::SEMICOLON);
             return std::make_unique<expression_statement>(std::move(expr));
     }
 }
 
-statement parser::parse_keyword_statement()
+statement Parser::parse_keyword_statement()
 {
     keyword kw = get_kword_from_string(m_current_token.value);
     switch (kw)
@@ -285,15 +285,15 @@ statement parser::parse_keyword_statement()
     }
 } 
 
-uptr<return_statement> parser::parse_return_statement()
+uptr<return_statement> Parser::parse_return_statement()
 {
-    eat(tk_type::KEYWORD);
+    eat(TokenType::KEYWORD);
     expression expr = parse_expression();
-    eat(tk_type::SEMICOLON);
+    eat(TokenType::SEMICOLON);
     return std::make_unique<return_statement>(std::move(expr));
 }
 
-statement parser::parse_type_statement()
+statement Parser::parse_type_statement()
 {
     // checked before calling whether it has value
     type_data type = parse_type();
@@ -301,38 +301,38 @@ statement parser::parse_type_statement()
     uptr<variable_declaration_statement> declaration = 
         std::make_unique<variable_declaration_statement>(type, std::move(identifier));
 
-    if (m_current_token.type == tk_type::EQU)
+    if (m_current_token.type == TokenType::EQU)
     {
-        eat(tk_type::EQU);
+        eat(TokenType::EQU);
         expression definition = parse_expression();
-        eat(tk_type::SEMICOLON);
+        eat(TokenType::SEMICOLON);
         return std::make_unique<variable_definition_statement>
             (std::move(declaration), std::move(definition));
 
     }
-    eat(tk_type::SEMICOLON);
+    eat(TokenType::SEMICOLON);
     return declaration;
 }
 
 
 
-uptr<compound_statement> parser::parse_compound_statement()
+uptr<compound_statement> Parser::parse_compound_statement()
 {
-    eat(tk_type::L_BRACE);
+    eat(TokenType::L_BRACE);
     
     std::vector<statement> statements;
-    while (m_current_token.type != tk_type::R_BRACE)
+    while (m_current_token.type != TokenType::R_BRACE)
     {
        statements.push_back(std::move(
                    parse_statement()));
         
     }
-    eat(tk_type::R_BRACE);
+    eat(TokenType::R_BRACE);
     return std::make_unique<compound_statement>(std::move(statements));
 }
 
     
-void parser::eat(tk_type token_type)
+void Parser::eat(TokenType token_type)
 {
     if (m_current_token.type != token_type)
     {

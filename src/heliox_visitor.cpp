@@ -7,10 +7,10 @@ struct overloads : Ts... { using Ts::operator()...; };
 namespace hx
 {
     
-    visitor::visitor() = default;
-    visitor::~visitor() = default;
+    Visitor::Visitor() = default;
+    Visitor::~Visitor() = default;
 
-    void visitor::visit_program(uptr<program>& prog)
+    void Visitor::visit_program(uptr<Program>& prog)
     {
         for (auto& func : prog->functions)
         {
@@ -18,7 +18,7 @@ namespace hx
         }
     }
 
-    void visitor::visit_expression(expression& expr)
+    void Visitor::visit_expression(expression& expr)
   {
         std::visit(overloads{
             [this](uptr<int_literal_expr>& int_literal)
@@ -36,7 +36,7 @@ namespace hx
             }, expr);
     }
 
-    void visitor::visit_statement(statement& stat)
+    void Visitor::visit_statement(statement& stat)
     {
         std::visit(overloads{
            [this](uptr<compound_statement>& compound)

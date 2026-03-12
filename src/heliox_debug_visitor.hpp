@@ -5,7 +5,7 @@
 namespace hx
 {
 
-    class debug_visitor : public visitor
+    class debug_visitor : public Visitor
     {
 public:
        void visit_function(uptr<function>& func) override 

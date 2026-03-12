@@ -7,14 +7,14 @@
 namespace hx
 {
 
-class instruction_generator : public visitor
+class InstructionGenerator : public Visitor
 {
     public:
 
 
         void emit_instruction(instruction_triplet triplet, uint32_t increment = 1);
        
-        void visit_program(uptr<program>& prog) override;
+        void visit_program(uptr<Program>& prog) override;
         void visit_function(uptr<function>& func) override;
         
         void visit_int_literal(uptr<int_literal_expr>& int_literal) override;
@@ -40,8 +40,8 @@ class instruction_generator : public visitor
         virtual_register current_virtual_register = 0;
         virtual_register effective_register = 0;
         uint32_t instruction_count = 0; 
-        uptr<symbol_table> global_table;
-        symbol_table* current_table;
+        uptr<SymbolTable> global_table;
+        SymbolTable* current_table;
 
 };
 

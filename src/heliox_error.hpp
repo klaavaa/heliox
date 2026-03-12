@@ -13,7 +13,7 @@
 
 namespace hx 
 {
-struct error
+struct Error
 {
 	std::string error_type;
 	std::string info;
@@ -21,14 +21,14 @@ struct error
 	uint32_t line;
 };
 
-class logger
+class Logger
 {
 public:
 
 	
-	static std::string format_error(hx::error error_data);
-	static void log_error(hx::error error_data);
-	static void log_and_exit(hx::error error_data);
+	static std::string format_error(hx::Error error_data);
+	static void log_error(hx::Error error_data);
+	static void log_and_exit(hx::Error error_data);
 
 };
 }

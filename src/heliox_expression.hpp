@@ -45,18 +45,18 @@ struct identifier_literal_expr
 };
 struct binop_expr
 {
-    binop_expr(expression left, expression right, tk_type op_token)
+    binop_expr(expression left, expression right, TokenType op_token)
         : left(std::move(left)), right(std::move(right)), op_token(op_token) {} 
     expression left;
     expression right;
-    tk_type op_token;
+    TokenType op_token;
 };
 struct unary_expr
 {
-    unary_expr(expression expr, tk_type op_token)
+    unary_expr(expression expr, TokenType op_token)
         : expr(std::move(expr)), op_token(op_token) {}
     expression expr;
-    tk_type op_token;
+    TokenType op_token;
 };
 struct function_call_expr
 {
