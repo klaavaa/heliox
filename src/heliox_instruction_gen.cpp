@@ -29,7 +29,7 @@ void InstructionGenerator::calculate_live_ranges()
     {
         for (auto& triplet : func.instruction_triplets)
         {
-            switch (triplet.instruc)
+            switch (triplet.instruction)
             {
             case Instruction::DIV:
                // TODO: div idiv, unsigned vs signed division

@@ -71,7 +71,7 @@ enum class ItemType
 
 struct Item
 {
-    Item(ItemType it, int64_t value)
+    Item(ItemType item_type, int64_t value)
         : item_type(item_type), value(value)  {}
     
     std::string get_string() const

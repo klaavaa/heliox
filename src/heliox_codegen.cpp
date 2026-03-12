@@ -32,7 +32,7 @@ namespace hx
     void CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet)
     {
         
-        switch (triplet.instruc)
+        switch (triplet.instruction)
         {
     
         case Instruction::LOAD_STRING:
