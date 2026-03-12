@@ -3,26 +3,26 @@
 
 namespace hx
 {
-bool is_valid_binary_operator(tk_type token_type)
+bool is_valid_binary_operator(TokenType token_type)
 {
     switch (token_type)
     {
-    case tk_type::PLUS: 
-    case tk_type::MINUS:
-    case tk_type::MULTIPLY:
-    case tk_type::DIVIDE:
-    case tk_type::EQU:
-    case tk_type::DOUBLE_EQU:
-    case tk_type::NEQU:
-    case tk_type::LT:
-    case tk_type::GT:
-    case tk_type::LTE:
-    case tk_type::GTE:
-    case tk_type::LOGICAL_AND:
-    case tk_type::LOGICAL_OR:
-    case tk_type::BITWISE_AND:
-    case tk_type::BITWISE_OR:
-    case tk_type::BITWISE_XOR:
+    case TokenType::PLUS: 
+    case TokenType::MINUS:
+    case TokenType::MULTIPLY:
+    case TokenType::DIVIDE:
+    case TokenType::EQU:
+    case TokenType::DOUBLE_EQU:
+    case TokenType::NEQU:
+    case TokenType::LT:
+    case TokenType::GT:
+    case TokenType::LTE:
+    case TokenType::GTE:
+    case TokenType::LOGICAL_AND:
+    case TokenType::LOGICAL_OR:
+    case TokenType::BITWISE_AND:
+    case TokenType::BITWISE_OR:
+    case TokenType::BITWISE_XOR:
         return true;
 
 
@@ -32,94 +32,94 @@ bool is_valid_binary_operator(tk_type token_type)
     }
 } 
 
-bool is_valid_unary_operator(tk_type token_type)
+bool is_valid_unary_operator(TokenType token_type)
 {
     switch (token_type)
     {
-        case tk_type::PLUS:
-        case tk_type::MINUS:
-        case tk_type::MULTIPLY:
-        case tk_type::BITWISE_AND:
-        case tk_type::NOT:
+        case TokenType::PLUS:
+        case TokenType::MINUS:
+        case TokenType::MULTIPLY:
+        case TokenType::BITWISE_AND:
+        case TokenType::NOT:
             return true;
     default:
         return false;
     }
 }
 
-uint32_t get_binop_precedence_level(tk_type token_type)
+uint32_t get_binop_precedence_level(TokenType token_type)
 {
 	switch (token_type)
 	{
-        case tk_type::EQU:
+        case TokenType::EQU:
             return 2;
-        case tk_type::LOGICAL_OR:
+        case TokenType::LOGICAL_OR:
             return 4;
-        case tk_type::LOGICAL_AND:
+        case TokenType::LOGICAL_AND:
             return 5;
-        case tk_type::BITWISE_OR:
+        case TokenType::BITWISE_OR:
             return 6;
-        case tk_type::BITWISE_XOR:
+        case TokenType::BITWISE_XOR:
             return 7;
-        case tk_type::BITWISE_AND:
+        case TokenType::BITWISE_AND:
             return 8;
-        case tk_type::DOUBLE_EQU:
-        case tk_type::NEQU:
+        case TokenType::DOUBLE_EQU:
+        case TokenType::NEQU:
             return 9;
-        case tk_type::LT:
-        case tk_type::GT:
-        case tk_type::LTE:
-        case tk_type::GTE:
+        case TokenType::LT:
+        case TokenType::GT:
+        case TokenType::LTE:
+        case TokenType::GTE:
             return 10;
-        case tk_type::PLUS: 
-        case tk_type::MINUS:
+        case TokenType::PLUS: 
+        case TokenType::MINUS:
             return 12;
-        case tk_type::MULTIPLY:
-        case tk_type::DIVIDE:
+        case TokenType::MULTIPLY:
+        case TokenType::DIVIDE:
             return 14;
         
         default:
             return 0; // not a binop
     }
 }
-uint32_t get_unop_precedence_level(tk_type token_type)
+uint32_t get_unop_precedence_level(TokenType token_type)
 {
     switch (token_type)
     {
-        case tk_type::NOT:
-        case tk_type::PLUS:
-        case tk_type::MINUS:
-        case tk_type::MULTIPLY:
-        case tk_type::BITWISE_AND:
+        case TokenType::NOT:
+        case TokenType::PLUS:
+        case TokenType::MINUS:
+        case TokenType::MULTIPLY:
+        case TokenType::BITWISE_AND:
             return 15;
 
         default: // not a un op
             return 0;
     }
 }
-op_associativity get_binop_associativity(tk_type token_type)
+op_associativity get_binop_associativity(TokenType token_type)
 {
 
 	switch (token_type)
 	{
 		// 2
-	case tk_type::EQU:
+	case TokenType::EQU:
         return op_associativity::RIGHT_TO_LEFT;
 		// 4
-	case tk_type::LOGICAL_OR:
-    case tk_type::LOGICAL_AND:
-    case tk_type::BITWISE_OR:
-    case tk_type::BITWISE_AND:
-    case tk_type::DOUBLE_EQU:
-    case tk_type::NEQU:
-    case tk_type::LT:
-    case tk_type::LTE:
-    case tk_type::GT:
-    case tk_type::GTE:
-    case tk_type::PLUS:
-    case tk_type::MINUS:
-    case tk_type::DIVIDE:
-    case tk_type::MULTIPLY:
+	case TokenType::LOGICAL_OR:
+    case TokenType::LOGICAL_AND:
+    case TokenType::BITWISE_OR:
+    case TokenType::BITWISE_AND:
+    case TokenType::DOUBLE_EQU:
+    case TokenType::NEQU:
+    case TokenType::LT:
+    case TokenType::LTE:
+    case TokenType::GT:
+    case TokenType::GTE:
+    case TokenType::PLUS:
+    case TokenType::MINUS:
+    case TokenType::DIVIDE:
+    case TokenType::MULTIPLY:
 		return op_associativity::LEFT_TO_RIGHT;
 
 	default: // not a bin op
@@ -128,15 +128,15 @@ op_associativity get_binop_associativity(tk_type token_type)
 	}
 
 }
-op_associativity get_unop_associativity(tk_type token_type)
+op_associativity get_unop_associativity(TokenType token_type)
 {
     switch (token_type)
     {
-        case tk_type::NOT:
-        case tk_type::PLUS:
-        case tk_type::MINUS:
-        case tk_type::MULTIPLY:
-        case tk_type::BITWISE_AND:
+        case TokenType::NOT:
+        case TokenType::PLUS:
+        case TokenType::MINUS:
+        case TokenType::MULTIPLY:
+        case TokenType::BITWISE_AND:
             return op_associativity::RIGHT_TO_LEFT;
 
         default: // not a un op

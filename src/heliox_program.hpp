@@ -4,9 +4,9 @@
 #include "heliox_pointer.hpp"
 namespace hx
 {
-    struct program 
+    struct Program 
     {
-        program(std::vector<uptr<function>> functions)
+        Program(std::vector<uptr<function>> functions)
             : functions(std::move(functions)) {}
 
         std::vector<uptr<function>> functions;

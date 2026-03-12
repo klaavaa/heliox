@@ -8,22 +8,22 @@
 namespace hx
 {
 
-class lexer
+class Lexer
 {
 public:
-	lexer(std::string text);
+	Lexer(std::string text);
 
 	uint32_t get_line();
 	bool is_finished();
 
-	token get_next();
+	Token get_next();
 
-    std::vector<token> tokenize();
+    std::vector<Token> tokenize();
     void reset();
 private:
 
-	token make_number();
-	token make_identifier();
+	Token make_number();
+	Token make_identifier();
 
 	char peek_next(uint32_t offset=0);
 	bool advance();

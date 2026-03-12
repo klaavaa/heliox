@@ -6,10 +6,10 @@ namespace hx
 {
 
 
-    class codegen
+    class CodeGeneration
     {
     public:
-        codegen(uptr<symbol_table> global_table);
+        CodeGeneration(uptr<SymbolTable> global_table);
         void generate(std::vector<instruction_function>& function_instructions);
     private:
         void emit_instruction_function(instruction_function& instruc_func); 
@@ -22,6 +22,6 @@ namespace hx
         std::string data_section;
         std::string text_section;
 
-        uptr<symbol_table> global_table; 
+        uptr<SymbolTable> global_table; 
     };
 }

@@ -49,12 +49,12 @@
 #define HX_EOF                          (-1)
 
 namespace hx {
-constexpr const char* characters = "abcdefghijklmnopqrstuvwxyzåäöABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ_§";
+constexpr const char* characters = "abcdefghijklmnopqrstuvwxyzï¿½ï¿½ï¿½ABCDEFGHIJKLMNOPQRSTUVWXYZï¿½ï¿½ï¿½_ï¿½";
 constexpr const char* numbers = "0123456789";
-constexpr const char* characters_numbers = "0123456789abcdefghijklmnopqrstuvwxyzåäöABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ_§";
+constexpr const char* characters_numbers = "0123456789abcdefghijklmnopqrstuvwxyzï¿½ï¿½ï¿½ABCDEFGHIJKLMNOPQRSTUVWXYZï¿½ï¿½ï¿½_ï¿½";
 
 
-enum class tk_type
+enum class TokenType
 {
 
 	END_OF_FILE = 0,
@@ -111,61 +111,61 @@ enum class tk_type
 
 };
 
-static const std::unordered_map<tk_type, std::string>  token_to_string_map =
+static const std::unordered_map<TokenType, std::string>  token_to_string_map =
 {
 
-{ tk_type::END_OF_FILE,	    				"EOF" },
-{ tk_type::KEYWORD,							"KEYWORD" },
-{ tk_type::IDENTIFIER,						"IDENTIFIER" },
+{ TokenType::END_OF_FILE,	    				"EOF" },
+{ TokenType::KEYWORD,							"KEYWORD" },
+{ TokenType::IDENTIFIER,						"IDENTIFIER" },
 
-{ tk_type::COMMA,							"COMMA" },
-{ tk_type::DOT,								"DOT" },
-{ tk_type::QUOT_MARK,                       "QUOT_MARK"},
-{ tk_type::SEMICOLON,						"SEMICOLON" },
-{ tk_type::COLON,							"COLON" },
-{ tk_type::PLUS,							"PLUS" },
-{ tk_type::MINUS,							"MINUS" },
-{ tk_type::DIVIDE,							"SLASH" },
-{ tk_type::MULTIPLY,						"STAR" },
-{ tk_type::L_PAREN,							"LPAREN" },
-{ tk_type::R_PAREN,							"RPAREN" },
-{ tk_type::L_BRACE,							"LBRACE" },
-{ tk_type::R_BRACE,							"RBRACE" },
-{ tk_type::L_BRACK,							"LBRACK" },
-{ tk_type::R_BRACK,							"RBRACK" },
-{ tk_type::DOLLAR ,							"DOLLAR" },
-{ tk_type::AT ,								"AT" },
-{ tk_type::BITWISE_AND,						"AMPERSAND" },
-{ tk_type::BITWISE_OR ,						"PIPE" },
-{ tk_type::BITWISE_XOR ,					"HAT" },
-{ tk_type::LOGICAL_AND,						"AND"},
-{ tk_type::LOGICAL_OR,						"OR"},
-{ tk_type::EQU,								"EQUALS" },
-{ tk_type::DOUBLE_EQU,						"EQUAL_COMPARISON"},
-{ tk_type::NOT,								"EXCLAMATION" },
-{ tk_type::NEQU,							"NOT EQUALS"},
-{ tk_type::INTEGER,							"INTEGER" },
-{ tk_type::FLOAT,							"FLOAT" },
-{ tk_type::STRING,							"STRING"},
-{ tk_type::LT,								"LESS THAN" },
-{ tk_type::LTE,								"LESS THAN OR EQUAL"}, 
-{ tk_type::GTE,								"GREATER THAN OR EQUAL"},
-{ tk_type::GT,								"GREATER THAN" },
-{ tk_type::ARROW,							"ARROW"}				
+{ TokenType::COMMA,							"COMMA" },
+{ TokenType::DOT,								"DOT" },
+{ TokenType::QUOT_MARK,                       "QUOT_MARK"},
+{ TokenType::SEMICOLON,						"SEMICOLON" },
+{ TokenType::COLON,							"COLON" },
+{ TokenType::PLUS,							"PLUS" },
+{ TokenType::MINUS,							"MINUS" },
+{ TokenType::DIVIDE,							"SLASH" },
+{ TokenType::MULTIPLY,						"STAR" },
+{ TokenType::L_PAREN,							"LPAREN" },
+{ TokenType::R_PAREN,							"RPAREN" },
+{ TokenType::L_BRACE,							"LBRACE" },
+{ TokenType::R_BRACE,							"RBRACE" },
+{ TokenType::L_BRACK,							"LBRACK" },
+{ TokenType::R_BRACK,							"RBRACK" },
+{ TokenType::DOLLAR ,							"DOLLAR" },
+{ TokenType::AT ,								"AT" },
+{ TokenType::BITWISE_AND,						"AMPERSAND" },
+{ TokenType::BITWISE_OR ,						"PIPE" },
+{ TokenType::BITWISE_XOR ,					"HAT" },
+{ TokenType::LOGICAL_AND,						"AND"},
+{ TokenType::LOGICAL_OR,						"OR"},
+{ TokenType::EQU,								"EQUALS" },
+{ TokenType::DOUBLE_EQU,						"EQUAL_COMPARISON"},
+{ TokenType::NOT,								"EXCLAMATION" },
+{ TokenType::NEQU,							"NOT EQUALS"},
+{ TokenType::INTEGER,							"INTEGER" },
+{ TokenType::FLOAT,							"FLOAT" },
+{ TokenType::STRING,							"STRING"},
+{ TokenType::LT,								"LESS THAN" },
+{ TokenType::LTE,								"LESS THAN OR EQUAL"}, 
+{ TokenType::GTE,								"GREATER THAN OR EQUAL"},
+{ TokenType::GT,								"GREATER THAN" },
+{ TokenType::ARROW,							"ARROW"}				
 };
 
-constexpr std::string get_string_from_token_type(tk_type type)
+constexpr std::string get_string_from_token_type(TokenType type)
 {
     if (!token_to_string_map.count(type)) return "COULDNT MATCH TOKEN WITH STRING";
     return token_to_string_map.find(type)->second;
 }
 
-struct token
+struct Token
 {
-    token() : type(tk_type::NOT_A_TOKEN), value()
+    Token() : type(TokenType::NOT_A_TOKEN), value()
     {
     }
-	token(tk_type tok_type, std::string tok_value)
+	Token(TokenType tok_type, std::string tok_value)
 		:
 		type(tok_type),
 		value(tok_value)
@@ -173,7 +173,7 @@ struct token
 
 
 
-	tk_type type;
+	TokenType type;
 	std::string value;
 
 };

@@ -33,10 +33,10 @@ inline keyword get_kword_from_string(const std::string& name)
 {
 	if (!keywords.count(name))
     {
-        hx::error error;
+        hx::Error error;
         error.error_type = HX_SYNTAX_ERROR;
         error.info = "unknown keyword: '" + name + "'";
-        hx::logger::log_and_exit(error);
+        hx::Logger::log_and_exit(error);
     }
     return keywords.at(name);
 

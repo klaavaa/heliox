@@ -1,28 +1,28 @@
-#include "heliox_lexer.hpp"
+#include "heliox_Lexer.hpp"
 #include "heliox_error.hpp"
 #include "heliox_keywords.hpp"
 
 
 namespace hx {
 
-lexer::lexer(std::string text)
+Lexer::Lexer(std::string text)
 {
     this->m_text = text;
     this->m_len_text = (uint32_t)text.size();
     reset();
 }
-uint32_t lexer::get_line() 
+uint32_t Lexer::get_line() 
 {
     return m_line_number;
 }
-bool lexer::is_finished()
+bool Lexer::is_finished()
 {
     return this->m_index == this->m_len_text;
 }
 
-std::vector<token> lexer::tokenize()
+std::vector<Token> Lexer::tokenize()
 {
-    std::vector<token> tokens;
+    std::vector<Token> tokens;
     while (!is_finished())
     {
         tokens.push_back(get_next());
@@ -30,19 +30,19 @@ std::vector<token> lexer::tokenize()
     reset();
     return tokens;
 }
-void lexer::reset()
+void Lexer::reset()
 {
     this->m_index = 0;
     this->m_cur_char = -1;
 }
 
-token lexer::get_next()
+Token Lexer::get_next()
 {
     
 
     do
     {
-        if (!advance()) return token(tk_type::END_OF_FILE, "");
+        if (!advance()) return Token(TokenType::END_OF_FILE, "");
 
     } while (m_cur_char == HX_SPACE || m_cur_char == HX_TAB || m_cur_char == HX_NEWLINE || m_cur_char == '\r');
 
@@ -52,11 +52,11 @@ token lexer::get_next()
 
     case HX_COMMA:
     {
-        return token(tk_type::COMMA, "");
+        return Token(TokenType::COMMA, "");
     }
     case HX_DOT:
     {
-        return token(tk_type::DOT, "");
+        return Token(TokenType::DOT, "");
     }
     case HX_QUOT_MARK:
     {
@@ -65,39 +65,39 @@ token lexer::get_next()
         {
             if (peek_next() == -1)
             {
-                error error;
+                Error error;
                 error.error_type = HX_SYNTAX_ERROR;
                 error.line = get_line();
                 error.info = "Undisclosed quotation mark";
-                logger::log_and_exit(error);
+                Logger::log_and_exit(error);
             }
             advance();
             s += m_cur_char;
         }
         advance();
-        return token(tk_type::STRING, s);
+        return Token(TokenType::STRING, s);
 
     }
     /*
     case DOLLAR:
     {
-        return token(tk_type::DOLLAR, "");
+        return Token(TokenType::DOLLAR, "");
     } */
     case HX_AMPERSAND:
     {
         if (peek_next() == HX_AMPERSAND)
         {
             advance();
-            return token(tk_type::LOGICAL_AND, "");
+            return Token(TokenType::LOGICAL_AND, "");
         }
 
-        return token(tk_type::BITWISE_AND, "");
+        return Token(TokenType::BITWISE_AND, "");
 
     }
 
     case HX_CIRCUMFLEX:
     {
-        return token(tk_type::BITWISE_XOR, "");
+        return Token(TokenType::BITWISE_XOR, "");
     }
 
     case HX_PIPE:
@@ -105,14 +105,14 @@ token lexer::get_next()
         if (peek_next() == HX_PIPE)
         {
             advance();
-            return token(tk_type::LOGICAL_OR, "");
+            return Token(TokenType::LOGICAL_OR, "");
         }
-        return token(tk_type::BITWISE_OR, "");
+        return Token(TokenType::BITWISE_OR, "");
     }
 
     case HX_PLUS:
     {
-        return token(tk_type::PLUS, "");
+        return Token(TokenType::PLUS, "");
     }
     case HX_MINUS:
     {
@@ -120,10 +120,10 @@ token lexer::get_next()
         if (peek_next() == HX_RIGHT_ARROW)
         {
             advance();
-            return token(tk_type::ARROW, "");
+            return Token(TokenType::ARROW, "");
         }
         
-        return token(tk_type::MINUS, "");
+        return Token(TokenType::MINUS, "");
     }
     case HX_DIVIDE:
     {
@@ -156,12 +156,12 @@ token lexer::get_next()
             return get_next();
 
         error_label:
-            hx::error error;
+            hx::Error error;
             error.error_type = HX_SYNTAX_ERROR;
             error.info = "No matching '*/' found";
             error.line = get_line();
             
-            hx::logger::log_and_exit(error);
+            hx::Logger::log_and_exit(error);
 
         }
         
@@ -179,40 +179,40 @@ token lexer::get_next()
         }
 
 
-        return token(tk_type::DIVIDE, "");
+        return Token(TokenType::DIVIDE, "");
     }
     case HX_STAR:
     {
-        return token(tk_type::MULTIPLY, "");
+        return Token(TokenType::MULTIPLY, "");
     }
     case HX_LEFT_BRACE:
     {
-        return token(tk_type::L_BRACE, "");
+        return Token(TokenType::L_BRACE, "");
     }
     case HX_RIGHT_BRACE:
     {
-        return token(tk_type::R_BRACE, "");
+        return Token(TokenType::R_BRACE, "");
     }
     case HX_LEFT_PAREN:
     {
-        return token(tk_type::L_PAREN, "");
+        return Token(TokenType::L_PAREN, "");
     }
     case HX_RIGHT_PAREN:
     {
-        return token(tk_type::R_PAREN, "");
+        return Token(TokenType::R_PAREN, "");
     }
     case HX_LEFT_BRACK:
     {
-        return token(tk_type::L_BRACK, "");
+        return Token(TokenType::L_BRACK, "");
     }
     case HX_RIGHT_BRACK:
     {
-        return token(tk_type::R_BRACK, "");
+        return Token(TokenType::R_BRACK, "");
     }
     /*
     case AT:
     {
-        return token(tk_type::AT, "");
+        return Token(TokenType::AT, "");
     }
     */
     case HX_LEFT_ARROW:
@@ -220,18 +220,18 @@ token lexer::get_next()
         if (peek_next() == HX_EQUALS)
         {
             advance();
-            return token(tk_type::LTE, "");
+            return Token(TokenType::LTE, "");
         }
-        return token(tk_type::LT, "");
+        return Token(TokenType::LT, "");
     }
     case HX_RIGHT_ARROW:
     {
         if (peek_next() == HX_EQUALS)
         {
             advance();
-            return token(tk_type::GTE, "");
+            return Token(TokenType::GTE, "");
         }
-        return token(tk_type::GT, "");
+        return Token(TokenType::GT, "");
     }
 
     case HX_EQUALS:
@@ -239,9 +239,9 @@ token lexer::get_next()
         if (peek_next() == HX_EQUALS)
         {
             advance();
-            return token(tk_type::DOUBLE_EQU, "");
+            return Token(TokenType::DOUBLE_EQU, "");
         }
-        return token(tk_type::EQU, "");
+        return Token(TokenType::EQU, "");
     }
 
     case HX_EXCLAMATION_MARK:
@@ -250,27 +250,27 @@ token lexer::get_next()
         if (peek_next() == HX_EQUALS)
         {
             advance();
-            return token(tk_type::NEQU, "");
+            return Token(TokenType::NEQU, "");
         }
 
-        return token(tk_type::NOT, "");
+        return Token(TokenType::NOT, "");
 
     }
     /*
     case QUESTION_MARK:
     {
 
-        return token(tk_type::NOT_A_TOKEN, "");
+        return Token(TokenType::NOT_A_TOKEN, "");
     }*/
 
 
     case HX_SEMICOLON:
     {
-        return token(tk_type::SEMICOLON, "");
+        return Token(TokenType::SEMICOLON, "");
     }
     case HX_COLON:
     {
-        return token(tk_type::COLON, "");
+        return Token(TokenType::COLON, "");
     }
     }
     if (strchr(characters, m_cur_char))
@@ -284,10 +284,10 @@ token lexer::get_next()
     }
     
 
-    return token(tk_type::NOT_A_TOKEN, "");
+    return Token(TokenType::NOT_A_TOKEN, "");
 }
 
-token lexer::make_number()
+Token Lexer::make_number()
 {
     std::string body;
 
@@ -315,14 +315,14 @@ token lexer::make_number()
     }
 
 
-    token tok = token(is_int ? tk_type::INTEGER : tk_type::FLOAT, body);
+    Token tok = Token(is_int ? TokenType::INTEGER : TokenType::FLOAT, body);
 
     return tok;
 
 
 }
 
-token lexer::make_identifier()
+Token Lexer::make_identifier()
 {
 
     std::string body;
@@ -343,16 +343,16 @@ token lexer::make_identifier()
         [body](const auto& other)
         {return (body == other.first); }) != keywords.end())
     {
-        return token(tk_type::KEYWORD, body);
+        return Token(TokenType::KEYWORD, body);
     }
         
-    token tok = token(tk_type::IDENTIFIER, body);
+    Token tok = Token(TokenType::IDENTIFIER, body);
 
     return tok;
 
 
 }
-char lexer::peek_next(uint32_t offset)
+char Lexer::peek_next(uint32_t offset)
 {
 
     if (m_index + 1 + offset > m_len_text)
@@ -361,7 +361,7 @@ char lexer::peek_next(uint32_t offset)
     return m_text[m_index + offset];
 
 }
-bool lexer::advance()
+bool Lexer::advance()
 {
 
     m_index++;
