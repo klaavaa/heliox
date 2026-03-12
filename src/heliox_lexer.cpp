@@ -1,4 +1,4 @@
-#include "heliox_Lexer.hpp"
+#include "heliox_lexer.hpp"
 #include "heliox_error.hpp"
 #include "heliox_keywords.hpp"
 
