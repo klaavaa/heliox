@@ -10,7 +10,7 @@ void InstructionGenerator::visit_program(uptr<Program>& prog)
     for (auto& func : prog->functions)
     {
         global_table->add_symbol(
-                func->identifier->name, SymbolType::FUNCTION, func->type);
+                func->identifier->name, SymbolType::FUNCTION, func->type, 0);
     }
     for (auto& func : prog->functions)
     {
@@ -90,10 +90,11 @@ void InstructionGenerator::emit_instruction(InstructionTriplet triplet, uint32_t
 void InstructionGenerator::visit_function(uptr<function>& func)
 {
     if (func->is_extern) return;
-    current_table = global_table->add_table(true).get();
+    current_table = global_table->add_table().get();
    
     for (auto& param : func->params)
     {
+        // TODO FUNCTION PARAM WORK
         current_table->add_symbol(param->var_identifier->name, SymbolType::VARIABLE,
                 param->var_type, true);
     }
@@ -128,25 +129,18 @@ void InstructionGenerator::visit_string_literal(uptr<string_literal_expr>& strin
 }
 void InstructionGenerator::visit_identifier_literal(uptr<identifier_literal_expr>& identifier_literal) 
 {
-    // TODO SYMBOL TABLE
     
     Symbol sym = current_table->find_symbol(identifier_literal->name, SymbolType::VARIABLE);
-    RegisterSize reg_size = get_register_size(sym.type_info.byte_size);
-    InstructionTriplet triplet = 
-        InstructionTriplet(Instruction::LOAD_VAR, 
-                current_virtual_register,
-                {Item{ItemType::RELATIVE_ADDRESS, sym.stack_position}},
-                reg_size);
-    if (sym.is_param)
-    {
-        triplet = 
-        InstructionTriplet(Instruction::LOAD_VAR, 
-                current_virtual_register,
-                {Item{ItemType::PARAMETER_INDEX, sym.stack_position}},
-                reg_size);
-    }
-    effective_register = current_virtual_register;
-    emit_instruction(triplet);
+    effective_register = sym.vr;
+    //RegisterSize reg_size = get_register_size(sym.type_info.byte_size);
+    //InstructionTriplet triplet = 
+    //    InstructionTriplet(Instruction::LOAD_VAR, 
+    //            current_virtual_register,
+    //            {Item{ItemType::VIRTUAL_REGISTER, sym.vr}},
+    //            reg_size);
+
+    //effective_register = current_virtual_register;
+    //emit_instruction(triplet);
 
 }
 void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)  
@@ -171,6 +165,9 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
             break;
         case TokenType::DIVIDE:
             instruc = Instruction::DIV;
+            break;
+        case TokenType::EQU:
+            instruc = Instruction::STORE;
             break;
         default:
             //TODO IMPLEMENT MORE
@@ -215,7 +212,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
 
 void InstructionGenerator::visit_compound(uptr<compound_statement>& compound) 
 {
-    current_table = current_table->add_table(false).get();
+    current_table = current_table->add_table().get();
     for (auto& stat : compound->statements)
     {
         visit_statement(stat);
@@ -236,31 +233,35 @@ void InstructionGenerator::visit_return(uptr<return_statement>& return_s)
 }
 void InstructionGenerator::visit_variable_declaration(uptr<variable_declaration_statement>& variable_declaration) 
 {
-   
+    std::println("DECLARING SYMBOL {} {}", variable_declaration->var_identifier->name, effective_register);
     current_table->add_symbol(
             variable_declaration->var_identifier->name,
             SymbolType::VARIABLE,
-            variable_declaration->var_type);
+            variable_declaration->var_type, effective_register);
 }
 void InstructionGenerator::visit_variable_definition(uptr<variable_definition_statement>& variable_definition) 
 {
-    
-    visit_variable_declaration(variable_definition->declaration);
     visit_expression(variable_definition->definition);
-    virtual_register definition = effective_register;
+    visit_variable_declaration(variable_definition->declaration);
 
     Symbol sym = current_table->find_symbol(
             variable_definition->declaration->var_identifier->name, SymbolType::VARIABLE);
     
     RegisterSize reg_size = get_register_size(sym.type_info.byte_size);
-    InstructionTriplet triplet = 
+    /*InstructionTriplet triplet = 
         InstructionTriplet(Instruction::STORE, 
                  definition,
                 {Item{ItemType::RELATIVE_ADDRESS, sym.stack_position}
                 ,Item{ItemType::VIRTUAL_REGISTER, definition}},
+                reg_size);*/
+    /*InstructionTriplet triplet = 
+        InstructionTriplet(Instruction::STORE, 
+                 definition,
+                {Item{ItemType::VIRTUAL_REGISTER, sym.vr}
+                ,Item{ItemType::VIRTUAL_REGISTER, definition}},
                 reg_size);
-    emit_instruction(triplet, 0);
 
+    emit_instruction(triplet, 0);*/
 }
 void InstructionGenerator::visit_conditional(uptr<conditional_statement>& conditional) 
 {

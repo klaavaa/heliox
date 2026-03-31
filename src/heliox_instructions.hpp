@@ -233,8 +233,8 @@ inline void print_instruction(const InstructionTriplet& triplet)
             break;
         
         case Instruction::STORE:
-            std::println("{} STORE {} {}", prefix,
-                    triplet.items[0].get_string(), triplet.items[1].get_string());  
+            std::println("{} STORE r{} {}", prefix,
+                    triplet.dst, triplet.items[0].get_string());  
             break;
       default:
         std::println("Instruction not implemented");

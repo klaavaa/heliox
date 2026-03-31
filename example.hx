@@ -8,6 +8,7 @@ fun main(i32 argc, u8** argv) i32
     i16 b = 10;
     printf(str);
     a = 12;
+    a = a - 2;
     return add(1, 2, 3, 4, 5, 6, 7, 8) - 15; 
 }
 

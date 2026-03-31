@@ -4,20 +4,12 @@
 namespace hx
 {
 
-SymbolTable::SymbolTable(uint32_t next_stack_position) 
-    : next_stack_position(next_stack_position),
-      next_parameter_stack_position(-16),
-      function_param_count(0) {}
+SymbolTable::SymbolTable() {}
 
-sptr<SymbolTable> SymbolTable::add_table(bool is_function_body)
+sptr<SymbolTable> SymbolTable::add_table()
 {
-    uint32_t new_stack_position = next_stack_position;
-
-    if (is_function_body)
-        new_stack_position = 8;
-
     sptr<SymbolTable> new_table = 
-        std::make_shared<SymbolTable>(new_stack_position);
+        std::make_shared<SymbolTable>();
 
     new_table->parent = this; 
     
@@ -25,7 +17,7 @@ sptr<SymbolTable> SymbolTable::add_table(bool is_function_body)
     return new_table;
 }
 
-void SymbolTable::add_symbol(std::string name, SymbolType sym_type, type_data type_info, bool is_param)
+void SymbolTable::add_symbol(std::string name, SymbolType sym_type, type_data type_info, virtual_register vr)
 {
     if (symbols.contains(name))            
     {
@@ -37,26 +29,12 @@ void SymbolTable::add_symbol(std::string name, SymbolType sym_type, type_data ty
     {
         case SymbolType::VARIABLE:
         {
-            if (is_param)
-            {
-                if (function_param_count < 6)
-                {
-                    function_param_count++; 
-                    symbols.emplace(name, Symbol{sym_type, type_info, function_param_count, is_param});
-                    break;
-                }
-                int64_t parameter_stack_position = calculate_parameter_stack_position(type_info);
-                symbols.emplace(name, Symbol{sym_type, type_info, parameter_stack_position});
-                break; 
-                
-            }
-            int64_t stack_position = calculate_stack_position(type_info);
-            symbols.emplace(name, Symbol{sym_type, type_info, stack_position});
+            symbols.emplace(name, Symbol{sym_type, type_info, vr});
             break;
         }
         case SymbolType::FUNCTION:
         {
-            symbols.emplace(name, Symbol{sym_type, type_info, 0});
+            symbols.emplace(name, Symbol{sym_type, type_info, vr});
             add_function(name);
             break;
         }
@@ -85,19 +63,6 @@ Symbol SymbolTable::find_symbol(const std::string& name, SymbolType sym_type)
 }
 
 
-int64_t SymbolTable::calculate_stack_position(const type_data& type_info)
-{
-    int64_t stack_position =  next_stack_position; 
-    next_stack_position += type_info.byte_size;
-    return stack_position;
-}
-
-int64_t SymbolTable::calculate_parameter_stack_position(const type_data& type_info)
-{
-   int64_t parameter_stack_position = next_parameter_stack_position;
-   next_parameter_stack_position -= type_info.byte_size;
-   return parameter_stack_position;
-}
 
 SymbolTable* SymbolTable::get_parent()
 {
