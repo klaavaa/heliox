@@ -154,7 +154,7 @@ static const std::unordered_map<TokenType, std::string>  token_to_string_map =
 { TokenType::ARROW,							"ARROW"}				
 };
 
-constexpr std::string get_string_from_token_type(TokenType type)
+inline const std::string get_string_from_token_type(TokenType type)
 {
     if (!token_to_string_map.count(type)) return "COULDNT MATCH TOKEN WITH STRING";
     return token_to_string_map.find(type)->second;

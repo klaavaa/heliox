@@ -2,6 +2,7 @@
 #include "heliox_instructions.hpp"
 #include "heliox_symbol_table.hpp"
 #include <bitset>
+#include <array>
 
 namespace hx
 {
