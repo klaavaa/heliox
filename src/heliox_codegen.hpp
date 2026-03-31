@@ -1,21 +1,10 @@
 #pragma once
 #include "heliox_instructions.hpp"
 #include "heliox_symbol_table.hpp"
-#include <bitset>
-#include <array>
+#include "heliox_linearscan.hpp"
 
 namespace hx
 {
-    // Register rax -> r18
-    // spill r18
-    // Register rax -> r23
-    // 
-    struct Location
-    {
-        Register reg = Register::NOREG;
-        int32_t stack_spill;
-    };
-
 
     class CodeGeneration
     {
@@ -36,8 +25,5 @@ namespace hx
 
         uptr<SymbolTable> global_table; 
 
-        std::bitset<16> used_registers;
-        std::array<virtual_register, 16> register_contents;
-        std::unordered_map<virtual_register, Location> virtual_locations;
     };
 }

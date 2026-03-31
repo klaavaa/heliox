@@ -10,6 +10,7 @@
 
 #include "heliox_debug_visitor.hpp"
 #include "heliox_instruction_gen.hpp"
+#include "heliox_codegen.hpp"
 
 
 
@@ -47,13 +48,25 @@ inline void compile(const std::string& file_path, const std::string& output_path
     }
 
     Parser parser = Parser(std::make_unique<Lexer>(lexer));
-    uptr<Program> prog = parser.parse_program();
+    uptr<Program> program = parser.parse_program();
     
     debug_visitor d_visitor;
-    d_visitor.visit_program(prog);
+    d_visitor.visit_program(program);
     InstructionGenerator instruction_gen;
-    instruction_gen.visit_program(prog);
+    instruction_gen.visit_program(program);
     
+    LinearScanRegisterAllocation linear_scan(instruction_gen.instruction_data);    
+    linear_scan.scan();
+
+    for (auto& live_range : instruction_gen.instruction_data.live_ranges)
+    {
+        const VirtualRegisterLocation& loc = linear_scan.virtual_register_locations[live_range.reg];
+        if (loc.is_spilled) std::println("{} spilled at {}", loc.live_range.reg, loc.stack_position);
+        else std::println("{} using register {}", loc.live_range.reg, static_cast<int>(loc.allocated_register));
+    }
+
+    uptr<SymbolTable> symbol_table;
+    CodeGeneration codegen(std::move(symbol_table));
     /*
     system(string_format("nasm -f elf64 %s.asm -o %s.o",
                 file_path_stripped.c_str(), file_path_stripped.c_str()).c_str());
