@@ -38,6 +38,7 @@ enum class Instruction
     LOAD_INT,
     LOAD_VAR,
     LOAD_STRING,
+    LOAD_PARAM,
     
     STORE, 
 
@@ -108,6 +109,21 @@ enum class RegisterSize
     BIT8
 };
 
+inline uint32_t get_byte_size_from_register_size(RegisterSize reg_size)
+{
+    switch (reg_size)
+    {
+        case RegisterSize::BIT64:
+            return 8; 
+        case RegisterSize::BIT32:
+            return 4; 
+        case RegisterSize::BIT16:
+            return 2; 
+        case RegisterSize::BIT8:
+            return 1; 
+    }
+
+}
 
 inline RegisterSize get_register_size(uint32_t byte_size)
 {
@@ -155,6 +171,7 @@ struct InstructionFunction
 struct LiveRange
 {
     virtual_register reg;
+    RegisterSize reg_size;
     uint32_t first_use;
     uint32_t last_use;
 };
@@ -201,6 +218,9 @@ inline void print_instruction(const InstructionTriplet& triplet)
             break;
         case Instruction::LOAD_VAR:
             std::println("{} LOADV r{} {}", prefix, triplet.dst, triplet.items[0].get_string());
+            break;
+        case Instruction::LOAD_PARAM:
+            std::println("{} LOADP r{} {}", prefix, triplet.dst, triplet.items[0].get_string());
             break;
         case Instruction::CALL:
             std::print("{} CALL  r{} ", prefix, triplet.dst);

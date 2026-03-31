@@ -19,12 +19,14 @@ namespace hx
     {
         Symbol(SymbolType sym_type,
                 type_data type_info,
-                virtual_register vr)
-            : sym_type(sym_type), type_info(type_info), vr(vr) {}
+                virtual_register vr,
+                bool is_parameter)
+            : sym_type(sym_type), type_info(type_info), vr(vr), is_parameter(is_parameter) {}
 
         SymbolType sym_type;
         type_data type_info;
         virtual_register vr;
+        bool is_parameter;
     };
     
 
@@ -33,8 +35,8 @@ namespace hx
     {
     public:        
         SymbolTable();
-        sptr<SymbolTable> add_table(); 
-        void add_symbol(std::string name, SymbolType sym_type, type_data type_info, virtual_register vr); 
+        sptr<SymbolTable> add_table();
+        void add_symbol(std::string name, SymbolType sym_type, type_data type_info, virtual_register vr, bool is_parameter = false);
         Symbol find_symbol(const std::string& name, SymbolType sym_type);
          
         SymbolTable* get_parent();

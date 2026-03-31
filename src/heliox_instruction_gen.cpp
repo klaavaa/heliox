@@ -56,7 +56,7 @@ void InstructionGenerator::calculate_live_ranges()
             }
             
             if (triplet.dst >= instruction_data.live_ranges.size())
-                instruction_data.live_ranges.push_back(LiveRange{triplet.dst, instruc_count, 0});
+                instruction_data.live_ranges.push_back(LiveRange{triplet.dst, triplet.reg_size, instruc_count, 0});
 
             for (auto vreg : used_registers)
             {
@@ -92,11 +92,12 @@ void InstructionGenerator::visit_function(uptr<function>& func)
     if (func->is_extern) return;
     current_table = global_table->add_table().get();
    
+    int parameter_position = 1;
     for (auto& param : func->params)
     {
-        // TODO FUNCTION PARAM WORK
         current_table->add_symbol(param->var_identifier->name, SymbolType::VARIABLE,
-                param->var_type, true);
+                param->var_type, parameter_position, true);
+        parameter_position++;
     }
 
     instruction_data.instruction_functions.push_back({func->identifier->name});
@@ -131,7 +132,22 @@ void InstructionGenerator::visit_identifier_literal(uptr<identifier_literal_expr
 {
     
     Symbol sym = current_table->find_symbol(identifier_literal->name, SymbolType::VARIABLE);
-    effective_register = sym.vr;
+    if (sym.is_parameter)
+    {
+        RegisterSize reg_size = get_register_size(sym.type_info.byte_size);
+        InstructionTriplet triplet = 
+            InstructionTriplet(Instruction::LOAD_PARAM, 
+                    current_virtual_register,
+                    {Item{ItemType::PARAMETER_INDEX, sym.vr}},
+                    reg_size);
+
+        effective_register = current_virtual_register;
+        emit_instruction(triplet);
+    }
+    else
+    {
+        effective_register = sym.vr;
+    }
     //RegisterSize reg_size = get_register_size(sym.type_info.byte_size);
     //InstructionTriplet triplet = 
     //    InstructionTriplet(Instruction::LOAD_VAR, 

@@ -77,10 +77,8 @@ public:
             location.allocated_register = spill.allocated_register;
             virtual_register_locations[i.reg] = location;
                
-            spill.is_spilled = true; 
-            spill.stack_position = get_next_stack_position();
             virtual_register_locations[spill.live_range.reg].is_spilled = true;
-            virtual_register_locations[spill.live_range.reg].stack_position = get_next_stack_position();
+            virtual_register_locations[spill.live_range.reg].stack_position = get_next_stack_position(spill.live_range.reg_size);
 
             active.pop_back();
             active.push_back(virtual_register_locations[i.reg]);
@@ -90,14 +88,15 @@ public:
             VirtualRegisterLocation location;
             location.live_range = i;
             location.is_spilled = true;
-            location.stack_position = get_next_stack_position();
+            location.stack_position = get_next_stack_position(location.live_range.reg_size);
             virtual_register_locations[i.reg] = location;
         }
     }
 
-    int get_next_stack_position() {
-        next_stack_position += 8;
-        return next_stack_position;
+    int get_next_stack_position(RegisterSize reg_size) {
+        int next_pos = next_stack_position;
+        next_stack_position += get_byte_size_from_register_size(reg_size);
+        return next_pos;
     }
 
     std::unordered_map<virtual_register, VirtualRegisterLocation> virtual_register_locations;

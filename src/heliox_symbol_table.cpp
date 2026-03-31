@@ -17,7 +17,7 @@ sptr<SymbolTable> SymbolTable::add_table()
     return new_table;
 }
 
-void SymbolTable::add_symbol(std::string name, SymbolType sym_type, type_data type_info, virtual_register vr)
+void SymbolTable::add_symbol(std::string name, SymbolType sym_type, type_data type_info, virtual_register vr, bool is_parameter)
 {
     if (symbols.contains(name))            
     {
@@ -29,12 +29,12 @@ void SymbolTable::add_symbol(std::string name, SymbolType sym_type, type_data ty
     {
         case SymbolType::VARIABLE:
         {
-            symbols.emplace(name, Symbol{sym_type, type_info, vr});
+            symbols.emplace(name, Symbol{sym_type, type_info, vr, is_parameter});
             break;
         }
         case SymbolType::FUNCTION:
         {
-            symbols.emplace(name, Symbol{sym_type, type_info, vr});
+            symbols.emplace(name, Symbol{sym_type, type_info, vr, false});
             add_function(name);
             break;
         }
