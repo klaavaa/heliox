@@ -9,7 +9,7 @@ namespace hx
 
 enum class Register: int
 {
-    A=0, B, C, D, SP, BP, SI, DI, R8, R9, R10, R11, R12, R13, R14, R15
+    NOREG=-1, A, B, C, D, SP, BP, SI, DI, R8, R9, R10, R11, R12, R13, R14, R15
 };
 enum class Bit64Register: int
 {
@@ -26,7 +26,6 @@ enum class Bit16Register: int
 enum class Bit8Register: int
 {
     AL=0, BL, CL, DL, SPL, BPL, SIL, DIL, R8B, R9B, R10B, R11B, R12B, R13B, R14B, R15B
-
 };
 
 inline Register param_registers[6] = 
@@ -212,7 +211,7 @@ inline void print_instruction(const InstructionTriplet& triplet)
             std::println("");
             break;
         case Instruction::RETURN:
-            std::println("{} RET   {}", prefix, triplet.dst);
+            std::println("{} RET   r{}", prefix, triplet.dst);
             break;
         case Instruction::ADD:
             std::println("{} ADD   r{} {}", prefix, triplet.dst, 

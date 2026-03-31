@@ -10,9 +10,9 @@ namespace hx
 
     }
     
-    void CodeGeneration::generate(std::vector<InstructionFunction>& function_instructions)
+    void CodeGeneration::generate(InstructionData& instruction_data)
     {
-        for (auto& func : function_instructions)
+        for (auto& func : instruction_data.instruction_functions)
         {
             emit_instruction_function(func); 
         }

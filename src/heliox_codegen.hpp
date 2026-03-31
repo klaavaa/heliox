@@ -1,14 +1,17 @@
 #pragma once
 #include "heliox_instructions.hpp"
 #include "heliox_symbol_table.hpp"
+#include <bitset>
+
 namespace hx
 {
-    
-    struct register_allocation
+    // Register rax -> r18
+    // spill r18
+    // Register rax -> r23
+    // 
+    struct Location
     {
-        Register reg;
-        virtual_register vr;
-
+        Register reg = Register::NOREG;
         int32_t stack_spill;
     };
 
@@ -17,7 +20,7 @@ namespace hx
     {
     public:
         CodeGeneration(uptr<SymbolTable> global_table);
-        void generate(std::vector<InstructionFunction>& function_instructions);
+        void generate(InstructionData& instruction_data);
     private:
         void emit_instruction_function(InstructionFunction& instruc_func); 
         void emit_instruction_triplet(InstructionTriplet& triplet); 
@@ -31,5 +34,9 @@ namespace hx
         std::string text_section;
 
         uptr<SymbolTable> global_table; 
+
+        std::bitset<16> used_registers;
+        std::array<virtual_register, 16> register_contents;
+        std::unordered_map<virtual_register, Location> virtual_locations;
     };
 }

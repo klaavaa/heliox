@@ -58,7 +58,7 @@ void InstructionGenerator::calculate_live_ranges()
             if (triplet.dst >= instruction_data.live_ranges.size())
                 instruction_data.live_ranges.push_back(LiveRange{triplet.dst, instruc_count, 0});
 
-            for (auto& vreg : used_registers)
+            for (auto vreg : used_registers)
             {
                 if (vreg < instruction_data.live_ranges.size() )
                 {
