@@ -55,7 +55,7 @@ inline void compile(const std::string& file_path, const std::string& output_path
     InstructionGenerator instruction_gen;
     instruction_gen.visit_program(program);
     
-    LinearScanRegisterAllocation linear_scan(instruction_gen.instruction_data);    
+    LinearScanRegisterAllocation linear_scan(instruction_gen.instruction_data, std::move(instruction_gen.global_table));    
     linear_scan.scan();
 
     for (auto& live_range : instruction_gen.instruction_data.live_ranges)

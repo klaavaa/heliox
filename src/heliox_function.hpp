@@ -18,6 +18,16 @@ struct function
           type(type),
           is_extern(is_extern) {}
 
+
+    std::vector<type_data> get_parameter_type_data() const 
+    {
+        std::vector<type_data> types;
+        for (auto& param : params)
+        {
+            types.push_back(param->var_type);
+        }
+        return types;
+    }
     uptr<identifier_literal_expr> identifier;
     std::vector<uptr<variable_declaration_statement>> params;
     std::vector<statement> statements;

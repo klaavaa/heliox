@@ -9,8 +9,8 @@ void InstructionGenerator::visit_program(uptr<Program>& prog)
     
     for (auto& func : prog->functions)
     {
-        global_table->add_symbol(
-                func->identifier->name, SymbolType::FUNCTION, func->type, 0);
+        global_table->add_function_symbol(
+                func->identifier->name, func->type, func->get_parameter_type_data());
     }
     for (auto& func : prog->functions)
     {
@@ -92,10 +92,10 @@ void InstructionGenerator::visit_function(uptr<function>& func)
     if (func->is_extern) return;
     current_table = global_table->add_table().get();
    
-    int parameter_position = 1;
+    int parameter_position = 0;
     for (auto& param : func->params)
     {
-        current_table->add_symbol(param->var_identifier->name, SymbolType::VARIABLE,
+        current_table->add_variable_symbol(param->var_identifier->name,
                 param->var_type, parameter_position, true);
         parameter_position++;
     }
@@ -131,7 +131,7 @@ void InstructionGenerator::visit_string_literal(uptr<string_literal_expr>& strin
 void InstructionGenerator::visit_identifier_literal(uptr<identifier_literal_expr>& identifier_literal) 
 {
     
-    Symbol sym = current_table->find_symbol(identifier_literal->name, SymbolType::VARIABLE);
+    VariableSymbol sym = current_table->find_variable_symbol(identifier_literal->name);
     if (sym.is_parameter)
     {
         RegisterSize reg_size = get_register_size(sym.type_info.byte_size);
@@ -205,8 +205,8 @@ void InstructionGenerator::visit_unary(uptr<unary_expr>& unary)
 }
 void InstructionGenerator::visit_function_call(uptr<function_call_expr>& function_call) 
 {
-    Symbol s = current_table->find_symbol(function_call->identifier->name, SymbolType::FUNCTION);
-    uint32_t label = global_table->get_function_id(function_call->identifier->name);
+    FunctionSymbol s = current_table->find_function_symbol(function_call->identifier->name);
+    uint32_t label = s.id;
     std::vector<Item> parameter_virtual_registers = 
     {Item{ItemType::LOOKUPTABLE_INDEX, label}};
     for (auto& param : function_call->parameters)
@@ -250,9 +250,8 @@ void InstructionGenerator::visit_return(uptr<return_statement>& return_s)
 void InstructionGenerator::visit_variable_declaration(uptr<variable_declaration_statement>& variable_declaration) 
 {
     std::println("DECLARING SYMBOL {} {}", variable_declaration->var_identifier->name, effective_register);
-    current_table->add_symbol(
+    current_table->add_variable_symbol(
             variable_declaration->var_identifier->name,
-            SymbolType::VARIABLE,
             variable_declaration->var_type, effective_register);
 }
 void InstructionGenerator::visit_variable_definition(uptr<variable_definition_statement>& variable_definition) 
@@ -260,8 +259,8 @@ void InstructionGenerator::visit_variable_definition(uptr<variable_definition_st
     visit_expression(variable_definition->definition);
     visit_variable_declaration(variable_definition->declaration);
 
-    Symbol sym = current_table->find_symbol(
-            variable_definition->declaration->var_identifier->name, SymbolType::VARIABLE);
+    VariableSymbol sym = current_table->find_variable_symbol(
+            variable_definition->declaration->var_identifier->name);
     
     RegisterSize reg_size = get_register_size(sym.type_info.byte_size);
     /*InstructionTriplet triplet = 
