@@ -65,8 +65,7 @@ inline void compile(const std::string& file_path, const std::string& output_path
         else std::println("{} using register {}", loc.live_range.reg, static_cast<int>(loc.allocated_register));
     }
 
-    uptr<SymbolTable> symbol_table;
-    CodeGeneration codegen(std::move(symbol_table));
+    CodeGeneration codegen(std::move(instruction_gen.global_table));
     /*
     system(string_format("nasm -f elf64 %s.asm -o %s.o",
                 file_path_stripped.c_str(), file_path_stripped.c_str()).c_str());

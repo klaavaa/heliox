@@ -9,7 +9,7 @@ fun main(i32 argc, u8** argv) i32
     printf(str);
     a = 12;
     a = a - 2;
-    return add(1, 2, 3, 4, 5, 6, 7, 8) - 15; 
+    return add(1, 2, 3, 4+2*a, 5, 6, 7, 8) - 15; 
 }
 
 fun add(i32 a, i32 b, i32 c, i64 d, i8 e, i16 f, i32 g, i32 h) i32

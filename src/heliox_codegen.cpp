@@ -7,7 +7,6 @@ namespace hx
     CodeGeneration::CodeGeneration(uptr<SymbolTable> global_table)
         : global_table(std::move(global_table))
     {
-        std::println("ASDSAD");
     }
     
     void CodeGeneration::generate(InstructionData& instruction_data)

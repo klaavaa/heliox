@@ -20,8 +20,16 @@ struct VirtualRegisterLocation
     bool is_spilled = false;
 };
 
+
+
 class LinearScanRegisterAllocation
 {
+    struct ReservedRegister
+    {
+        virtual_register vr;
+        Register reg;
+    };
+
 public:
 
     LinearScanRegisterAllocation(InstructionData instruction_data)
@@ -32,6 +40,37 @@ public:
 
     void scan()
     {
+        // do a pre-scan to reserve certain registers at needed times (such as function call parameters)
+        for (const auto& instruction_function : instruction_data.instruction_functions)
+        {
+            for (const auto& triplet : instruction_function.instruction_triplets)
+            {
+                switch (triplet.instruction)
+                {
+                    case Instruction::CALL:
+                        for (size_t i = 1; i < triplet.items.size(); i++)                      
+                        {
+                            const auto& item = triplet.items[i];
+                            std::println("vr {}", item.value);
+                            // TODO CHECK IF INTEGER ARGUMENT IF NOT THEN STACK
+                            if (i >= integer_arguments_registers.size())
+                            {
+                                // RESERVE STACK
+                            }
+                            else
+                            {
+                                // RESERVE REG[i]
+                                reserved_registers.emplace_back(item.value, integer_arguments_registers[i]);
+                            }
+                        }
+                        break;
+                    
+                    default:
+                        break;
+                }
+            }
+        }
+        // do the actual scan
         for (auto& live_range : instruction_data.live_ranges)
         {
             expire_old_intervals(live_range);
@@ -103,10 +142,13 @@ public:
 private:
     const static size_t number_of_registers = 7;
 
+    const std::array<Register, 6> integer_arguments_registers = {Register::DI, Register::SI, Register::D, Register::C, Register::R8, Register::R9};
+
     InstructionData instruction_data;
 
     std::vector<VirtualRegisterLocation> active;
     std::vector<Register> free_registers;
+    std::vector<ReservedRegister> reserved_registers; 
 
     int next_stack_position = 0; 
 };
