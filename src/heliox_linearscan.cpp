@@ -34,7 +34,6 @@ void LinearScanRegisterAllocation::scan()
                     for (size_t i = triplet.items.size() - 1; i > 0; i--)                      
                     {
                         const auto& item = triplet.items[i];
-                        // TODO CHECK IF INTEGER ARGUMENT IF NOT THEN STACK
                         if ((i-1) >= integer_arguments_registers.size())
                         {
                             // RESERVE STACK
@@ -42,8 +41,8 @@ void LinearScanRegisterAllocation::scan()
                             location.live_range.reg = item.value;
                             location.is_spilled = true;
                             FunctionSymbol fs = global_table->get_function_symbol_from_id(triplet.items[0].value);
-                            local_stack_offset -= fs.parameter_types[i-1].byte_size;
-
+                            
+                            local_stack_offset -= 8;
                             location.stack_position = local_stack_offset;
                             virtual_register_locations[item.value] = location;
                         }
@@ -65,7 +64,7 @@ void LinearScanRegisterAllocation::scan()
                         location.live_range.reg = triplet.dst;
                         location.is_spilled = true;
                         location.stack_position = param_offset;
-                        param_offset += get_byte_size_from_register_size(triplet.reg_size);
+                        param_offset += 8;
                         virtual_register_locations[triplet.dst] = location;
                     }
                     break;
@@ -81,7 +80,6 @@ void LinearScanRegisterAllocation::scan()
 
         expire_old_intervals(live_range);
         RegisterBitSet registers_reserved_in_this_range;
-        int reserved_registers_count = 0;
         // TODO CHANGE THIS ABOMINATION
         // this is horrible, but good enough for now.
         for (auto const& [vr, reg] : reserved_registers)
@@ -89,7 +87,6 @@ void LinearScanRegisterAllocation::scan()
             const auto& vr_live_range = *std::find_if(instruction_data.live_ranges.begin(), instruction_data.live_ranges.end(), [vr](LiveRange a){return a.reg == vr;});
             if (!(vr_live_range.first_use >= live_range.last_use || vr_live_range.last_use <= live_range.first_use))
             {
-                reserved_registers_count++; 
                 registers_reserved_in_this_range.set(reg);
             }
         }
@@ -152,7 +149,13 @@ void LinearScanRegisterAllocation::spill_at_interval(LiveRange i)
         virtual_register_locations[i.reg] = location;
             
         virtual_register_locations[spill.live_range.reg].is_spilled = true;
-        local_stack_offset -= get_byte_size_from_register_size(spill.live_range.reg_size);
+        uint32_t byte_size = get_byte_size_from_register_size(spill.live_range.reg_size);
+        local_stack_offset -= byte_size;
+        int not_aligned = abs(local_stack_offset) % byte_size;
+        if (not_aligned != 0)
+        {
+            local_stack_offset -= not_aligned;
+        }
         virtual_register_locations[spill.live_range.reg].stack_position = local_stack_offset; 
         active.pop_back();
         active.push_back(virtual_register_locations[i.reg]);
