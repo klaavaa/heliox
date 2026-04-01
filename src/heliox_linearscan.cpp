@@ -27,7 +27,7 @@ void LinearScanRegisterAllocation::scan()
             switch (triplet.instruction)
             {
                 case Instruction::CALL:
-                    for (size_t i = 1; i < triplet.items.size(); i++)                      
+                    for (size_t i = triplet.items.size() - 1; i > 0; i--)                      
                     {
                         const auto& item = triplet.items[i];
                         // TODO CHECK IF INTEGER ARGUMENT IF NOT THEN STACK
