@@ -2,11 +2,11 @@
 namespace hx
 {
 
+InstructionGenerator::InstructionGenerator(sptr<SymbolTable> global_table)
+    : global_table(global_table) {}
+
 void InstructionGenerator::visit_program(uptr<Program>& prog)
 {
-    global_table = std::make_unique<SymbolTable>(); 
-    
-    
     for (auto& func : prog->functions)
     {
         global_table->add_function_symbol(

@@ -9,7 +9,7 @@ namespace hx
     class CodeGeneration
     {
     public:
-        CodeGeneration(uptr<SymbolTable> global_table);
+        CodeGeneration(sptr<SymbolTable> global_table);
         void generate(InstructionData& instruction_data);
     private:
         void emit_instruction_function(InstructionFunction& instruc_func); 
@@ -23,7 +23,7 @@ namespace hx
         std::string data_section;
         std::string text_section;
 
-        uptr<SymbolTable> global_table; 
+        sptr<SymbolTable> global_table; 
 
     };
 }

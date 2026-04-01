@@ -10,7 +10,7 @@ namespace hx
 class InstructionGenerator : public Visitor
 {
     public:
-
+        InstructionGenerator(sptr<SymbolTable> global_table);
 
         void emit_instruction(InstructionTriplet triplet, uint32_t increment = 1);
        
@@ -40,7 +40,7 @@ class InstructionGenerator : public Visitor
         virtual_register current_virtual_register = 0;
         virtual_register effective_register = 0;
         uint32_t instruction_count = 0; 
-        uptr<SymbolTable> global_table;
+        sptr<SymbolTable> global_table;
         SymbolTable* current_table;
 
 };
