@@ -26,6 +26,9 @@ void LinearScanRegisterAllocation::scan()
         {
             switch (triplet.instruction)
             {
+                case Instruction::MUL:
+                    reserved_registers[triplet.dst] = Register::A;
+                    break;
                 case Instruction::CALL:
                     for (size_t i = triplet.items.size() - 1; i > 0; i--)                      
                     {
@@ -49,7 +52,6 @@ void LinearScanRegisterAllocation::scan()
                             reserved_registers[item.value] = integer_arguments_registers[i - 1];
                         }
                     }
-                    reserved_registers[triplet.dst] = Register::A;
                     break;
                 case Instruction::LOAD_PARAM:
                     if (triplet.items[0].value < integer_arguments_registers.size()) 
@@ -91,6 +93,7 @@ void LinearScanRegisterAllocation::scan()
             }
         }
 
+        RegisterBitSet currently_available_registers = free_registers.get_bits_not_in_other(registers_reserved_in_this_range);
         if (reserved_registers.contains(live_range.reg))
         {
             VirtualRegisterLocation location; 
@@ -103,13 +106,12 @@ void LinearScanRegisterAllocation::scan()
             std::sort(active.begin(), active.end(), [](VirtualRegisterLocation a, VirtualRegisterLocation b) { return a.live_range.last_use < b.live_range.last_use; });
         }
 
-        else if (free_registers.count() == 0)
+        else if (currently_available_registers.count() == 0)
         {
             spill_at_interval(live_range);
         }
         else
         {
-            RegisterBitSet currently_available_registers = free_registers.get_bits_not_in_other(registers_reserved_in_this_range);
             Register allocated_register = currently_available_registers.get_first_available();
             free_registers.reset(allocated_register);
 

@@ -51,6 +51,8 @@ namespace hx
         
         FunctionSymbol get_function_symbol_from_id(uint32_t id);
         
+        const std::unordered_map<uint32_t, std::string>& get_string_table() const { return string_table; }
+        const std::unordered_map<uint32_t, std::string>& get_function_table() const { return function_table; }
 
     private:
         std::unordered_map<std::string, VariableSymbol> variable_symbols;

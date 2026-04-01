@@ -32,22 +32,22 @@ inline std::string register_to_string(Register reg)
 {
     switch (reg)
     {
-        case Register::A:   return "RAX";
-        case Register::B:   return "RBX";
-        case Register::C:   return "RCX";
-        case Register::D:   return "RDX";
-        case Register::SP:  return "RSP";
-        case Register::BP:  return "RBP";
-        case Register::SI:  return "RSI";
-        case Register::DI:  return "RDI";
-        case Register::R8:  return "R8"; 
-        case Register::R9:  return "R9"; 
-        case Register::R10: return "R10";
-        case Register::R11: return "R11";
-        case Register::R12: return "R12";
-        case Register::R13: return "R13";
-        case Register::R14: return "R14";
-        case Register::R15: return "R15";
+        case Register::A:   return "rax";
+        case Register::B:   return "rbx";
+        case Register::C:   return "rcx";
+        case Register::D:   return "rdx";
+        case Register::SP:  return "rsp";
+        case Register::BP:  return "rbp";
+        case Register::SI:  return "rsi";
+        case Register::DI:  return "rdi";
+        case Register::R8:  return "r8"; 
+        case Register::R9:  return "r9"; 
+        case Register::R10: return "r10";
+        case Register::R11: return "r11";
+        case Register::R12: return "r12";
+        case Register::R13: return "r13";
+        case Register::R14: return "r14";
+        case Register::R15: return "r15";
         default: return "NOT A REGISTER";
     }
 }
@@ -88,7 +88,8 @@ enum class ItemType
     VIRTUAL_REGISTER,
     IMMEDIATE_VALUE,
     RELATIVE_ADDRESS,
-    LOOKUPTABLE_INDEX,
+    STRINGTABLE_INDEX,
+    FUNCTIONTABLE_INDEX,
     PARAMETER_INDEX
 };
 
@@ -108,8 +109,10 @@ struct Item
                 return std::format("{}", value);
             case ItemType::RELATIVE_ADDRESS:
                 return std::format("[rbp - {}]", value);
-            case ItemType::LOOKUPTABLE_INDEX:
-                return std::format("TABLE({})", value);
+            case ItemType::STRINGTABLE_INDEX:
+                return std::format("STRING_TABLE({})", value);
+            case ItemType::FUNCTIONTABLE_INDEX:
+                return std::format("FUNCTION_TABLE({})", value);
             case ItemType::PARAMETER_INDEX:
                 return std::format("p{}", value);
             default:

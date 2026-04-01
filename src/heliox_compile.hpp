@@ -65,8 +65,9 @@ inline void compile(const std::string& file_path, const std::string& output_path
         if (loc.is_spilled) std::println("{} spilled at {}", loc.live_range.reg, loc.stack_position);
         else std::println("{} using register {}", loc.live_range.reg, register_to_string(loc.allocated_register));
     }
-    
-    CodeGeneration codegen(global_table);
+    CodeGeneration codegen(global_table, linear_scan.virtual_register_locations);
+    std::string generated_nasm = codegen.generate(instruction_gen.instruction_data);
+    std::println("{}", generated_nasm);
     /*
     system(string_format("nasm -f elf64 %s.asm -o %s.o",
                 file_path_stripped.c_str(), file_path_stripped.c_str()).c_str());

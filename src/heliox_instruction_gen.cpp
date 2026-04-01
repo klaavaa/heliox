@@ -123,7 +123,7 @@ void InstructionGenerator::visit_string_literal(uptr<string_literal_expr>& strin
     InstructionTriplet triplet = 
         InstructionTriplet(Instruction::LOAD_STRING, 
                 current_virtual_register,
-                {Item{ItemType::LOOKUPTABLE_INDEX, label}},
+                {Item{ItemType::STRINGTABLE_INDEX, label}},
                 RegisterSize::BIT64);
     effective_register = current_virtual_register;
     emit_instruction(triplet);
@@ -148,15 +148,6 @@ void InstructionGenerator::visit_identifier_literal(uptr<identifier_literal_expr
     {
         effective_register = sym.vr;
     }
-    //RegisterSize reg_size = get_register_size(sym.type_info.byte_size);
-    //InstructionTriplet triplet = 
-    //    InstructionTriplet(Instruction::LOAD_VAR, 
-    //            current_virtual_register,
-    //            {Item{ItemType::VIRTUAL_REGISTER, sym.vr}},
-    //            reg_size);
-
-    //effective_register = current_virtual_register;
-    //emit_instruction(triplet);
 
 }
 void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)  
@@ -208,7 +199,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     FunctionSymbol s = current_table->find_function_symbol(function_call->identifier->name);
     uint32_t label = s.id;
     std::vector<Item> parameter_virtual_registers = 
-    {Item{ItemType::LOOKUPTABLE_INDEX, label}};
+    {Item{ItemType::FUNCTIONTABLE_INDEX, label}};
     for (auto& param : function_call->parameters)
     {
         visit_expression(param);
