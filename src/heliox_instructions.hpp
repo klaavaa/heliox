@@ -28,6 +28,30 @@ enum class Bit8Register: int
     AL=0, BL, CL, DL, SPL, BPL, SIL, DIL, R8B, R9B, R10B, R11B, R12B, R13B, R14B, R15B
 };
 
+inline std::string register_to_string(Register reg)
+{
+    switch (reg)
+    {
+        case Register::A:   return "RAX";
+        case Register::B:   return "RBX";
+        case Register::C:   return "RCX";
+        case Register::D:   return "RDX";
+        case Register::SP:  return "RSP";
+        case Register::BP:  return "RBP";
+        case Register::SI:  return "RSI";
+        case Register::DI:  return "RDI";
+        case Register::R8:  return "R8"; 
+        case Register::R9:  return "R9"; 
+        case Register::R10: return "R10";
+        case Register::R11: return "R11";
+        case Register::R12: return "R12";
+        case Register::R13: return "R13";
+        case Register::R14: return "R14";
+        case Register::R15: return "R15";
+        default: return "NOT A REGISTER";
+    }
+}
+
 inline Register param_registers[6] = 
 {
     Register::DI, Register::SI, Register::D, Register::C, Register::R8, Register::R9

@@ -62,7 +62,7 @@ inline void compile(const std::string& file_path, const std::string& output_path
     {
         const VirtualRegisterLocation& loc = linear_scan.virtual_register_locations[live_range.reg];
         if (loc.is_spilled) std::println("{} spilled at {}", loc.live_range.reg, loc.stack_position);
-        else std::println("{} using register {}", loc.live_range.reg, static_cast<int>(loc.allocated_register));
+        else std::println("{} using register {}", loc.live_range.reg, register_to_string(loc.allocated_register));
     }
 
     CodeGeneration codegen(std::move(instruction_gen.global_table));
