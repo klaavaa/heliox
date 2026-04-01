@@ -53,11 +53,11 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
     case Instruction::ADD: 
         return std::format("\tadd {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0])); 
     case Instruction::MUL:
-        return std::format("\tmul rax, {}\n", get_location(triplet.items[0]));
+        return std::format("\timul {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0]));
     case Instruction::LOAD_INT:
         return std::format("\tmov {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0]));
     case Instruction::LOAD_STRING:
-        return std::format("\tmov {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0]));
+        return std::format("\tlea {}, [rel {}]\n", get_location(triplet.dst), get_location(triplet.items[0]));
     case Instruction::RETURN:
         return std::format("\tmov rax, {}\n\tmov rsp, rbp\n\tpop rbp\n\tret\n", get_location(triplet.dst));
     

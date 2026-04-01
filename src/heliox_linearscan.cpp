@@ -26,9 +26,10 @@ void LinearScanRegisterAllocation::scan()
         {
             switch (triplet.instruction)
             {
-                case Instruction::MUL:
-                    reserved_registers[triplet.dst] = Register::A;
-                    break;
+                // this is the case for (unsigned) MUL 
+                //case Instruction::MUL:
+                //    reserved_registers[triplet.dst] = Register::A;
+                //    break;
                 case Instruction::CALL:
                     for (size_t i = triplet.items.size() - 1; i > 0; i--)                      
                     {
