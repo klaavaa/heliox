@@ -24,6 +24,8 @@ struct VirtualRegisterLocation
 };
 
 
+using VirtualRegisterLocationMap = std::unordered_map<virtual_register, VirtualRegisterLocation>;
+
 
 class LinearScanRegisterAllocation
 {
@@ -57,9 +59,9 @@ public:
 
     void scan();
     void expire_old_intervals(LiveRange i);
-    void spill_at_interval(LiveRange i);
+    void spill_at_interval(LiveRange i, const std::string& name);
 
-    std::unordered_map<virtual_register, VirtualRegisterLocation> virtual_register_locations;
+    sptr<std::unordered_map<std::string, VirtualRegisterLocationMap>> virtual_register_locations;
 private:
     const std::array<Register, 6> integer_arguments_registers = {Register::DI, Register::SI, Register::D, Register::C, Register::R8, Register::R9};
 
@@ -67,7 +69,6 @@ private:
 
     std::vector<VirtualRegisterLocation> active;
     std::vector<VirtualRegisterLocation> reserved_active;
-    std::unordered_map<virtual_register, Register> reserved_registers;
 
     RegisterBitSet register_set;
 

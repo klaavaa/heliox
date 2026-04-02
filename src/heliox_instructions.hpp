@@ -187,13 +187,6 @@ struct InstructionTriplet
     RegisterSize reg_size; 
 };
 
-struct InstructionFunction
-{
-    InstructionFunction(const std::string& name)
-        : name(name) {}
-    std::string name;
-    std::vector<InstructionTriplet> instruction_triplets;
-};
 
 
 struct LiveRange
@@ -204,10 +197,18 @@ struct LiveRange
     uint32_t last_use;
 };
 
+struct InstructionFunction
+{
+    InstructionFunction(const std::string& name)
+        : name(name) {}
+    std::string name;
+    std::vector<InstructionTriplet> instruction_triplets;
+    std::vector<LiveRange> live_ranges;
+};
+
 struct InstructionData
 {
     std::vector<InstructionFunction> instruction_functions;
-    std::vector<LiveRange> live_ranges;
 };
 
 inline void print_instruction(const InstructionTriplet& triplet)

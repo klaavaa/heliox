@@ -97,7 +97,16 @@ std::string SymbolTable::get_string_from_id(uint32_t id)
     exit(-1);
 
 }
+std::string SymbolTable::get_function_name_from_id(uint32_t id)
+{
+    if (function_table.contains(id))
+    {
+        return function_table[id];
+    }
+    std::println("Trying to get function name from id: '{}' but it's not found", id);
+    exit(-1);
 
+}
 FunctionSymbol SymbolTable::get_function_symbol_from_id(uint32_t id)
 {
     if (function_table.contains(id))

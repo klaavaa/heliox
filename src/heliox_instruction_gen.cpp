@@ -14,6 +14,8 @@ void InstructionGenerator::visit_program(uptr<Program>& prog)
     }
     for (auto& func : prog->functions)
     {
+        current_virtual_register = 0;
+        effective_register = 0;
         std::println("-------{}-------", func->identifier->name);
         visit_function(func); 
     }
@@ -55,14 +57,14 @@ void InstructionGenerator::calculate_live_ranges()
                }
             }
             
-            if (triplet.dst >= instruction_data.live_ranges.size())
-                instruction_data.live_ranges.push_back(LiveRange{triplet.dst, triplet.reg_size, instruc_count, 0});
+            if (triplet.dst >= func.live_ranges.size())
+                func.live_ranges.push_back(LiveRange{triplet.dst, triplet.reg_size, instruc_count, 0});
 
             for (auto vreg : used_registers)
             {
-                if (vreg < instruction_data.live_ranges.size() )
+                if (vreg < func.live_ranges.size() )
                 {
-                    instruction_data.live_ranges[vreg].last_use = instruc_count; 
+                    func.live_ranges[vreg].last_use = instruc_count; 
                 }
             }
             instruc_count++;
@@ -70,11 +72,13 @@ void InstructionGenerator::calculate_live_ranges()
         }
     }
     
-
-    for (size_t i = 0; i < instruction_data.live_ranges.size(); i++)
+    for (auto& func : instruction_data.instruction_functions) 
     {
-        std::println("r{} [{} -> {}]", i, instruction_data.live_ranges[i].first_use,
-                instruction_data.live_ranges[i].last_use);
+        for (size_t i = 0; i < func.live_ranges.size(); i++)
+        {
+            std::println("r{} [{} -> {}]", func.live_ranges[i].reg, func.live_ranges[i].first_use,
+                    func.live_ranges[i].last_use);
+        }
     }
 }
     
