@@ -68,6 +68,7 @@ enum class Instruction
 
     CALL,
 
+    ALIGN,
     PUSH,
     POP,
 
@@ -282,6 +283,14 @@ inline void print_instruction(const InstructionTriplet& triplet)
         case Instruction::STORE:
             std::println("{} STORE r{} {}", prefix,
                     triplet.dst, triplet.items[0].get_string());  
+            break;
+        case Instruction::PUSH:
+            std::println("{} PUSH  r{}", prefix,
+                    triplet.dst);  
+            break;
+        case Instruction::ALIGN:
+            std::println("{} ALIGN {}", prefix,
+                    triplet.items[0].get_string());  
             break;
       default:
         std::println("Instruction not implemented");

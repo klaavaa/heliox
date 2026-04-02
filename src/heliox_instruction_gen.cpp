@@ -153,11 +153,21 @@ void InstructionGenerator::visit_identifier_literal(uptr<identifier_literal_expr
 void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)  
 { 
     //TODO CHECK OP ASSOCIATIVITY
+    //TODO "SMARTER" MORE EFFECTIVE SYSTEM RATHER THAN ALWAYS MOV THE LEFT SIDE SO SHIT DONT BREAK
     visit_expression(binop->left);
     virtual_register left = effective_register;
     visit_expression(binop->right);
     virtual_register right = effective_register;
     
+    InstructionTriplet left_side_triplet = InstructionTriplet(
+        Instruction::STORE,
+        current_virtual_register,
+        {Item{ItemType::VIRTUAL_REGISTER, left}},
+        RegisterSize::BIT64
+    );
+    effective_register = current_virtual_register;
+    emit_instruction(left_side_triplet);
+
     Instruction instruc;
     switch (binop->op_token)
     {
@@ -181,12 +191,19 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
             instruc = Instruction::ADD;
             break;
     }
+    /*
     InstructionTriplet triplet = 
         InstructionTriplet(instruc, 
                 left,
                 {Item{ItemType::VIRTUAL_REGISTER, right}},
                 RegisterSize::BIT64);
     effective_register = left;
+    */
+    InstructionTriplet triplet = 
+        InstructionTriplet(instruc, 
+                effective_register,
+                {Item{ItemType::VIRTUAL_REGISTER, right}},
+                RegisterSize::BIT64);
     emit_instruction(triplet, 0);
 
 }
@@ -200,14 +217,45 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     uint32_t label = s.id;
     std::vector<Item> parameter_virtual_registers = 
     {Item{ItemType::FUNCTIONTABLE_INDEX, label}};
-    for (auto& param : function_call->parameters)
+
+    std::vector<InstructionTriplet> push_param_triplets;
+    for (int i = 0; i < function_call->parameters.size(); i++)
     {
+        auto& param = function_call->parameters[i];
         visit_expression(param);
+        
+        if (i > 5)
+        {
+            InstructionTriplet triplet = 
+                InstructionTriplet(Instruction::PUSH, 
+                        effective_register,
+                        {},
+                        RegisterSize::BIT64);
+            push_param_triplets.push_back(triplet);
+        }
         // save previous current_virtual_register 
         parameter_virtual_registers.push_back(
                 Item{ItemType::VIRTUAL_REGISTER, effective_register}); 
     }
-    
+    bool did_allignment = false;
+    int pushed_param_count = function_call->parameters.size() - 6;
+    if (function_call->parameters.size() > 6) 
+    {
+        if (pushed_param_count % 2 == 0)
+        {
+            InstructionTriplet align_triplet(
+                Instruction::ALIGN,
+                -1,
+                {Item{ItemType::IMMEDIATE_VALUE, -8}},
+                RegisterSize::BIT64 
+            );
+            emit_instruction(align_triplet, 0);
+            did_allignment = true;
+        }
+    }
+    // push in reverse order
+    for (int i = push_param_triplets.size()-1; i >= 0; i--) emit_instruction(push_param_triplets[i]);
+
     InstructionTriplet triplet = 
         InstructionTriplet(Instruction::CALL, 
                 current_virtual_register,
@@ -215,6 +263,16 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
                 RegisterSize::BIT64);
     effective_register = current_virtual_register;
     emit_instruction(triplet);
+    if (did_allignment)
+    {
+        InstructionTriplet align_triplet(
+            Instruction::ALIGN,
+            -1,
+            {Item{ItemType::IMMEDIATE_VALUE, 8 + 8*pushed_param_count}},
+            RegisterSize::BIT64 
+        );
+        emit_instruction(align_triplet, 0);
+    }
 }
 
 void InstructionGenerator::visit_compound(uptr<compound_statement>& compound) 
@@ -240,10 +298,9 @@ void InstructionGenerator::visit_return(uptr<return_statement>& return_s)
 }
 void InstructionGenerator::visit_variable_declaration(uptr<variable_declaration_statement>& variable_declaration) 
 {
-    std::println("DECLARING SYMBOL {} {}", variable_declaration->var_identifier->name, effective_register);
     current_table->add_variable_symbol(
             variable_declaration->var_identifier->name,
-            variable_declaration->var_type, effective_register);
+            variable_declaration->var_type, current_virtual_register);
 }
 void InstructionGenerator::visit_variable_definition(uptr<variable_definition_statement>& variable_definition) 
 {
@@ -254,12 +311,14 @@ void InstructionGenerator::visit_variable_definition(uptr<variable_definition_st
             variable_definition->declaration->var_identifier->name);
     
     RegisterSize reg_size = get_register_size(sym.type_info.byte_size);
-    /*InstructionTriplet triplet = 
+    InstructionTriplet triplet = 
         InstructionTriplet(Instruction::STORE, 
-                 definition,
-                {Item{ItemType::RELATIVE_ADDRESS, sym.stack_position}
-                ,Item{ItemType::VIRTUAL_REGISTER, definition}},
-                reg_size);*/
+                           current_virtual_register,
+                           {Item{ItemType::VIRTUAL_REGISTER, effective_register}},
+                           reg_size);
+    
+    std::println("DECLARING SYMBOL {} {}", variable_definition->declaration->var_identifier->name, current_virtual_register);
+    emit_instruction(triplet);
     /*InstructionTriplet triplet = 
         InstructionTriplet(Instruction::STORE, 
                  definition,

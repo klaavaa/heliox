@@ -6,13 +6,13 @@ namespace hx
 LinearScanRegisterAllocation::LinearScanRegisterAllocation(InstructionData instruction_data, sptr<SymbolTable> global_table)
     :  instruction_data(instruction_data), global_table(global_table)
 {
-    free_registers.set(Register::A);
-    free_registers.set(Register::C);
-    free_registers.set(Register::D);
-    free_registers.set(Register::R8);
-    free_registers.set(Register::R9);
-    free_registers.set(Register::R10);
-    free_registers.set(Register::R11);
+    //register_set.set(Register::A);
+    //register_set.set(Register::C);
+    //register_set.set(Register::D);
+    //register_set.set(Register::R8);
+    //register_set.set(Register::R9);
+    register_set.set(Register::R10);
+    register_set.set(Register::R11);
 }
 
 void LinearScanRegisterAllocation::scan()
@@ -31,57 +31,67 @@ void LinearScanRegisterAllocation::scan()
                 //    reserved_registers[triplet.dst] = Register::A;
                 //    break;
                 case Instruction::CALL:
-                    for (size_t i = triplet.items.size() - 1; i > 0; i--)                      
+                {
+
+                    for (size_t i = 1; i < triplet.items.size(); i++)                      
                     {
+                        if ((i-1) >= integer_arguments_registers.size()) continue;
+                        // RESERVE REGISTERS TO PASS FUNCTION PARAMS TO
                         const auto& item = triplet.items[i];
-                        if ((i-1) >= integer_arguments_registers.size())
-                        {
-                            // RESERVE STACK
-                            VirtualRegisterLocation location; 
-                            location.live_range.reg = item.value;
-                            location.is_spilled = true;
-                            FunctionSymbol fs = global_table->get_function_symbol_from_id(triplet.items[0].value);
-                            
-                            local_stack_offset -= 8;
-                            location.stack_position = local_stack_offset;
-                            virtual_register_locations[item.value] = location;
-                        }
-                        else
-                        {
-                            // RESERVE REG[i]
-                            reserved_registers[item.value] = integer_arguments_registers[i - 1];
-                        }
+                        VirtualRegisterLocation location; 
+                        location.live_range.reg = item.value;
+                        location.allocated_register = integer_arguments_registers[i-1];
+                        virtual_register_locations[item.value] = location;
+                        reserved_active.push_back(location);
                     }
                     break;
+                }
                 case Instruction::LOAD_PARAM:
+                    {
+                    VirtualRegisterLocation location; 
+                    location.live_range.reg = triplet.dst;
                     if (triplet.items[0].value < integer_arguments_registers.size()) 
                     {
-                        reserved_registers[triplet.dst] = integer_arguments_registers[triplet.items[0].value];
+                        location.allocated_register = integer_arguments_registers[triplet.items[0].value];
                     }
                     else
                     {
-                        VirtualRegisterLocation location; 
-                        location.live_range.reg = triplet.dst;
                         location.is_spilled = true;
                         location.stack_position = param_offset;
                         param_offset += 8;
                         virtual_register_locations[triplet.dst] = location;
                     }
+                    virtual_register_locations[triplet.dst] = location;
+                    reserved_active.push_back(location);
                     break;
+                    }
                 default:
                     break;
             }
         }
     }
     // do the actual scan
-    for (auto& live_range : instruction_data.live_ranges)
+    for (const auto& live_range : instruction_data.live_ranges)
     {
+        if (live_range.reg == -1) continue;
         if (virtual_register_locations.contains(live_range.reg)) continue;
 
         expire_old_intervals(live_range);
-        RegisterBitSet registers_reserved_in_this_range;
+        RegisterBitSet free_registers = register_set;
+        for (auto& loc : active)
+        {
+            if (loc.is_spilled) continue;
+            free_registers.reset(loc.allocated_register);
+        }
+        for (auto& loc : reserved_active)
+        {
+            if (loc.is_spilled) continue;
+            if (loc.live_range.first_use > live_range.last_use) continue;
+            free_registers.reset(loc.allocated_register);
+        }
         // TODO CHANGE THIS ABOMINATION
         // this is horrible, but good enough for now.
+        /*
         for (auto const& [vr, reg] : reserved_registers)
         {
             const auto& vr_live_range = *std::find_if(instruction_data.live_ranges.begin(), instruction_data.live_ranges.end(), [vr](LiveRange a){return a.reg == vr;});
@@ -90,29 +100,15 @@ void LinearScanRegisterAllocation::scan()
                 registers_reserved_in_this_range.set(reg);
             }
         }
+        */
 
-        RegisterBitSet currently_available_registers = free_registers.get_bits_not_in_other(registers_reserved_in_this_range);
-        if (reserved_registers.contains(live_range.reg))
-        {
-            VirtualRegisterLocation location; 
-            location.live_range = live_range;
-            location.allocated_register = reserved_registers[live_range.reg];
-            virtual_register_locations[live_range.reg] = location;
-            
-            //reserved_registers.erase(live_range.reg);
-
-            std::sort(active.begin(), active.end(), [](VirtualRegisterLocation a, VirtualRegisterLocation b) { return a.live_range.last_use < b.live_range.last_use; });
-        }
-
-        else if (currently_available_registers.count() == 0)
+        if (free_registers.count() == 0)
         {
             spill_at_interval(live_range);
         }
         else
         {
-            Register allocated_register = currently_available_registers.get_first_available();
-            free_registers.reset(allocated_register);
-
+            Register allocated_register = free_registers.get_first_available();
             VirtualRegisterLocation location; 
             location.live_range = live_range;
             location.allocated_register = allocated_register;
@@ -132,8 +128,16 @@ void LinearScanRegisterAllocation::expire_old_intervals(LiveRange i)
         {
             return;
         }
-        free_registers.set(location.allocated_register);
         it = active.erase(it);
+    }
+    for (auto it = reserved_active.begin(); it != reserved_active.end();)
+    {
+        VirtualRegisterLocation& location = *it;
+        if (location.live_range.last_use >= i.first_use)
+        {
+            return;
+        }
+        it = reserved_active.erase(it);
     }
 
 }

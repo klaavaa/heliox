@@ -49,7 +49,10 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
 {
     switch (triplet.instruction)
     {
-
+    case Instruction::STORE:
+        return std::format("\tmov {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0]));
+    case Instruction::PUSH:
+        return std::format("\tpush {}\n", get_location(triplet.dst));
     case Instruction::ADD: 
         return std::format("\tadd {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0])); 
     case Instruction::MUL:
@@ -60,7 +63,8 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
         return std::format("\tlea {}, [rel {}]\n", get_location(triplet.dst), get_location(triplet.items[0]));
     case Instruction::RETURN:
         return std::format("\tmov rax, {}\n\tmov rsp, rbp\n\tpop rbp\n\tret\n", get_location(triplet.dst));
-    
+    case Instruction::ALIGN:
+        return std::format("\tadd rsp, {}\n", get_location(triplet.items[0]));
     default:
         return "not yet implemented\n";
         //TODO ERROR

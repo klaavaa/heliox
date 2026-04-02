@@ -66,9 +66,10 @@ private:
     InstructionData instruction_data;
 
     std::vector<VirtualRegisterLocation> active;
+    std::vector<VirtualRegisterLocation> reserved_active;
     std::unordered_map<virtual_register, Register> reserved_registers;
 
-    RegisterBitSet free_registers;
+    RegisterBitSet register_set;
 
     int local_stack_offset = 0;
     sptr<SymbolTable> global_table;
