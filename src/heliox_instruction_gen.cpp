@@ -93,7 +93,11 @@ void InstructionGenerator::emit_instruction(InstructionTriplet triplet, uint32_t
 
 void InstructionGenerator::visit_function(uptr<function>& func)
 {
-    if (func->is_extern) return;
+    if (func->is_extern) 
+    {
+        instruction_data.instruction_functions.push_back({func->identifier->name, true});
+        return;
+    }
     current_table = global_table->add_table().get();
    
     int parameter_position = 0;

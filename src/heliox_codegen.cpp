@@ -17,6 +17,11 @@ std::string CodeGeneration::generate(InstructionData& instruction_data)
 
     for (auto& func : instruction_data.instruction_functions)
     {
+        if (func.is_extern)
+        {
+            externs += std::format("extern {}\n", func.name);
+            continue;
+        }
         current_func_vr_locations = function_data_info_map->at(func.name).location_map;
         text_section += emit_instruction_function(func); 
     }

@@ -199,9 +199,10 @@ struct LiveRange
 
 struct InstructionFunction
 {
-    InstructionFunction(const std::string& name)
-        : name(name) {}
+    InstructionFunction(const std::string& name, bool is_extern=false)
+        : name(name), is_extern(is_extern) {}
     std::string name;
+    bool is_extern;
     std::vector<InstructionTriplet> instruction_triplets;
     std::vector<LiveRange> live_ranges;
 };
