@@ -27,6 +27,7 @@ void LinearScanRegisterAllocation::scan()
         int param_offset = 16;
         for (const auto& triplet : instruction_function.instruction_triplets)
         {
+            // TODO IT DOESNT ACTUALLY SET THE LIVE RANGES?
             switch (triplet.instruction)
             {
                 // this is the case for (unsigned) MUL 
@@ -46,6 +47,11 @@ void LinearScanRegisterAllocation::scan()
                         (*function_data_info_map)[fname].location_map[item.value] = location;
                         reserved_active.push_back(location);
                     }
+                    VirtualRegisterLocation location; 
+                    location.live_range.reg = triplet.dst;
+                    location.allocated_register = Register::A;
+                    (*function_data_info_map)[fname].location_map[triplet.dst] = location;
+                    reserved_active.push_back(location);
                     break;
                 }
                 case Instruction::LOAD_PARAM:
