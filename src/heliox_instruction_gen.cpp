@@ -163,6 +163,18 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
     visit_expression(binop->right);
     virtual_register right = effective_register;
     
+    if (binop->op_token == TokenType::EQU)
+    {
+        InstructionTriplet triplet = InstructionTriplet(
+            Instruction::STORE,
+            left,
+            {Item{ItemType::VIRTUAL_REGISTER, right}},
+            RegisterSize::BIT64);
+        
+        emit_instruction(triplet, 0);
+        return;
+    }
+
     InstructionTriplet left_side_triplet = InstructionTriplet(
         Instruction::STORE,
         current_virtual_register,
@@ -186,9 +198,6 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
             break;
         case TokenType::DIVIDE:
             instruc = Instruction::DIV;
-            break;
-        case TokenType::EQU:
-            instruc = Instruction::STORE;
             break;
         default:
             //TODO IMPLEMENT MORE
@@ -237,6 +246,15 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
                         RegisterSize::BIT64);
             push_param_triplets.push_back(triplet);
         }
+        else
+        {
+            InstructionTriplet triplet(Instruction::STORE,
+                current_virtual_register,
+                {Item{ItemType::VIRTUAL_REGISTER, effective_register}},
+                RegisterSize::BIT64);
+            effective_register = current_virtual_register;
+            emit_instruction(triplet);
+        }
         // save previous current_virtual_register 
         parameter_virtual_registers.push_back(
                 Item{ItemType::VIRTUAL_REGISTER, effective_register}); 
@@ -259,7 +277,6 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     }
     // push in reverse order
     for (int i = push_param_triplets.size()-1; i >= 0; i--) emit_instruction(push_param_triplets[i]);
-
     InstructionTriplet triplet = 
         InstructionTriplet(Instruction::CALL, 
                 current_virtual_register,
@@ -267,6 +284,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
                 RegisterSize::BIT64);
     effective_register = current_virtual_register;
     emit_instruction(triplet);
+
     if (did_allignment)
     {
         InstructionTriplet align_triplet(
@@ -277,6 +295,12 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         );
         emit_instruction(align_triplet, 0);
     }
+
+    InstructionTriplet store(Instruction::STORE,
+            current_virtual_register,
+            {Item{ItemType::VIRTUAL_REGISTER, effective_register}}, RegisterSize::BIT64);
+    emit_instruction(store);
+    effective_register = current_virtual_register;
 }
 
 void InstructionGenerator::visit_compound(uptr<compound_statement>& compound) 

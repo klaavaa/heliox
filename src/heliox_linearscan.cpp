@@ -42,13 +42,15 @@ void LinearScanRegisterAllocation::scan()
                         // RESERVE REGISTERS TO PASS FUNCTION PARAMS TO
                         const auto& item = triplet.items[i];
                         VirtualRegisterLocation location; 
-                        location.live_range.reg = item.value;
+                        location.live_range = *std::find_if(instruction_function.live_ranges.begin(), instruction_function.live_ranges.end(), [item](LiveRange lr){ return lr.reg == item.value; });
+                        //location.live_range.reg = item.value;
                         location.allocated_register = integer_arguments_registers[i-1];
                         (*function_data_info_map)[fname].location_map[item.value] = location;
                         reserved_active.push_back(location);
                     }
                     VirtualRegisterLocation location; 
-                    location.live_range.reg = triplet.dst;
+                    //location.live_range.reg = triplet.dst;
+                    location.live_range = *std::find_if(instruction_function.live_ranges.begin(), instruction_function.live_ranges.end(), [triplet](LiveRange lr){ return lr.reg == triplet.dst; });
                     location.allocated_register = Register::A;
                     (*function_data_info_map)[fname].location_map[triplet.dst] = location;
                     reserved_active.push_back(location);
@@ -57,7 +59,8 @@ void LinearScanRegisterAllocation::scan()
                 case Instruction::LOAD_PARAM:
                     {
                     VirtualRegisterLocation location; 
-                    location.live_range.reg = triplet.dst;
+                    location.live_range = *std::find_if(instruction_function.live_ranges.begin(), instruction_function.live_ranges.end(), [triplet](LiveRange lr){ return lr.reg == triplet.dst; });
+                    //location.live_range.reg = triplet.dst;
                     if (triplet.items[0].value < integer_arguments_registers.size()) 
                     {
                         location.allocated_register = integer_arguments_registers[triplet.items[0].value];
