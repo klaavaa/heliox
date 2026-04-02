@@ -14,7 +14,7 @@ fun main(i32 argc, u8** argv) i32
     return add(a,b,f,2,e,4,5,6);
 }
 
-fun add(i64 a, i64 b, i64 c, i64 d, i64 e, i64 f, i64 g, i64 h, i64 j) i64
+fun add(i64 a, i64 b, i64 c, i64 d, i64 e, i64 f, i64 g, i64 h) i64
 {
-    return a + b + c + d + e + f + g + h + j;
+    return a + b + c + d + e + f + g + h;
 }

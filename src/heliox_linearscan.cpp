@@ -6,7 +6,7 @@ namespace hx
 LinearScanRegisterAllocation::LinearScanRegisterAllocation(InstructionData instruction_data, sptr<SymbolTable> global_table)
     :  instruction_data(instruction_data), global_table(global_table)
 {
-    virtual_register_locations = std::make_shared<std::unordered_map<std::string, VirtualRegisterLocationMap>>();
+    function_data_info_map = std::make_shared<FunctionDataInfoMap>();
     //register_set.set(Register::A);
     //register_set.set(Register::C);
     //register_set.set(Register::D);
@@ -43,7 +43,7 @@ void LinearScanRegisterAllocation::scan()
                         VirtualRegisterLocation location; 
                         location.live_range.reg = item.value;
                         location.allocated_register = integer_arguments_registers[i-1];
-                        (*virtual_register_locations)[fname][item.value] = location;
+                        (*function_data_info_map)[fname].location_map[item.value] = location;
                         reserved_active.push_back(location);
                     }
                     break;
@@ -61,9 +61,8 @@ void LinearScanRegisterAllocation::scan()
                         location.is_spilled = true;
                         location.stack_position = param_offset;
                         param_offset += 8;
-                        (*virtual_register_locations)[fname][triplet.dst] = location;
                     }
-                    (*virtual_register_locations)[fname][triplet.dst] = location;
+                    (*function_data_info_map)[fname].location_map[triplet.dst] = location;
                     reserved_active.push_back(location);
                     break;
                     }
@@ -77,7 +76,7 @@ void LinearScanRegisterAllocation::scan()
         for (const auto& live_range : instruction_function.live_ranges)
         {
             if (live_range.reg == -1) continue;
-            if ((*virtual_register_locations)[fname].contains(live_range.reg)) continue;
+            if ((*function_data_info_map)[fname].location_map.contains(live_range.reg)) continue;
 
             expire_old_intervals(live_range);
             RegisterBitSet free_registers = register_set;
@@ -103,11 +102,15 @@ void LinearScanRegisterAllocation::scan()
                 VirtualRegisterLocation location; 
                 location.live_range = live_range;
                 location.allocated_register = allocated_register;
-                (*virtual_register_locations)[fname][live_range.reg] = location;
+                (*function_data_info_map)[fname].location_map[live_range.reg] = location;
                 active.push_back(location);
                 std::sort(active.begin(), active.end(), [](VirtualRegisterLocation a, VirtualRegisterLocation b) { return a.live_range.last_use < b.live_range.last_use; });
             }
         }
+        
+        // align the local stack offset by 16
+        local_stack_offset = -((abs(local_stack_offset) + 15) & ~15);
+        (*function_data_info_map)[fname].stack_allocated_memory = local_stack_offset;
     }
 }
 
@@ -142,9 +145,9 @@ void LinearScanRegisterAllocation::spill_at_interval(LiveRange i, const std::str
         VirtualRegisterLocation location;
         location.live_range = i;
         location.allocated_register = spill.allocated_register;
-        (*virtual_register_locations)[fname][i.reg] = location;
+        (*function_data_info_map)[fname].location_map[i.reg] = location;
             
-        (*virtual_register_locations)[fname][spill.live_range.reg].is_spilled = true;
+        (*function_data_info_map)[fname].location_map[spill.live_range.reg].is_spilled = true;
         uint32_t byte_size = get_byte_size_from_register_size(spill.live_range.reg_size);
         local_stack_offset -= byte_size;
         int not_aligned = abs(local_stack_offset) % byte_size;
@@ -152,9 +155,9 @@ void LinearScanRegisterAllocation::spill_at_interval(LiveRange i, const std::str
         {
             local_stack_offset -= not_aligned;
         }
-        (*virtual_register_locations)[fname][spill.live_range.reg].stack_position = local_stack_offset; 
+        (*function_data_info_map)[fname].location_map[spill.live_range.reg].stack_position = local_stack_offset;
         active.pop_back();
-        active.push_back((*virtual_register_locations)[fname][i.reg]);
+        active.push_back((*function_data_info_map)[fname].location_map[i.reg]);
     }
     else
     {
@@ -163,7 +166,8 @@ void LinearScanRegisterAllocation::spill_at_interval(LiveRange i, const std::str
         location.is_spilled = true;
         local_stack_offset -= get_byte_size_from_register_size(location.live_range.reg_size);
         location.stack_position = local_stack_offset;
-        (*virtual_register_locations)[fname][i.reg] = location;
+        (*function_data_info_map)[fname].location_map[i.reg] = location;
+
     }
 }
 

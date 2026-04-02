@@ -60,7 +60,7 @@ inline void compile(const std::string& file_path, const std::string& output_path
     linear_scan.scan();
 
 
-    CodeGeneration codegen(global_table, linear_scan.virtual_register_locations);
+    CodeGeneration codegen(global_table, linear_scan.function_data_info_map);
     std::string generated_nasm = codegen.generate(instruction_gen.instruction_data);
     std::println("{}", generated_nasm);
     create_assembly_file("test", generated_nasm);

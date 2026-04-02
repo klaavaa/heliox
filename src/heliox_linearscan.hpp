@@ -23,8 +23,15 @@ struct VirtualRegisterLocation
     bool is_spilled = false;
 };
 
-
 using VirtualRegisterLocationMap = std::unordered_map<virtual_register, VirtualRegisterLocation>;
+
+struct FunctionDataInfo
+{
+    VirtualRegisterLocationMap location_map;
+    int64_t stack_allocated_memory;
+};
+
+using FunctionDataInfoMap = std::unordered_map<std::string, FunctionDataInfo>;
 
 
 class LinearScanRegisterAllocation
@@ -61,7 +68,7 @@ public:
     void expire_old_intervals(LiveRange i);
     void spill_at_interval(LiveRange i, const std::string& name);
 
-    sptr<std::unordered_map<std::string, VirtualRegisterLocationMap>> virtual_register_locations;
+    sptr<FunctionDataInfoMap> function_data_info_map;
 private:
     const std::array<Register, 6> integer_arguments_registers = {Register::DI, Register::SI, Register::D, Register::C, Register::R8, Register::R9};
 

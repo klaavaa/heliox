@@ -4,8 +4,8 @@
 namespace hx
 {
     
-CodeGeneration::CodeGeneration(sptr<SymbolTable> global_table, sptr<std::unordered_map<std::string, VirtualRegisterLocationMap>> all_vr_locations)
-    : global_table(global_table), all_vr_locations(all_vr_locations)
+CodeGeneration::CodeGeneration(sptr<SymbolTable> global_table, sptr<FunctionDataInfoMap> function_data_info_map)
+    : global_table(global_table), function_data_info_map(function_data_info_map)
 {
 }
 
@@ -17,7 +17,7 @@ std::string CodeGeneration::generate(InstructionData& instruction_data)
 
     for (auto& func : instruction_data.instruction_functions)
     {
-        current_func_vr_locations = all_vr_locations->at(func.name);
+        current_func_vr_locations = function_data_info_map->at(func.name).location_map;
         text_section += emit_instruction_function(func); 
     }
 
@@ -39,6 +39,11 @@ std::string CodeGeneration::emit_instruction_function(InstructionFunction& instr
 {
     std::string body = std::format("global {}\n{}:\n", instruc_func.name, instruc_func.name);
     body += "\tpush rbp\n\tmov rbp, rsp\n";
+
+    int64_t stack_allocated_memory = -function_data_info_map->at(instruc_func.name).stack_allocated_memory;
+    if (stack_allocated_memory != 0)
+        body += std::format("\tsub rsp, {}\n", -function_data_info_map->at(instruc_func.name).stack_allocated_memory);
+
     for (auto& triplet : instruc_func.instruction_triplets)
     {
         body += emit_instruction_triplet(triplet);
