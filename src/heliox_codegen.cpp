@@ -66,8 +66,12 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
         return std::format("\tpush {}\n", get_location(triplet.dst));
     case Instruction::ADD: 
         return std::format("\tadd {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0])); 
+    case Instruction::SUB: 
+        return std::format("\tsub {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0])); 
     case Instruction::MUL:
         return std::format("\timul {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0]));
+    case Instruction::DIV:
+        return std::format("\tidiv {}\n", get_location(triplet.items[0]));
     case Instruction::LOAD_INT:
         return std::format("\tmov {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0]));
     case Instruction::LOAD_PARAM:
@@ -80,6 +84,8 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
         return std::format("\tadd rsp, {}\n", get_location(triplet.items[0]));
     case Instruction::CALL:
         return std::format("\tcall {}\n", global_table->get_function_name_from_id(triplet.items[0].value));
+    case Instruction::ZERO_DX:
+        return std::format("\txor {}, {}\n", get_location(triplet.dst), get_location(triplet.dst));
     default:
         return "not yet implemented\n";
         //TODO ERROR

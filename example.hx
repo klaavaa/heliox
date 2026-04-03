@@ -3,24 +3,25 @@ extern fun malloc(u32 size) void*;
 
 fun main(i32 argc, u8** argv) i32
 {
-    u8* str = "Hello, World\n";
-    printf(str);
-    i64 a = 1;
-    a = 2;
-    i64 b = a + a;
-    i64 c = a + b;
-    i64 d = c + a;
-    i64 add = add(a,b,c,d,5,6,7,8);
-    i64 mul = b(b, add);
-    return add(add, mul);
+    i64 a = 14; 
+    i64 b = 3;
+    return add(a, mul(b, sub(a, div(a, b))));
 }
 
-fun add(i64 a, i64 b, i64 c, i64 d, i64 e, i64 f, i64 g, i64 h) i64
+fun add(i64 a, i64 b) i64
 {
-    return a + b + c + d + e + f + g + h;
+    return a + b;
+}
+fun sub(i64 a, i64 b) i64
+{
+    return a - b;
+}
+fun mul(i64 a, i64 b) i64
+{
+    return a * b;    
+}
+fun div(i64 a, i64 b) i64
+{
+    return a / b;
 }
 
-fun b(i64 a, i64 b) i64
-{
-    return a * b;
-}

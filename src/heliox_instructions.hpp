@@ -63,10 +63,13 @@ enum class Instruction
     LOAD_VAR,
     LOAD_STRING,
     LOAD_PARAM,
-    
+     
     STORE, 
-
+    ZERO_DX,
     CALL,
+    
+    SAVE_CALLER,
+    SAVE_CALLEE,
 
     ALIGN,
     PUSH,
@@ -294,6 +297,12 @@ inline void print_instruction(const InstructionTriplet& triplet)
             std::println("{} ALIGN {}", prefix,
                     triplet.items[0].get_string());  
             break;
+        case Instruction::ZERO_DX:
+            std::println("{} ZERO  r{}", prefix,
+                    triplet.dst);  
+            break;
+            
+
       default:
         std::println("Instruction not implemented");
     }

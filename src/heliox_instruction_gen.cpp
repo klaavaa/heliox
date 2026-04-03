@@ -31,22 +31,6 @@ void InstructionGenerator::calculate_live_ranges()
     {
         for (auto& triplet : func.instruction_triplets)
         {
-            switch (triplet.instruction)
-            {
-            case Instruction::DIV:
-               // TODO: div idiv, unsigned vs signed division
-                // TODO: xor rdx, rdx
-                // reserves registers RAX, RDX, output in RAX
-                break;
-            case Instruction::CALL:
-                // reservers registers RDI, RSI, RCX, RDX, R8, R9
-                // output in RAX
-                 
-                break;
-
-            default:
-                break;
-            }
             std::vector<virtual_register> used_registers;
             used_registers.push_back(triplet.dst);
             for (auto& i : triplet.items)
@@ -178,8 +162,7 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
         emit_instruction(triplet, 0);
         return;
     }
-
-    InstructionTriplet left_side_triplet = InstructionTriplet(
+    InstructionTriplet left_side_triplet(
         Instruction::STORE,
         current_virtual_register,
         {Item{ItemType::VIRTUAL_REGISTER, left}},
@@ -187,6 +170,23 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
     );
     effective_register = current_virtual_register;
     emit_instruction(left_side_triplet);
+    if (binop->op_token == TokenType::DIVIDE)
+    {
+        InstructionTriplet zero(Instruction::ZERO_DX,
+                current_virtual_register,
+                {},
+                RegisterSize::BIT64);
+        emit_instruction(zero);
+        InstructionTriplet division = InstructionTriplet(
+            Instruction::DIV,
+            effective_register,
+            {Item{ItemType::VIRTUAL_REGISTER, right}},
+            RegisterSize::BIT64);
+        
+        emit_instruction(division, 0);
+        return;
+    }
+
 
     Instruction instruc;
     switch (binop->op_token)
@@ -200,13 +200,10 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
         case TokenType::MULTIPLY:
             instruc = Instruction::MUL;
             break;
-        case TokenType::DIVIDE:
-            instruc = Instruction::DIV;
-            break;
         default:
             //TODO IMPLEMENT MORE
-            instruc = Instruction::ADD;
-            break;
+            std::println("ERROR: UNKNOWN BINARY OPERATION");
+            exit(-1);
     }
     /*
     InstructionTriplet triplet = 
@@ -233,9 +230,10 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     FunctionSymbol s = current_table->find_function_symbol(function_call->identifier->name);
     uint32_t label = s.id;
     std::vector<Item> parameter_virtual_registers = 
-    {Item{ItemType::FUNCTIONTABLE_INDEX, label}};
+        {Item{ItemType::FUNCTIONTABLE_INDEX, label}};
 
     std::vector<InstructionTriplet> push_param_triplets;
+
     for (int i = 0; i < function_call->parameters.size(); i++)
     {
         auto& param = function_call->parameters[i];
@@ -252,17 +250,26 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         }
         else
         {
-            InstructionTriplet triplet(Instruction::STORE,
-                current_virtual_register,
-                {Item{ItemType::VIRTUAL_REGISTER, effective_register}},
-                RegisterSize::BIT64);
-            effective_register = current_virtual_register;
-            emit_instruction(triplet);
         }
         // save previous current_virtual_register 
         parameter_virtual_registers.push_back(
                 Item{ItemType::VIRTUAL_REGISTER, effective_register}); 
     }
+
+    // register passed args
+    for (int i = 1; i < parameter_virtual_registers.size(); i++)
+    {
+        auto& item = parameter_virtual_registers[i];
+        InstructionTriplet triplet(Instruction::STORE,
+            current_virtual_register,
+            {Item{ItemType::VIRTUAL_REGISTER, item.value}},
+            RegisterSize::BIT64);
+        effective_register = current_virtual_register;
+        emit_instruction(triplet);
+        item.value = effective_register;
+    }
+
+    // align stack
     bool did_allignment = false;
     int pushed_param_count = function_call->parameters.size() - 6;
     if (function_call->parameters.size() > 6) 
@@ -281,6 +288,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     }
     // push in reverse order
     for (int i = push_param_triplets.size()-1; i >= 0; i--) emit_instruction(push_param_triplets[i]);
+
     InstructionTriplet triplet = 
         InstructionTriplet(Instruction::CALL, 
                 current_virtual_register,

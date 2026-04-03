@@ -7,11 +7,11 @@ LinearScanRegisterAllocation::LinearScanRegisterAllocation(InstructionData instr
     :  instruction_data(instruction_data), global_table(global_table)
 {
     function_data_info_map = std::make_shared<FunctionDataInfoMap>();
-    //register_set.set(Register::A);
-    //register_set.set(Register::C);
-    //register_set.set(Register::D);
-    //register_set.set(Register::R8);
-    //register_set.set(Register::R9);
+    register_set.set(Register::A);
+    register_set.set(Register::C);
+    register_set.set(Register::D);
+    register_set.set(Register::R8);
+    register_set.set(Register::R9);
     register_set.set(Register::R10);
     register_set.set(Register::R11);
 }
@@ -71,6 +71,24 @@ void LinearScanRegisterAllocation::scan()
                         location.stack_position = param_offset;
                         param_offset += 8;
                     }
+                    (*function_data_info_map)[fname].location_map[triplet.dst] = location;
+                    reserved_active.push_back(location);
+                    break;
+                    }
+                case Instruction::ZERO_DX:
+                    {
+                    VirtualRegisterLocation location; 
+                    location.live_range = *std::find_if(instruction_function.live_ranges.begin(), instruction_function.live_ranges.end(), [triplet](LiveRange lr){ return lr.reg == triplet.dst; });
+                    location.allocated_register = Register::D;
+                    (*function_data_info_map)[fname].location_map[triplet.dst] = location;
+                    reserved_active.push_back(location);
+                    break;
+                    }
+                case Instruction::DIV:
+                    {
+                    VirtualRegisterLocation location; 
+                    location.live_range = *std::find_if(instruction_function.live_ranges.begin(), instruction_function.live_ranges.end(), [triplet](LiveRange lr){ return lr.reg == triplet.dst; });
+                    location.allocated_register = Register::A;
                     (*function_data_info_map)[fname].location_map[triplet.dst] = location;
                     reserved_active.push_back(location);
                     break;
