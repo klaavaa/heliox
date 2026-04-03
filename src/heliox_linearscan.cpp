@@ -34,7 +34,6 @@ void LinearScanRegisterAllocation::scan()
         int param_offset = 16;
         for (const auto& triplet : instruction_function.instruction_triplets)
         {
-            // TODO IT DOESNT ACTUALLY SET THE LIVE RANGES?
             switch (triplet.instruction)
             {
                 // this is the case for (unsigned) MUL 
