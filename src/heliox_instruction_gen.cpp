@@ -27,6 +27,7 @@ void InstructionGenerator::calculate_live_ranges()
 {
     
     uint32_t instruc_count = 0;
+
     for (auto& func : instruction_data.instruction_functions)
     {
         for (auto& triplet : func.instruction_triplets)
@@ -83,7 +84,8 @@ void InstructionGenerator::visit_function(uptr<function>& func)
         return;
     }
     current_table = global_table->add_table().get();
-   
+    
+
     int parameter_position = 0;
     for (auto& param : func->params)
     {
@@ -93,6 +95,11 @@ void InstructionGenerator::visit_function(uptr<function>& func)
     }
 
     instruction_data.instruction_functions.push_back({func->identifier->name});
+
+    InstructionTriplet save_callee(Instruction::SAVE_CALLEE,
+            -1, {}, RegisterSize::BIT64);
+    emit_instruction(save_callee, 0);
+
     for (auto& stat : func->statements)
     {
         visit_statement(stat);
@@ -229,6 +236,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
 {
     FunctionSymbol s = current_table->find_function_symbol(function_call->identifier->name);
     uint32_t label = s.id;
+    
     std::vector<Item> parameter_virtual_registers = 
         {Item{ItemType::FUNCTIONTABLE_INDEX, label}};
 
@@ -268,6 +276,14 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         emit_instruction(triplet);
         item.value = effective_register;
     }
+
+    InstructionTriplet save(
+            Instruction::SAVE_CALLER,
+            -1,
+            {},
+            RegisterSize::BIT64
+            );
+    emit_instruction(save, 0);
 
     // align stack
     bool did_allignment = false;
@@ -311,8 +327,13 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     InstructionTriplet store(Instruction::STORE,
             current_virtual_register,
             {Item{ItemType::VIRTUAL_REGISTER, effective_register}}, RegisterSize::BIT64);
-    emit_instruction(store);
     effective_register = current_virtual_register;
+    emit_instruction(store);
+    InstructionTriplet load_caller(Instruction::LOAD_CALLER,
+            -1,
+            {},
+            RegisterSize::BIT64);
+    emit_instruction(load_caller, 0);
 }
 
 void InstructionGenerator::visit_compound(uptr<compound_statement>& compound) 
@@ -327,6 +348,18 @@ void InstructionGenerator::visit_compound(uptr<compound_statement>& compound)
 void InstructionGenerator::visit_return(uptr<return_statement>& return_s) 
 {
     visit_expression(return_s->return_expression);
+    
+    InstructionTriplet store(Instruction::STORE,
+            current_virtual_register,
+            {Item{ItemType::VIRTUAL_REGISTER, effective_register}},
+            RegisterSize::BIT64);
+    effective_register = current_virtual_register;
+    emit_instruction(store);
+
+    InstructionTriplet load_callee(Instruction::LOAD_CALLEE,
+            -1, {}, RegisterSize::BIT64);
+    emit_instruction(load_callee, 0);
+
     InstructionTriplet triplet = 
         InstructionTriplet(Instruction::RETURN, 
                  effective_register,

@@ -8,12 +8,19 @@ LinearScanRegisterAllocation::LinearScanRegisterAllocation(InstructionData instr
 {
     function_data_info_map = std::make_shared<FunctionDataInfoMap>();
     register_set.set(Register::A);
+    register_set.set(Register::B);
     register_set.set(Register::C);
     register_set.set(Register::D);
+    register_set.set(Register::DI);
+    register_set.set(Register::SI);
     register_set.set(Register::R8);
     register_set.set(Register::R9);
     register_set.set(Register::R10);
     register_set.set(Register::R11);
+    register_set.set(Register::R12);
+    register_set.set(Register::R13);
+    register_set.set(Register::R14);
+    register_set.set(Register::R15);
 }
 
 void LinearScanRegisterAllocation::scan()
@@ -32,7 +39,16 @@ void LinearScanRegisterAllocation::scan()
             {
                 // this is the case for (unsigned) MUL 
                 //case Instruction::MUL:
+                case Instruction::RETURN:
+                {
                     
+                    VirtualRegisterLocation location; 
+                    location.live_range = *std::find_if(instruction_function.live_ranges.begin(), instruction_function.live_ranges.end(), [triplet](LiveRange lr){ return lr.reg == triplet.dst; });
+                    location.allocated_register = Register::A;
+                    (*function_data_info_map)[fname].location_map[triplet.dst] = location;
+                    reserved_active.push_back(location);
+                    break;
+                }
                 case Instruction::CALL:
                 {
 

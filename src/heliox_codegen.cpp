@@ -7,6 +7,21 @@ namespace hx
 CodeGeneration::CodeGeneration(sptr<SymbolTable> global_table, sptr<FunctionDataInfoMap> function_data_info_map)
     : global_table(global_table), function_data_info_map(function_data_info_map)
 {
+    callee_saved_registers.set(Register::B);
+    callee_saved_registers.set(Register::R15);
+    callee_saved_registers.set(Register::R14);
+    callee_saved_registers.set(Register::R13);
+    callee_saved_registers.set(Register::R12);
+
+    caller_saved_registers.set(Register::A);
+    caller_saved_registers.set(Register::C);
+    caller_saved_registers.set(Register::D);
+    caller_saved_registers.set(Register::SI);
+    caller_saved_registers.set(Register::DI);
+    caller_saved_registers.set(Register::R8);
+    caller_saved_registers.set(Register::R9);
+    caller_saved_registers.set(Register::R10);
+    caller_saved_registers.set(Register::R11);
 }
 
 std::string CodeGeneration::generate(InstructionData& instruction_data)
@@ -44,6 +59,7 @@ std::string CodeGeneration::emit_instruction_function(InstructionFunction& instr
 {
     std::string body = std::format("global {}\n{}:\n", instruc_func.name, instruc_func.name);
     body += "\tpush rbp\n\tmov rbp, rsp\n";
+    
 
     int64_t stack_allocated_memory = -function_data_info_map->at(instruc_func.name).stack_allocated_memory;
     if (stack_allocated_memory != 0)
@@ -53,6 +69,7 @@ std::string CodeGeneration::emit_instruction_function(InstructionFunction& instr
     {
         body += emit_instruction_triplet(triplet);
     }
+
     return body;
 }
 
@@ -79,13 +96,60 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
     case Instruction::LOAD_STRING:
         return std::format("\tlea {}, [rel {}]\n", get_location(triplet.dst), get_location(triplet.items[0]));
     case Instruction::RETURN:
-        return std::format("\tmov rax, {}\n\tmov rsp, rbp\n\tpop rbp\n\tret\n", get_location(triplet.dst));
+        return std::format("\tmov rsp, rbp\n\tpop rbp\n\tret\n", get_location(triplet.dst));
     case Instruction::ALIGN:
         return std::format("\tadd rsp, {}\n", get_location(triplet.items[0]));
     case Instruction::CALL:
         return std::format("\tcall {}\n", global_table->get_function_name_from_id(triplet.items[0].value));
     case Instruction::ZERO_DX:
         return std::format("\txor {}, {}\n", get_location(triplet.dst), get_location(triplet.dst));
+    case Instruction::SAVE_CALLER:
+        {
+        RegisterBitSet reserved_registers = get_reserved_registers_at(triplet.instruc_count)
+                .get_bits_not_in_other(callee_saved_registers);
+        std::string base = "";
+        for (const auto reg : reserved_registers.get_available_registers())
+        {
+            base += std::format("\tpush {}\n", register_to_string(reg)); 
+            caller_preserved_registers.push_back(reg);
+        }
+        return base;
+        }
+    case Instruction::LOAD_CALLER:
+        {
+            std::string base = "";
+            for (int i = caller_preserved_registers.size()-1; i >= 0; i--)
+            {
+                const auto reg = caller_preserved_registers[i];
+                base += std::format("\tpop {}\n", register_to_string(reg)); 
+            }
+            caller_preserved_registers.clear();
+            return base;
+        }
+    case Instruction::SAVE_CALLEE:
+        {
+            std::string base = "";
+            RegisterBitSet used_registers = get_function_used_registers();
+            RegisterBitSet to_preserve = used_registers.get_bits_not_in_other(caller_saved_registers);
+            
+            for (const auto reg : to_preserve.get_available_registers())
+            {
+                base += std::format("\tpush {}\n", register_to_string(reg));
+                callee_preserved_registers.push_back(reg);
+            }
+            return base;
+        }
+    case Instruction::LOAD_CALLEE:
+        {
+            std::string base = "";
+            for (int i = callee_preserved_registers.size()-1; i >= 0; i--)
+            {
+                const auto reg = callee_preserved_registers[i];
+                base += std::format("\tpop {}\n", register_to_string(reg)); 
+            }
+            callee_preserved_registers.clear();
+            return base;
+        }
     default:
         return "not yet implemented\n";
         //TODO ERROR
@@ -132,4 +196,31 @@ std::string CodeGeneration::get_location(virtual_register vr)
 
 }
 
+RegisterBitSet CodeGeneration::get_reserved_registers_at(int64_t position)
+{
+    RegisterBitSet reserved_registers;
+    for (const auto [vr, loc]  : current_func_vr_locations)
+    {
+        if (loc.is_spilled) continue;
+        if (loc.live_range.first_use <= position && loc.live_range.last_use > position + 1)
+        {
+            std::println("{} {}: {} -> {}", position, register_to_string(loc.allocated_register), loc.live_range.first_use, loc.live_range.last_use);
+            reserved_registers.set(loc.allocated_register);
+        }
+    }
+    return reserved_registers;
 }
+
+RegisterBitSet CodeGeneration::get_function_used_registers()
+{
+    RegisterBitSet used_registers;
+    for (const auto [vr, loc]  : current_func_vr_locations)
+    {
+        if (loc.is_spilled) continue;
+        used_registers.set(loc.allocated_register);
+    }
+    return used_registers;
+}
+
+}
+

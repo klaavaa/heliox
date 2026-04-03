@@ -20,10 +20,11 @@ namespace hx
         
         std::string get_location(virtual_register vr);
         std::string get_location(Item item);
-         
+        
+        RegisterBitSet get_reserved_registers_at(int64_t position);
+        RegisterBitSet get_function_used_registers();
 
     private:
-        
         std::string externs;
         std::string data_section;
         std::string text_section;
@@ -32,6 +33,11 @@ namespace hx
         sptr<SymbolTable> global_table; 
         sptr<FunctionDataInfoMap> function_data_info_map;
         VirtualRegisterLocationMap current_func_vr_locations;
+        
+        RegisterBitSet callee_saved_registers;
+        RegisterBitSet caller_saved_registers;
 
+        std::vector<Register> caller_preserved_registers;
+        std::vector<Register> callee_preserved_registers;
     };
 }

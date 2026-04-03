@@ -69,7 +69,10 @@ enum class Instruction
     CALL,
     
     SAVE_CALLER,
+    LOAD_CALLER,
+
     SAVE_CALLEE,
+    LOAD_CALLEE,
 
     ALIGN,
     PUSH,
@@ -302,7 +305,21 @@ inline void print_instruction(const InstructionTriplet& triplet)
                     triplet.dst);  
             break;
             
+        case Instruction::SAVE_CALLER:
+            std::println("{} SAVE_CALLER", prefix);  
+            break;
 
+        case Instruction::LOAD_CALLER:
+            std::println("{} LOAD_CALLER", prefix);  
+            break;
+            
+        case Instruction::SAVE_CALLEE:
+            std::println("{} SAVE_CALLEE", prefix);  
+            break;
+
+        case Instruction::LOAD_CALLEE:
+            std::println("{} LOAD_CALLEE", prefix);  
+            break;
       default:
         std::println("Instruction not implemented");
     }

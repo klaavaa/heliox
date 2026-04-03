@@ -33,32 +33,42 @@ struct FunctionDataInfo
 
 using FunctionDataInfoMap = std::unordered_map<std::string, FunctionDataInfo>;
 
+struct RegisterBitSet {
+    static const size_t register_count = 16;
+    RegisterBitSet() = default; 
+    RegisterBitSet(std::bitset<register_count> other_bits) 
+    {
+        bits = other_bits;   
+    }
+    std::bitset<register_count> bits;
+    void set(Register b) { bits.set(std::to_underlying(b)); }
+    void reset(Register b) { bits.reset(std::to_underlying(b)); }
+    bool test(Register b) const { return bits.test(std::to_underlying(b)); }
+    void flip() { bits.flip(); }
+    RegisterBitSet get_bits_not_in_other(const RegisterBitSet& other) { return {bits & ~other.bits};}
+
+    size_t count() const { return bits.count(); }
+    Register get_first_available() const 
+    { 
+        for (size_t i = 0; i < register_count; i++) 
+        {
+            if (bits.test(i)) return static_cast<Register>(i);
+        } 
+        return Register::NOREG; 
+    }
+    std::vector<Register> get_available_registers()
+    {
+        std::vector<Register> available_registers; 
+        for (size_t i = 0; i < register_count; i++) 
+        {
+            if (bits.test(i)) available_registers.push_back(static_cast<Register>(i));
+        } 
+        return available_registers;
+    }
+};
 
 class LinearScanRegisterAllocation
 {
-    struct RegisterBitSet {
-        static const size_t register_count = 16;
-        RegisterBitSet() = default; 
-        RegisterBitSet(std::bitset<register_count> other_bits) 
-        {
-            bits = other_bits;   
-        }
-        std::bitset<register_count> bits;
-        void set(Register b) { bits.set(std::to_underlying(b)); }
-        void reset(Register b) { bits.reset(std::to_underlying(b)); }
-        bool test(Register b) const { return bits.test(std::to_underlying(b)); }
-        RegisterBitSet get_bits_not_in_other(const RegisterBitSet& other) { return {bits & ~other.bits};}
-
-        size_t count() const { return bits.count(); }
-        Register get_first_available() const 
-        { 
-            for (size_t i = 0; i < register_count; i++) 
-            {
-                if (bits.test(i)) return static_cast<Register>(i);
-            } 
-            return Register::NOREG; 
-        }
-    };
 
 public:
 
