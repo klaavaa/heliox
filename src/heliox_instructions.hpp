@@ -30,10 +30,10 @@ enum class Bit8Register: int
 
 enum class RegisterSize
 {
-    BIT64,
-    BIT32,
+    BIT8,
     BIT16,
-    BIT8
+    BIT32,
+    BIT64
 };
 
 inline std::string register_to_string(Register reg, RegisterSize reg_size)

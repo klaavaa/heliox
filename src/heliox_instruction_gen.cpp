@@ -114,9 +114,8 @@ void InstructionGenerator::visit_int_literal(uptr<int_literal_expr>& int_literal
         InstructionTriplet(Instruction::LOAD_INT, 
                 current_virtual_register,
                 {Item{ItemType::IMMEDIATE_VALUE, std::stol(int_literal->value)}},
-                RegisterSize::BIT64);
+                effective_register_size);
     effective_register = current_virtual_register;
-    effective_register_size = triplet.reg_size;
     emit_instruction(triplet);
 }
 void InstructionGenerator::visit_string_literal(uptr<string_literal_expr>& string_literal)  
@@ -166,6 +165,12 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
     virtual_register right = effective_register;
     RegisterSize right_size = effective_register_size;
     
+    if (left_size != right_size)
+    {
+        std::println("ERROR: Trying to do operations with 2 different operation sizes");
+        exit(-1);
+    }
+    
     if (binop->op_token == TokenType::EQU)
     {
         InstructionTriplet triplet = InstructionTriplet(
@@ -196,7 +201,7 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
             Instruction::DIV,
             effective_register,
             {Item{ItemType::VIRTUAL_REGISTER, right}},
-            right_size);
+            left_size);
         
         emit_instruction(division, 0);
         return;
@@ -220,19 +225,11 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
             std::println("ERROR: UNKNOWN BINARY OPERATION");
             exit(-1);
     }
-    /*
-    InstructionTriplet triplet = 
-        InstructionTriplet(instruc, 
-                left,
-                {Item{ItemType::VIRTUAL_REGISTER, right}},
-                RegisterSize::BIT64);
-    effective_register = left;
-    */
     InstructionTriplet triplet = 
         InstructionTriplet(instruc, 
                 effective_register,
                 {Item{ItemType::VIRTUAL_REGISTER, right}},
-                right_size);
+                left_size);
     emit_instruction(triplet, 0);
 
 }
@@ -387,11 +384,14 @@ void InstructionGenerator::visit_variable_declaration(uptr<variable_declaration_
 }
 void InstructionGenerator::visit_variable_definition(uptr<variable_definition_statement>& variable_definition) 
 {
-    visit_expression(variable_definition->definition);
+
     visit_variable_declaration(variable_definition->declaration);
 
     VariableSymbol sym = current_table->find_variable_symbol(
             variable_definition->declaration->var_identifier->name);
+    
+    effective_register_size = get_register_size(sym.type_info.byte_size);
+    visit_expression(variable_definition->definition);
     
     RegisterSize reg_size = get_register_size(sym.type_info.byte_size);
     InstructionTriplet triplet = 
