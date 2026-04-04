@@ -36,6 +36,21 @@ enum class RegisterSize
     BIT64
 };
 
+inline std::string register_size_to_prefix(RegisterSize reg_size)
+{
+    switch (reg_size)
+    {
+        case RegisterSize::BIT64:
+            return "qword";
+        case RegisterSize::BIT32:
+            return "dword";
+        case RegisterSize::BIT16:
+            return "word";
+        case RegisterSize::BIT8:
+            return "byte";
+    }
+}
+
 inline std::string register_to_string(Register reg, RegisterSize reg_size)
 {
     switch (reg_size)

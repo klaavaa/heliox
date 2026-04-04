@@ -37,6 +37,9 @@ namespace hx
         RegisterBitSet callee_saved_registers;
         RegisterBitSet caller_saved_registers;
 
+        bool added_padding_from_caller_save = false;
+        bool added_padding_from_callee_save = false;
+
         std::vector<Register> caller_preserved_registers;
         std::vector<Register> callee_preserved_registers;
     };

@@ -32,7 +32,11 @@ void InstructionGenerator::calculate_live_ranges()
     {
         for (auto& triplet : func.instruction_triplets)
         {
-            if (triplet.dst == -1) continue;
+            if (triplet.dst == -1) 
+            {
+                instruc_count++;
+                continue;
+            }  
             std::vector<virtual_register> used_registers;
             used_registers.push_back(triplet.dst);
             for (auto& i : triplet.items)
@@ -44,7 +48,7 @@ void InstructionGenerator::calculate_live_ranges()
             }
             
             if (triplet.dst >= func.live_ranges.size())
-                func.live_ranges.push_back(LiveRange{triplet.dst, triplet.reg_size, instruc_count, 0});
+                func.live_ranges.push_back(LiveRange{triplet.dst, triplet.reg_size, instruc_count, instruc_count});
 
             for (auto vreg : used_registers)
             {
@@ -87,20 +91,42 @@ void InstructionGenerator::visit_function(uptr<function>& func)
     }
     current_table = global_table->add_table().get();
     
-
-    int parameter_position = 0;
-    for (auto& param : func->params)
-    {
-        current_table->add_variable_symbol(param->var_identifier->name,
-                param->var_type, parameter_position, true);
-        parameter_position++;
-    }
-
     instruction_data.instruction_functions.push_back({func->identifier->name});
 
     InstructionTriplet save_callee(Instruction::SAVE_CALLEE,
             -1, {}, RegisterSize::BIT64);
     emit_instruction(save_callee, 0);
+
+    int parameter_position = 0;
+    for (auto& param : func->params)
+    {
+        RegisterSize reg_size = get_register_size(param->var_type.byte_size);
+        InstructionTriplet triplet = 
+            InstructionTriplet(Instruction::LOAD_PARAM, 
+                    current_virtual_register,
+                    {Item{ItemType::PARAMETER_INDEX, parameter_position}},
+                    reg_size);
+
+        effective_register = current_virtual_register;
+        effective_register_size = reg_size;
+        emit_instruction(triplet);
+
+        InstructionTriplet store = 
+            InstructionTriplet(Instruction::STORE, 
+                    current_virtual_register,
+                    {Item{ItemType::VIRTUAL_REGISTER, effective_register}},
+                    reg_size);
+        
+        effective_register = current_virtual_register;
+        emit_instruction(store);
+
+        current_table->add_variable_symbol(param->var_identifier->name,
+                param->var_type, effective_register, false);
+                
+        parameter_position++;
+    }
+
+
 
     for (auto& stat : func->statements)
     {
@@ -117,6 +143,7 @@ void InstructionGenerator::visit_int_literal(uptr<int_literal_expr>& int_literal
                 effective_register_size);
     effective_register = current_virtual_register;
     emit_instruction(triplet);
+
 }
 void InstructionGenerator::visit_string_literal(uptr<string_literal_expr>& string_literal)  
 {
@@ -133,7 +160,7 @@ void InstructionGenerator::visit_string_literal(uptr<string_literal_expr>& strin
 void InstructionGenerator::visit_identifier_literal(uptr<identifier_literal_expr>& identifier_literal) 
 {
     
-    VariableSymbol sym = current_table->find_variable_symbol(identifier_literal->name);
+    VariableSymbol& sym = current_table->find_variable_symbol(identifier_literal->name);
     if (sym.is_parameter)
     {
         RegisterSize reg_size = get_register_size(sym.type_info.byte_size);
@@ -146,6 +173,10 @@ void InstructionGenerator::visit_identifier_literal(uptr<identifier_literal_expr
         effective_register = current_virtual_register;
         effective_register_size = reg_size;
         emit_instruction(triplet);
+
+        sym.is_parameter = false;
+        sym.vr = effective_register;
+
     }
     else
     {
@@ -315,9 +346,8 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         InstructionTriplet(Instruction::CALL, 
                 current_virtual_register,
                 parameter_virtual_registers,
-                get_register_size(s.return_type.byte_size));
+                RegisterSize::BIT64);
     effective_register = current_virtual_register;
-    effective_register_size = triplet.reg_size;
     emit_instruction(triplet);
 
     if (did_allignment)
@@ -330,12 +360,16 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         );
         emit_instruction(align_triplet, 0);
     }
-
-    InstructionTriplet store(Instruction::STORE,
-            current_virtual_register,
-            {Item{ItemType::VIRTUAL_REGISTER, effective_register}}, effective_register_size);
-    effective_register = current_virtual_register;
-    emit_instruction(store);
+    
+    if (s.return_type.byte_size != 0)
+    {
+        effective_register_size = get_register_size(s.return_type.byte_size);
+        InstructionTriplet store(Instruction::STORE,
+                current_virtual_register,
+                {Item{ItemType::VIRTUAL_REGISTER, effective_register}}, effective_register_size);
+        effective_register = current_virtual_register;
+        emit_instruction(store);
+    }
     InstructionTriplet load_caller(Instruction::LOAD_CALLER,
             -1,
             {},
@@ -384,24 +418,34 @@ void InstructionGenerator::visit_variable_declaration(uptr<variable_declaration_
 }
 void InstructionGenerator::visit_variable_definition(uptr<variable_definition_statement>& variable_definition) 
 {
-
     visit_variable_declaration(variable_definition->declaration);
 
-    VariableSymbol sym = current_table->find_variable_symbol(
+    VariableSymbol& sym = current_table->find_variable_symbol(
             variable_definition->declaration->var_identifier->name);
     
     effective_register_size = get_register_size(sym.type_info.byte_size);
+
     visit_expression(variable_definition->definition);
-    
+    sym.vr = current_virtual_register;
+
+    RegisterSize expr_reg_size = effective_register_size;
     RegisterSize reg_size = get_register_size(sym.type_info.byte_size);
+    if (expr_reg_size != reg_size)
+    {
+       // std::println("REG SIZE DOESNT MATCH FOR EXPR FOR SYMBOL {}",
+       //         variable_definition->declaration->var_identifier->name);
+       // exit(-1);
+    }
     InstructionTriplet triplet = 
         InstructionTriplet(Instruction::STORE, 
                            current_virtual_register,
                            {Item{ItemType::VIRTUAL_REGISTER, effective_register}},
                            reg_size);
     
-    std::println("DECLARING SYMBOL {} {}", variable_definition->declaration->var_identifier->name, current_virtual_register);
+    effective_register = current_virtual_register;
     emit_instruction(triplet);
+    std::println("DECLARED SYMBOL {} r{}",
+            variable_definition->declaration->var_identifier->name, effective_register);
 }
 void InstructionGenerator::visit_conditional(uptr<conditional_statement>& conditional) 
 {

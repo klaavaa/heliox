@@ -33,13 +33,12 @@ void SymbolTable::add_function_symbol(std::string name, type_data return_type, c
     function_symbols.emplace(name, FunctionSymbol{return_type, param_types, id});
 }
 
-VariableSymbol SymbolTable::find_variable_symbol(const std::string& name) 
+VariableSymbol& SymbolTable::find_variable_symbol(const std::string& name) 
 {
 
     if (variable_symbols.count(name))
     {
-        VariableSymbol sym = variable_symbols.at(name);
-        return sym;
+        return variable_symbols.at(name);
     }
     if (parent != nullptr )
     {
@@ -50,7 +49,7 @@ VariableSymbol SymbolTable::find_variable_symbol(const std::string& name)
     exit(-1);
 }
 
-FunctionSymbol SymbolTable::find_function_symbol(const std::string& name) 
+FunctionSymbol& SymbolTable::find_function_symbol(const std::string& name) 
 {
     if (parent != nullptr )
     {
@@ -58,8 +57,7 @@ FunctionSymbol SymbolTable::find_function_symbol(const std::string& name)
     }
     if (function_symbols.count(name))
     {
-        FunctionSymbol sym = function_symbols.at(name);
-        return sym;
+        return function_symbols.at(name);
     }
 
     //TODO ERROR

@@ -58,7 +58,6 @@ void LinearScanRegisterAllocation::scan()
                         const auto& item = triplet.items[i];
                         VirtualRegisterLocation location; 
                         location.live_range = *std::find_if(instruction_function.live_ranges.begin(), instruction_function.live_ranges.end(), [item](LiveRange lr){ return lr.reg == item.value; });
-                        //location.live_range.reg = item.value;
                         location.allocated_register = integer_arguments_registers[i-1];
                         (*function_data_info_map)[fname].location_map[item.value] = location;
                         reserved_active.push_back(location);
@@ -88,6 +87,7 @@ void LinearScanRegisterAllocation::scan()
                     }
                     (*function_data_info_map)[fname].location_map[triplet.dst] = location;
                     reserved_active.push_back(location);
+                    std::println("AKJLKJD {}", register_size_to_prefix(location.live_range.reg_size));
                     break;
                     }
                 case Instruction::ZERO_DX:
@@ -130,7 +130,6 @@ void LinearScanRegisterAllocation::scan()
             for (auto& loc : reserved_active)
             {
                 if (loc.is_spilled) continue;
-                if (loc.live_range.first_use > live_range.last_use) continue;
                 free_registers.reset(loc.allocated_register);
             }
 

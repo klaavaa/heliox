@@ -39,8 +39,8 @@ namespace hx
         void add_variable_symbol(std::string name, type_data type_info, virtual_register vr, bool is_parameter = false);
         void add_function_symbol(std::string name, type_data return_type, const std::vector<type_data>& parameter_types);
 
-        VariableSymbol find_variable_symbol(const std::string& name);
-        FunctionSymbol find_function_symbol(const std::string& name);
+        VariableSymbol& find_variable_symbol(const std::string& name);
+        FunctionSymbol& find_function_symbol(const std::string& name);
          
         SymbolTable* get_parent();
 

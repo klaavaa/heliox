@@ -92,7 +92,7 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
     case Instruction::LOAD_INT:
         return std::format("\tmov {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0]));
     case Instruction::LOAD_PARAM:
-        return "";
+        return std::format("");
     case Instruction::LOAD_STRING:
         return std::format("\tlea {}, [rel {}]\n", get_location(triplet.dst), get_location(triplet.items[0]));
     case Instruction::RETURN:
@@ -113,16 +113,27 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
             base += std::format("\tpush {}\n", register_to_string(reg, RegisterSize::BIT64)); 
             caller_preserved_registers.push_back(reg);
         }
+        if (caller_preserved_registers.size() % 2 == 1)
+        {
+            added_padding_from_caller_save = true;
+            base += std::format("\tsub rsp, 8\n");
+        }
         return base;
         }
     case Instruction::LOAD_CALLER:
         {
             std::string base = "";
+            if (added_padding_from_caller_save)
+            {
+                base += std::format("\tadd rsp, 8\n");
+                added_padding_from_caller_save = false;
+            }
             for (int i = caller_preserved_registers.size()-1; i >= 0; i--)
             {
                 const auto reg = caller_preserved_registers[i];
                 base += std::format("\tpop {}\n", register_to_string(reg, RegisterSize::BIT64)); 
             }
+
             caller_preserved_registers.clear();
             return base;
         }
@@ -137,11 +148,21 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
                 base += std::format("\tpush {}\n", register_to_string(reg, RegisterSize::BIT64));
                 callee_preserved_registers.push_back(reg);
             }
+            if (callee_preserved_registers.size() % 2 == 1)
+            {
+                base += std::format("\tsub rsp, 8\n");
+                added_padding_from_callee_save = true;
+            }
             return base;
         }
     case Instruction::LOAD_CALLEE:
         {
             std::string base = "";
+            if (added_padding_from_callee_save)
+            {
+                base += std::format("\tadd rsp, 8\n");
+                added_padding_from_callee_save = false;
+            }
             for (int i = callee_preserved_registers.size()-1; i >= 0; i--)
             {
                 const auto reg = callee_preserved_registers[i];
@@ -187,9 +208,13 @@ std::string CodeGeneration::get_location(virtual_register vr)
     if (location.is_spilled)
     {
         if (location.stack_position < 0)
-            return std::format("[rbp - {}]", -location.stack_position);
+            return std::format("{}[rbp - {}]", 
+                    register_size_to_prefix(location.live_range.reg_size),
+                    -location.stack_position);
         else 
-            return std::format("[rbp + {}]", location.stack_position);
+            return std::format("{}[rbp + {}]",
+                    register_size_to_prefix(location.live_range.reg_size),
+                    location.stack_position);
     }
     return register_to_string(location.allocated_register, location.live_range.reg_size);
 
@@ -201,11 +226,8 @@ RegisterBitSet CodeGeneration::get_reserved_registers_at(int64_t position)
     for (const auto [vr, loc]  : current_func_vr_locations)
     {
         if (loc.is_spilled) continue;
-        if (loc.live_range.first_use < position && loc.live_range.last_use > position + 1)
+        if (loc.live_range.first_use < position && loc.live_range.last_use > position)
         {
-            std::println("{} {} {} {}", register_to_string(loc.allocated_register,
-                        RegisterSize::BIT64), loc.live_range.first_use, loc.live_range.last_use,
-                    loc.live_range.reg);
             reserved_registers.set(loc.allocated_register);
         }
     }
