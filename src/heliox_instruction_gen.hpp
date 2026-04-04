@@ -39,6 +39,7 @@ class InstructionGenerator : public Visitor
         InstructionData instruction_data;
         virtual_register current_virtual_register = 0;
         virtual_register effective_register = 0;
+        RegisterSize effective_register_size;
         uint32_t instruction_count = 0; 
         sptr<SymbolTable> global_table;
         SymbolTable* current_table;

@@ -106,11 +106,11 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
     case Instruction::SAVE_CALLER:
         {
         RegisterBitSet reserved_registers = get_reserved_registers_at(triplet.instruc_count)
-                .get_bits_not_in_other(callee_saved_registers);
+                .get_bits_in_other(caller_saved_registers);
         std::string base = "";
         for (const auto reg : reserved_registers.get_available_registers())
         {
-            base += std::format("\tpush {}\n", register_to_string(reg)); 
+            base += std::format("\tpush {}\n", register_to_string(reg, RegisterSize::BIT64)); 
             caller_preserved_registers.push_back(reg);
         }
         return base;
@@ -121,7 +121,7 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
             for (int i = caller_preserved_registers.size()-1; i >= 0; i--)
             {
                 const auto reg = caller_preserved_registers[i];
-                base += std::format("\tpop {}\n", register_to_string(reg)); 
+                base += std::format("\tpop {}\n", register_to_string(reg, RegisterSize::BIT64)); 
             }
             caller_preserved_registers.clear();
             return base;
@@ -130,11 +130,11 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
         {
             std::string base = "";
             RegisterBitSet used_registers = get_function_used_registers();
-            RegisterBitSet to_preserve = used_registers.get_bits_not_in_other(caller_saved_registers);
+            RegisterBitSet to_preserve = used_registers.get_bits_in_other(callee_saved_registers);
             
             for (const auto reg : to_preserve.get_available_registers())
             {
-                base += std::format("\tpush {}\n", register_to_string(reg));
+                base += std::format("\tpush {}\n", register_to_string(reg, RegisterSize::BIT64));
                 callee_preserved_registers.push_back(reg);
             }
             return base;
@@ -145,7 +145,7 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
             for (int i = callee_preserved_registers.size()-1; i >= 0; i--)
             {
                 const auto reg = callee_preserved_registers[i];
-                base += std::format("\tpop {}\n", register_to_string(reg)); 
+                base += std::format("\tpop {}\n", register_to_string(reg, RegisterSize::BIT64)); 
             }
             callee_preserved_registers.clear();
             return base;
@@ -191,8 +191,7 @@ std::string CodeGeneration::get_location(virtual_register vr)
         else 
             return std::format("[rbp + {}]", location.stack_position);
     }
-
-    return register_to_string(location.allocated_register);
+    return register_to_string(location.allocated_register, location.live_range.reg_size);
 
 }
 
@@ -202,9 +201,11 @@ RegisterBitSet CodeGeneration::get_reserved_registers_at(int64_t position)
     for (const auto [vr, loc]  : current_func_vr_locations)
     {
         if (loc.is_spilled) continue;
-        if (loc.live_range.first_use <= position && loc.live_range.last_use > position + 1)
+        if (loc.live_range.first_use < position && loc.live_range.last_use > position + 1)
         {
-            std::println("{} {}: {} -> {}", position, register_to_string(loc.allocated_register), loc.live_range.first_use, loc.live_range.last_use);
+            std::println("{} {} {} {}", register_to_string(loc.allocated_register,
+                        RegisterSize::BIT64), loc.live_range.first_use, loc.live_range.last_use,
+                    loc.live_range.reg);
             reserved_registers.set(loc.allocated_register);
         }
     }

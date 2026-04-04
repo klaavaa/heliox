@@ -46,6 +46,8 @@ struct RegisterBitSet {
     bool test(Register b) const { return bits.test(std::to_underlying(b)); }
     void flip() { bits.flip(); }
     RegisterBitSet get_bits_not_in_other(const RegisterBitSet& other) { return {bits & ~other.bits};}
+    RegisterBitSet get_bits_in_other(const RegisterBitSet& other) { return {bits & other.bits};}
+    
 
     size_t count() const { return bits.count(); }
     Register get_first_available() const 
@@ -59,7 +61,7 @@ struct RegisterBitSet {
     std::vector<Register> get_available_registers()
     {
         std::vector<Register> available_registers; 
-        for (size_t i = 0; i < register_count; i++) 
+        for (int i = 0; i < register_count; i++) 
         {
             if (bits.test(i)) available_registers.push_back(static_cast<Register>(i));
         } 
