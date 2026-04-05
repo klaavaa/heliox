@@ -88,6 +88,8 @@ private:
 
     std::vector<VirtualRegisterLocation> active;
     std::vector<VirtualRegisterLocation> reserved_active;
+    
+    std::vector<virtual_register> vr_must_be_a_register;
 
     RegisterBitSet register_set;
 
