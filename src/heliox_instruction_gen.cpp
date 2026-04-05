@@ -16,7 +16,7 @@ void InstructionGenerator::visit_program(uptr<Program>& prog)
     {
         current_virtual_register = 0;
         effective_register = 0;
-        std::println("-------{}-------", func->identifier->name);
+        //std::println("-------{}-------", func->identifier->name);
         visit_function(func); 
     }
 
@@ -61,7 +61,7 @@ void InstructionGenerator::calculate_live_ranges()
 
         }
     }
-    
+    /* 
     for (auto& func : instruction_data.instruction_functions) 
     {
         for (size_t i = 0; i < func.live_ranges.size(); i++)
@@ -71,13 +71,14 @@ void InstructionGenerator::calculate_live_ranges()
                     func.live_ranges[i].last_use);
         }
     }
+    */
 }
     
 void InstructionGenerator::emit_instruction(InstructionTriplet triplet, uint32_t increment)
 {
     triplet.instruc_count = instruction_count;
     instruction_count ++;
-    print_instruction(triplet);
+    //print_instruction(triplet);
     current_virtual_register += increment;
     instruction_data.instruction_functions.back().instruction_triplets.push_back(triplet);
 }
@@ -444,8 +445,6 @@ void InstructionGenerator::visit_variable_definition(uptr<variable_definition_st
     
     effective_register = current_virtual_register;
     emit_instruction(triplet);
-    std::println("DECLARED SYMBOL {} r{}",
-            variable_definition->declaration->var_identifier->name, effective_register);
 }
 void InstructionGenerator::visit_conditional(uptr<conditional_statement>& conditional) 
 {

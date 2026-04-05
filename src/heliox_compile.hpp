@@ -41,17 +41,18 @@ inline void compile(const std::string& file_path, const std::string& output_path
 
     Lexer lexer = Lexer(text);
     std::vector<Token> tokens = lexer.tokenize();
-    
+
+    /* 
     for (const auto& tok : tokens)
     {
         std::println("{}", get_string_from_token_type(tok.type));
-    }
+    } */
 
     Parser parser = Parser(std::make_unique<Lexer>(lexer));
     uptr<Program> program = parser.parse_program();
     
-    debug_visitor d_visitor;
-    d_visitor.visit_program(program);
+    /*debug_visitor d_visitor;
+    d_visitor.visit_program(program);*/
     sptr<SymbolTable> global_table = std::make_shared<SymbolTable>();
     InstructionGenerator instruction_gen(global_table);
     instruction_gen.visit_program(program);
@@ -62,8 +63,8 @@ inline void compile(const std::string& file_path, const std::string& output_path
 
     CodeGeneration codegen(global_table, linear_scan.function_data_info_map);
     std::string generated_nasm = codegen.generate(instruction_gen.instruction_data);
-    std::println("{}", generated_nasm);
-    create_assembly_file("test", generated_nasm);
+    //std::println("{}", generated_nasm);
+    create_assembly_file(file_path_stripped, generated_nasm);
     /*
     system(string_format("nasm -f elf64 %s.asm -o %s.o",
                 file_path_stripped.c_str(), file_path_stripped.c_str()).c_str());

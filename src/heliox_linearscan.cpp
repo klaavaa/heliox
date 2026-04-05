@@ -113,7 +113,6 @@ void LinearScanRegisterAllocation::scan()
                 case Instruction::MUL:
                 {
                     vr_must_be_a_register.push_back(triplet.dst);
-                    std::println("{} MUST BE REGISTER", triplet.dst);
                     break;
                 }
 
