@@ -21,6 +21,7 @@
 #define HX_PLUS					    	'+'
 #define HX_MINUS						'-'
 #define HX_DIVIDE						'/'
+#define HX_BACKSLASH                    '\\'
 #define HX_STAR					    	'*'
 
 #define HX_EQUALS						'='

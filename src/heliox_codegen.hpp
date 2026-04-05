@@ -24,6 +24,8 @@ namespace hx
         RegisterBitSet get_reserved_registers_at(int64_t position);
         RegisterBitSet get_function_used_registers();
 
+        std::string parse_string(const std::string& str);
+
     private:
         std::string externs;
         std::string data_section;

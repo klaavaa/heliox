@@ -63,6 +63,11 @@ Token Lexer::get_next()
         std::string s;
         while (peek_next() != HX_QUOT_MARK)
         {
+            if (peek_next() == HX_BACKSLASH)
+            {
+                advance();
+                s += m_cur_char;    
+            }
             if (peek_next() == -1)
             {
                 Error error;

@@ -50,9 +50,52 @@ void CodeGeneration::generate_data_section()
     // strings
     for (auto [index, string] :  global_table->get_string_table())
     {
-        data_section += std::format("\t@str{} db \"{}\", 0\n", index, string);
+        std::string parsed_string = parse_string(string);
+        data_section += std::format("\t@str{} db {}, 0\n", index, parsed_string);
     }
 
+}
+
+std::string CodeGeneration::parse_string(const std::string& str)
+{
+    std::string parsed_string = "\"";
+    bool escaped = false;
+    for (size_t i = 0; i < str.size(); i++)
+    {
+        if (str[i] == '\\')
+        {
+            i++;
+            escaped = true;
+
+            switch (str[i])
+            {
+            case 'n':
+                parsed_string += "\", 10";
+                continue;
+            case 't':
+                parsed_string += "\", 9";
+                continue;
+            case '0':
+                parsed_string += "\", 0";
+                continue;
+            default:
+                parsed_string += str[i];
+                escaped = false;
+                continue;
+            }
+            
+        }
+        if (escaped)
+        {
+            parsed_string += ",\"";
+            escaped = false;
+        }
+        parsed_string += str[i];
+        
+    }
+    if (!escaped)
+        parsed_string += '"';
+    return parsed_string;
 }
 
 std::string CodeGeneration::emit_instruction_function(InstructionFunction& instruc_func)
