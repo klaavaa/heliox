@@ -63,7 +63,7 @@ inline void compile(const std::string& file_path, const std::string& output_path
 
     CodeGeneration codegen(global_table, linear_scan.function_data_info_map);
     std::string generated_nasm = codegen.generate(instruction_gen.instruction_data);
-    //std::println("{}", generated_nasm);
+    std::println("{}", generated_nasm);
     create_assembly_file(file_path_stripped, generated_nasm);
     /*
     system(string_format("nasm -f elf64 %s.asm -o %s.o",

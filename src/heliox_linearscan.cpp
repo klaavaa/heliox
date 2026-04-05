@@ -18,7 +18,7 @@ LinearScanRegisterAllocation::LinearScanRegisterAllocation(InstructionData instr
     //register_set.set(Register::R10);
     //register_set.set(Register::R11);
     //register_set.set(Register::R12);
-    register_set.set(Register::R13);
+    //register_set.set(Register::R13);
     register_set.set(Register::R14);
     register_set.set(Register::R15);
 }
@@ -120,11 +120,14 @@ void LinearScanRegisterAllocation::scan()
                     break;
             }
         }
-
+        
         // do the actual scan 
         local_stack_offset = 0;
         for (const auto& live_range : instruction_function.live_ranges)
         {
+            std::sort(reserved_active.begin(), reserved_active.end(),
+                    [](VirtualRegisterLocation a, VirtualRegisterLocation b) { return a.live_range.last_use < b.live_range.last_use; });
+            std::sort(active.begin(), active.end(), [](VirtualRegisterLocation a, VirtualRegisterLocation b) { return a.live_range.last_use < b.live_range.last_use; });
             if (live_range.reg == -1) continue;
             if ((*function_data_info_map)[fname].location_map.contains(live_range.reg)) continue;
 
@@ -153,7 +156,6 @@ void LinearScanRegisterAllocation::scan()
                 location.allocated_register = allocated_register;
                 (*function_data_info_map)[fname].location_map[live_range.reg] = location;
                 active.push_back(location);
-                std::sort(active.begin(), active.end(), [](VirtualRegisterLocation a, VirtualRegisterLocation b) { return a.live_range.last_use < b.live_range.last_use; });
             }
         }
         
@@ -168,7 +170,7 @@ void LinearScanRegisterAllocation::expire_old_intervals(LiveRange i)
     for (auto it = active.begin(); it != active.end(); )
     {
         VirtualRegisterLocation& location = *it;
-        if (location.live_range.last_use >= i.first_use)
+        if (location.live_range.last_use > i.first_use)
         {
             return;
         }
@@ -177,7 +179,7 @@ void LinearScanRegisterAllocation::expire_old_intervals(LiveRange i)
     for (auto it = reserved_active.begin(); it != reserved_active.end();)
     {
         VirtualRegisterLocation& location = *it;
-        if (location.live_range.last_use >= i.first_use)
+        if (location.live_range.last_use > i.first_use)
         {
             return;
         }
