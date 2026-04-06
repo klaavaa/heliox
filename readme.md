@@ -1,34 +1,42 @@
-# Heliox programming language (rework)
+# Heliox Programming Language
 
-This project is a work in progress and was made by me to learn how compilers work.
+**Heliox** is a work-in-progress programming language created with the intention of learning how compilers work.  
+> ⚠️ Note: The project is still very much in the early stages of development
 
-Currently, the code generation is not finished.
+---
 
+## Usage
 
-USAGE:
+Before using Heliox, make sure to read the `REQUIREMENTS` file for necessary tools.
 
-Read the REQUIREMENTS for the requirements to use this program.
+### Build and Run
 
-How to build the project (the binary is found in the generated build folder):
-LINUX:
+After building, the compiled binary will be found in the `build` folder.
+
+#### Linux
+```bash
+# Build the project
 ./build.sh
 
-WINDOWS:
-./build.bat
-
-How to generate a binary:
-
-LINUX:
+# Generate a binary from a heliox file
 ./heliox [file].hx
 nasm -felf64 [file].asm -o [file].o
-gcc --no-pie [file].o -o [file]
-run the file
-./[file]
+gcc -no-pie [file].o -o [file]
 
-WINDOWS:
+# Run the binary
+./[file]
+```
+
+#### Windows
+```bash
+# Build the project
+./build.bat
+
+# Generate a binary from a heliox file
 ./heliox.exe [file].hx
 nasm -fwin64 [file].asm -o [file].o
-gcc --no-pie [file].o -o [file].exe
-run the file
-./[file].exe
+gcc -no-pie [file].o -o [file].exe
 
+# Run the binary
+./[file].exe
+```
