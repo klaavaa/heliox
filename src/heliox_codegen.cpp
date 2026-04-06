@@ -110,6 +110,9 @@ std::string CodeGeneration::emit_instruction_function(InstructionFunction& instr
     if (stack_allocated_memory != 0)
         body += std::format("\tsub rsp, {}\n", -function_data_info_map->at(instruc_func.name).stack_allocated_memory);
 
+    // callee saved stuff
+    callee_preserved_registers.clear();
+    added_padding_from_callee_save = false;
     for (auto& triplet : instruc_func.instruction_triplets)
     {
         body += emit_instruction_triplet(triplet);
@@ -150,6 +153,21 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
         return std::format("\txor {}, {}\n", get_location(triplet.dst), get_location(triplet.dst));
     case Instruction::IS_EQUAL:
         return std::format("\tcmp {}, {}\n\tsete {}\n", get_location(triplet.dst), get_location(triplet.items[0]), 
+                get_location(triplet.dst, RegisterSize::BIT8));
+    case Instruction::NOT_EQUAL:
+        return std::format("\tcmp {}, {}\n\tsetne {}\n", get_location(triplet.dst), get_location(triplet.items[0]), 
+                get_location(triplet.dst, RegisterSize::BIT8));
+    case Instruction::GREATER_THAN:
+        return std::format("\tcmp {}, {}\n\tsetg {}\n", get_location(triplet.dst), get_location(triplet.items[0]), 
+                get_location(triplet.dst, RegisterSize::BIT8));
+    case Instruction::GREATER_OR_EQUAL_THAN:
+        return std::format("\tcmp {}, {}\n\tsetge {}\n", get_location(triplet.dst), get_location(triplet.items[0]), 
+                get_location(triplet.dst, RegisterSize::BIT8));
+    case Instruction::LESS_THAN:
+        return std::format("\tcmp {}, {}\n\tsetl {}\n", get_location(triplet.dst), get_location(triplet.items[0]), 
+                get_location(triplet.dst, RegisterSize::BIT8));
+    case Instruction::LESS_OR_EQUAL_THAN:
+        return std::format("\tcmp {}, {}\n\tsetle {}\n", get_location(triplet.dst), get_location(triplet.items[0]), 
                 get_location(triplet.dst, RegisterSize::BIT8));
     case Instruction::IF:
         return std::format("\ttest {}, {}\n\tjz .ELSE{}\n", get_location(triplet.items[1]), get_location(triplet.items[1]), 
@@ -216,14 +234,13 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
             if (added_padding_from_callee_save)
             {
                 base += std::format("\tadd rsp, 8\n");
-                added_padding_from_callee_save = false;
             }
+
             for (int i = callee_preserved_registers.size()-1; i >= 0; i--)
             {
                 const auto reg = callee_preserved_registers[i];
                 base += std::format("\tpop {}\n", register_to_string(reg, RegisterSize::BIT64)); 
             }
-            callee_preserved_registers.clear();
             return base;
         }
     default:

@@ -1,5 +1,6 @@
 import os
 import subprocess
+from timeit import default_timer as timer
 
 class bcolors:
     HEADER = '\033[95m'
@@ -32,23 +33,51 @@ def main():
         "expression1" : 15,
         "function_arguments1" : 36,
         "print" : 1,
-        "conditional1" : 9
+        "conditional1" : 9,
+        "conditional2" : 0,
+        "factorial": 0,
+        "fibonacci": 0
+    
         }
     
     expected_outputs = {
         "print": "argc: 1\n\tthis is the number 10 -> 10",
-        "operators1": "div: 14 / 3 = 42\nmul: 4 * 3 = 12\nsub: 12 - 3 = 9\nadd: 14 + 9 = 23\n"
+        "operators1": "div: 14 / 3 = 42\nmul: 4 * 3 = 12\nsub: 12 - 3 = 9\nadd: 14 + 9 = 23\n",
+        "conditional2" : "4 != 8\n4 < 8\n4 <= 8\n",
+        "factorial": "479001600",
+        "fibonacci": "75025"
     }
-            
     
+    total_compile_time = 0
+    total_execution_time = 0
+    max_compile_time = [0, "no_test"]
+    max_execution_time = [0, "no_test"]
+
     for test_path in tests:
         test, ext = os.path.splitext(test_path)
         if ext != ".hx": continue
+        compile_time_start = timer()
         if not compile_test(test):
             print(f"{bcolors.FAIL}TEST \"{test}\" FAILED{bcolors.ENDC} -- FAILED TO COMPILE TEST")
             continue
+        compile_time_end = timer()
+        compile_time = compile_time_end - compile_time_start 
+        if compile_time > max_compile_time[0]:
+            max_compile_time[0] = compile_time
+            max_compile_time[1] = test
+        total_compile_time += compile_time
 
+        execution_time_start = timer()
         output = subprocess.run([f"./{test}"], stdout=subprocess.PIPE)
+        execution_time_end = timer()
+        execution_time = execution_time_end - execution_time_start
+
+        if execution_time > max_execution_time[0]:
+            max_execution_time[0] = execution_time
+            max_execution_time[1] = test
+
+        total_execution_time += execution_time 
+
         if output.returncode != expected_values[test]:
             print(f"{bcolors.FAIL}TEST \"{test}\" FAILED{bcolors.ENDC} -- {output.returncode} did not equal {expected_values[test]}")
             continue 
@@ -61,6 +90,13 @@ def main():
         ext = os.path.splitext(file)[1]
         if ext != ".hx":
             os.remove(file)
-    
+    avg_compile_time = round(total_compile_time / len(tests) * 1000.0, 0)
+    avg_execution_time = round(total_execution_time / len(tests) * 1000.0, 0 )
+    max_compile_time[0] = round(max_compile_time[0] * 1000.0, 0)
+    max_execution_time[0] = round(max_execution_time[0] * 1000.0, 0)
+    print(f"avg compile time: {avg_compile_time} ms\navg execution time: {avg_execution_time} ms")
+    print(f"max compile time: {max_compile_time[0]} ms at \"{max_compile_time[1]}\"")
+    print(f"max execution time: {max_execution_time[0]} ms at \"{max_execution_time[1]}\"")
+
 if __name__ == '__main__':
     main()

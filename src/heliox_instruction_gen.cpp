@@ -269,6 +269,21 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
         case TokenType::DOUBLE_EQU:
             instruc = Instruction::IS_EQUAL;
             break;
+        case TokenType::NEQU:
+            instruc = Instruction::NOT_EQUAL;
+            break;
+        case TokenType::GT:
+            instruc = Instruction::GREATER_THAN;
+            break;
+        case TokenType::GTE:
+            instruc = Instruction::GREATER_OR_EQUAL_THAN;
+            break;
+        case TokenType::LT:
+            instruc = Instruction::LESS_THAN;
+            break;
+        case TokenType::LTE:
+            instruc = Instruction::LESS_OR_EQUAL_THAN;
+            break;
         default:
             //TODO IMPLEMENT MORE
             std::println("ERROR: UNKNOWN BINARY OPERATION");

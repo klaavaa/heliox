@@ -182,6 +182,11 @@ enum class Instruction
     MUL,
 
     IS_EQUAL,
+    NOT_EQUAL,
+    GREATER_THAN,
+    GREATER_OR_EQUAL_THAN,
+    LESS_THAN,
+    LESS_OR_EQUAL_THAN,
 
     RETURN,
     
@@ -392,7 +397,26 @@ inline void print_instruction(const InstructionTriplet& triplet)
             std::println("{} CEQU  r{} {}", prefix, triplet.dst, 
                     triplet.items[0].get_string());
             break;
-
+        case Instruction::NOT_EQUAL:
+            std::println("{} CNEQU r{} {}", prefix, triplet.dst, 
+                    triplet.items[0].get_string());
+            break;
+        case Instruction::GREATER_THAN:
+            std::println("{} CGT   r{} {}", prefix, triplet.dst, 
+                    triplet.items[0].get_string());
+            break;
+        case Instruction::GREATER_OR_EQUAL_THAN:
+            std::println("{} CGTE  r{} {}", prefix, triplet.dst, 
+                    triplet.items[0].get_string());
+            break;
+        case Instruction::LESS_THAN:
+            std::println("{} CLT   r{} {}", prefix, triplet.dst, 
+                    triplet.items[0].get_string());
+            break;
+        case Instruction::LESS_OR_EQUAL_THAN:
+            std::println("{} CLTE  r{} {}", prefix, triplet.dst, 
+                    triplet.items[0].get_string());
+            break;
 
         case Instruction::STORE:
             std::println("{} STORE r{} {}", prefix,
