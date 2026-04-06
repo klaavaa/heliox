@@ -13,11 +13,11 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 def compile_test(test: str) -> bool:
-    if subprocess.run([f"../build/heliox",  f"{test}.hx"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
+    if subprocess.run(["../build/heliox",  f"{test}.hx"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
         return False
-    if os.system(f"nasm -felf64 {test}.asm -o {test}.o") != 0: 
+    if subprocess.run(["nasm", "-felf64", f"{test}.asm", "-o", f"{test}.o"]).returncode != 0: 
         return False
-    if os.system(f"gcc -no-pie {test}.o -o {test}") != 0:
+    if subprocess.run(["gcc", "-no-pie", f"{test}.o", "-o", f"{test}"]).returncode != 0:
         return False
     return True
 
@@ -30,9 +30,13 @@ def main():
         "nested_calls1" : 12,
         "nested_calls2" : 9,
         "expression1" : 15,
-        "function_arguments1" : 36
+        "function_arguments1" : 36,
+        "print" : 1
         }
-
+    
+    expected_outputs = {
+        "print": "argc: 1\n\tthis is the number 10 -> 10"
+    }
             
     
     for test_path in tests:
@@ -42,12 +46,14 @@ def main():
             print(f"{bcolors.FAIL}TEST \"{test}\" FAILED{bcolors.ENDC} -- FAILED TO COMPILE TEST")
             continue
 
-        r = subprocess.run([f"./{test}"], stdout=subprocess.DEVNULL)
+        output = subprocess.run([f"./{test}"], stdout=subprocess.PIPE)
 
-        if r.returncode != expected_values[test]:
-            print(f"{bcolors.FAIL}TEST \"{test}\" FAILED{bcolors.ENDC} -- {r.returncode} did not equal {expected_values[test]}")
+        if output.returncode != expected_values[test]:
+            print(f"{bcolors.FAIL}TEST \"{test}\" FAILED{bcolors.ENDC} -- {output.returncode} did not equal {expected_values[test]}")
             continue 
-        
+        if test in expected_outputs: 
+              if expected_outputs[test] != output.stdout.decode():
+                  print(f"{bcolors.FAIL}TEST \"{test}\" FAILED{bcolors.ENDC} -- output: \"{output.stdout.decode()}\" did not equal \"{expected_outputs[test]}\"")
         print(f"{bcolors.OKGREEN}TEST \"{test}\" PASSED{bcolors.ENDC}")
     
     for file in os.listdir("."):
