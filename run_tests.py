@@ -26,7 +26,7 @@ def main():
     tests = os.listdir(".")
 
     expected_values = {
-        "example" : 23,
+        "operators1" : 23,
         "nested_calls1" : 12,
         "nested_calls2" : 9,
         "expression1" : 15,
@@ -35,7 +35,8 @@ def main():
         }
     
     expected_outputs = {
-        "print": "argc: 1\n\tthis is the number 10 -> 10"
+        "print": "argc: 1\n\tthis is the number 10 -> 10",
+        "operators1": "div: 14 / 3 = 42\nmul: 4 * 3 = 12\nsub: 12 - 3 = 9\nadd: 14 + 9 = 23\n"
     }
             
     
@@ -47,13 +48,12 @@ def main():
             continue
 
         output = subprocess.run([f"./{test}"], stdout=subprocess.PIPE)
-
         if output.returncode != expected_values[test]:
             print(f"{bcolors.FAIL}TEST \"{test}\" FAILED{bcolors.ENDC} -- {output.returncode} did not equal {expected_values[test]}")
             continue 
         if test in expected_outputs: 
               if expected_outputs[test] != output.stdout.decode():
-                  print(f"{bcolors.FAIL}TEST \"{test}\" FAILED{bcolors.ENDC} -- output: \"{output.stdout.decode()}\" did not equal \"{expected_outputs[test]}\"")
+                  print(f"{bcolors.FAIL}TEST \"{test}\" FAILED{bcolors.ENDC} \n\toutput: \n{output.stdout.decode()}\n\tdid not equal\n{expected_outputs[test]}")
         print(f"{bcolors.OKGREEN}TEST \"{test}\" PASSED{bcolors.ENDC}")
     
     for file in os.listdir("."):
