@@ -197,6 +197,8 @@ void LinearScanRegisterAllocation::expire_old_intervals(LiveRange i)
 
 void LinearScanRegisterAllocation::spill_at_interval(LiveRange i, const std::string& fname)
 {
+    // this segment is the most disguisting code i have ever written
+    // ----------------------------------------------------------------- //
     bool must_be_register = std::find_if(vr_must_be_a_register.begin(),
             vr_must_be_a_register.end(), 
             [i](virtual_register vr)
@@ -226,7 +228,7 @@ void LinearScanRegisterAllocation::spill_at_interval(LiveRange i, const std::str
                 return false;
             }
             ) != one_vr_must_be_a_register.end() ? true : false);
-;
+    // ----------------------------------------------------------------- //
 
     VirtualRegisterLocation& spill = active.back();
     if (must_be_register || spill.live_range.last_use > i.last_use)
