@@ -64,19 +64,21 @@ std::string CodeGeneration::parse_string(const std::string& str)
     {
         if (str[i] == '\\')
         {
+            if (!escaped)
+                parsed_string += '"';
             i++;
             escaped = true;
 
             switch (str[i])
             {
             case 'n':
-                parsed_string += "\", 10";
+                parsed_string += ", 10";
                 continue;
             case 't':
-                parsed_string += "\", 9";
+                parsed_string += ", 9";
                 continue;
             case '0':
-                parsed_string += "\", 0";
+                parsed_string += ", 0";
                 continue;
             default:
                 parsed_string += str[i];
