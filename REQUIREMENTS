@@ -1,0 +1,11 @@
+REQUIREMENTS:
+NASM (netwide assembler)
+gcc or other linker
+
+x64 bit arcitechture.
+Currently only supports the System V calling convention, which is not used by
+Windows, so libc functions such as printf will not work on Windows.
+
+The program generates nasm x64 assembly that can be linked with gcc or other way.
+
+
