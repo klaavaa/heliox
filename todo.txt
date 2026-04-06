@@ -1,8 +1,4 @@
 TODO LIST:
-
--- FIX mem - mem instructions
--- ADD control statements (if else while)
--- make IR more general (remove things like zero rdx or save caller registers,
-    should be done automatically)
--- ^^ also needs (heavy?) rework of linearscan
+    - AFTER WHILE AND POSSIBLY OTHER STATEMENTS, REWRITE LINEARSCAN
+    AND TWEAKS TO INSTRUCTION GENERATOR [NUMBER 1 PRIO]
 
