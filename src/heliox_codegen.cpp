@@ -148,6 +148,16 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
         return std::format("\tcall {}\n", global_table->get_function_name_from_id(triplet.items[0].value));
     case Instruction::ZERO_DX:
         return std::format("\txor {}, {}\n", get_location(triplet.dst), get_location(triplet.dst));
+    case Instruction::IS_EQUAL:
+        return std::format("\tcmp {}, {}\n\tsete {}\n", get_location(triplet.dst), get_location(triplet.items[0]), 
+                get_location(triplet.dst, RegisterSize::BIT8));
+    case Instruction::IF:
+        return std::format("\ttest {}, {}\n\tjz .ELSE{}\n", get_location(triplet.items[1]), get_location(triplet.items[1]), 
+                get_location(triplet.items[0]));
+    case Instruction::ELSE:
+        return std::format("\tjmp .IFEND{}\n.ELSE{}:\n", get_location(triplet.items[0]), get_location(triplet.items[0]));
+    case Instruction::ENDIF:
+        return std::format(".IFEND{}:\n", get_location(triplet.items[0]));
     case Instruction::SAVE_CALLER:
         {
         RegisterBitSet reserved_registers = get_reserved_registers_at(triplet.instruc_count)

@@ -37,6 +37,7 @@ private:
     statement parse_type_statement(); // variable_declaration or variable_defenition 
     statement parse_keyword_statement();
     uptr<return_statement> parse_return_statement();
+    uptr<conditional_statement> parse_conditional_statement();
 
 	void eat(TokenType token_type);
      

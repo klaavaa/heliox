@@ -31,7 +31,8 @@ def main():
         "nested_calls2" : 9,
         "expression1" : 15,
         "function_arguments1" : 36,
-        "print" : 1
+        "print" : 1,
+        "conditional1" : 9
         }
     
     expected_outputs = {

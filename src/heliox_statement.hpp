@@ -6,6 +6,7 @@
 #include "heliox_types.hpp"
 #include "heliox_expression.hpp"
 #include <variant>
+#include <optional>
 
 namespace hx {
 

@@ -181,8 +181,13 @@ enum class Instruction
     DIV,
     MUL,
 
-    RETURN,
+    IS_EQUAL,
 
+    RETURN,
+    
+    IF,
+    ELSE,
+    ENDIF,
 };
 
 using virtual_register = int64_t;
@@ -383,6 +388,12 @@ inline void print_instruction(const InstructionTriplet& triplet)
                     triplet.items[0].get_string());
             break;
         
+        case Instruction::IS_EQUAL:
+            std::println("{} CEQU  r{} {}", prefix, triplet.dst, 
+                    triplet.items[0].get_string());
+            break;
+
+
         case Instruction::STORE:
             std::println("{} STORE r{} {}", prefix,
                     triplet.dst, triplet.items[0].get_string());  
@@ -415,6 +426,17 @@ inline void print_instruction(const InstructionTriplet& triplet)
         case Instruction::LOAD_CALLEE:
             std::println("{} LOAD_CALLEE", prefix);  
             break;
+
+        case Instruction::IF:
+            std::println("{} IF    r{} {}", prefix, triplet.items[1].value, triplet.items[0].value);  
+            break;
+        case Instruction::ELSE:
+            std::println("{} ELSE   {}", prefix, triplet.items[0].value);  
+            break;
+        case Instruction::ENDIF:
+            std::println("{} ENDIF  {}", prefix, triplet.items[0].value);  
+            break;
+
       default:
         std::println("Instruction not implemented");
     }

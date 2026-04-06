@@ -266,6 +266,9 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
         case TokenType::MULTIPLY:
             instruc = Instruction::MUL;
             break;
+        case TokenType::DOUBLE_EQU:
+            instruc = Instruction::IS_EQUAL;
+            break;
         default:
             //TODO IMPLEMENT MORE
             std::println("ERROR: UNKNOWN BINARY OPERATION");
@@ -479,9 +482,34 @@ void InstructionGenerator::visit_variable_definition(uptr<variable_definition_st
 void InstructionGenerator::visit_conditional(uptr<conditional_statement>& conditional) 
 {
     visit_expression(conditional->condition);
+    // label
+    InstructionTriplet if_begin(
+        Instruction::IF,
+        -1,
+        {Item{ItemType::IMMEDIATE_VALUE, if_label_id}, Item{ItemType::VIRTUAL_REGISTER, effective_register}},
+        RegisterSize::BIT0);
+    emit_instruction(if_begin, 0);     
+
     visit_statement(conditional->then_stat);
+    
+    InstructionTriplet else_begin(
+        Instruction::ELSE,
+        -1,
+        {Item{ItemType::IMMEDIATE_VALUE, if_label_id}},
+        RegisterSize::BIT0);
+
+    emit_instruction(else_begin, 0);     
+    // label
     visit_statement(conditional->else_stat);
 
+    InstructionTriplet end_if(
+        Instruction::ENDIF,
+        -1,
+        {Item{ItemType::IMMEDIATE_VALUE, if_label_id}},
+        RegisterSize::BIT0);
+
+    emit_instruction(end_if, 0);     
+    if_label_id++;
 }
 void InstructionGenerator::visit_while(uptr<while_statement>& while_s) 
 {

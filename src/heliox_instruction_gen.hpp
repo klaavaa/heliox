@@ -43,7 +43,8 @@ class InstructionGenerator : public Visitor
         uint32_t instruction_count = 0; 
         sptr<SymbolTable> global_table;
         SymbolTable* current_table;
-
+        
+        uint32_t if_label_id = 0;
 };
 
 }

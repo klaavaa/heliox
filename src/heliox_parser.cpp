@@ -277,7 +277,8 @@ statement Parser::parse_keyword_statement()
     {
         case KeyWord::RETURN:
             return parse_return_statement();
-           
+        case KeyWord::IF: 
+            return parse_conditional_statement();
     default:
         println("Unexpected keyword '{}' at parser::parse_keyword_statement",
                 get_string_from_kword(kw));
@@ -291,6 +292,23 @@ uptr<return_statement> Parser::parse_return_statement()
     expression expr = parse_expression();
     eat(TokenType::SEMICOLON);
     return std::make_unique<return_statement>(std::move(expr));
+}
+
+uptr<conditional_statement> Parser::parse_conditional_statement()
+{
+    eat(TokenType::KEYWORD);
+    eat(TokenType::L_PAREN);
+    expression expr = parse_expression();
+    eat(TokenType::R_PAREN);
+    statement stat = parse_statement();
+    statement else_stat = std::make_unique<noop_statement>();
+    if (m_current_token.type == TokenType::KEYWORD &&
+            get_kword_from_string(m_current_token.value) == KeyWord::ELSE)
+    {
+        eat(TokenType::KEYWORD); 
+        else_stat = parse_statement();
+    }
+    return std::make_unique<conditional_statement>(std::move(expr), std::move(stat), std::move(else_stat));
 }
 
 statement Parser::parse_type_statement()
