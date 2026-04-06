@@ -123,7 +123,7 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
     case Instruction::STORE:
         return std::format("\tmov {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0]));
     case Instruction::PUSH:
-        return std::format("\tpush {}\n", get_location(triplet.dst));
+        return std::format("\tpush {}\n", get_location(triplet.dst, triplet.reg_size));
     case Instruction::ADD: 
         return std::format("\tadd {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0])); 
     case Instruction::SUB: 
@@ -248,19 +248,24 @@ std::string CodeGeneration::get_location(Item item)
 std::string CodeGeneration::get_location(virtual_register vr)
 {
     const VirtualRegisterLocation& location = current_func_vr_locations[vr];
+    return get_location(vr, location.live_range.reg_size);
+}
+
+std::string CodeGeneration::get_location(virtual_register vr, RegisterSize reg_size)
+{
+    const VirtualRegisterLocation& location = current_func_vr_locations[vr];
     if (location.is_spilled)
     {
         if (location.stack_position < 0)
             return std::format("{}[rbp - {}]", 
-                    register_size_to_prefix(location.live_range.reg_size),
+                    register_size_to_prefix(reg_size),
                     -location.stack_position);
         else 
             return std::format("{}[rbp + {}]",
-                    register_size_to_prefix(location.live_range.reg_size),
+                    register_size_to_prefix(reg_size),
                     location.stack_position);
     }
-    return register_to_string(location.allocated_register, location.live_range.reg_size);
-
+    return register_to_string(location.allocated_register, reg_size);
 }
 
 RegisterBitSet CodeGeneration::get_reserved_registers_at(int64_t position)

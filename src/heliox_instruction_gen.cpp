@@ -313,10 +313,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
                         RegisterSize::BIT64);
             push_param_triplets.push_back(triplet);
         }
-        else
-        {
-            param_sizes.push_back(effective_register_size);
-        }
+        param_sizes.push_back(effective_register_size);
         // save previous current_virtual_register 
         parameter_virtual_registers.push_back(
                 Item{ItemType::VIRTUAL_REGISTER, effective_register}); 
@@ -325,6 +322,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     // register passed args
     for (int i = 1; i < param_sizes.size(); i++)
     {
+        if (i == 7) break;
         auto& item = parameter_virtual_registers[i];
         InstructionTriplet triplet(Instruction::STORE,
             current_virtual_register,
@@ -361,13 +359,25 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         }
     }
     // push in reverse order
-    for (int i = push_param_triplets.size()-1; i >= 0; i--) emit_instruction(push_param_triplets[i]);
+    for (int i = push_param_triplets.size()-1; i >= 0; i--) 
+    {
+        InstructionTriplet& triplet = push_param_triplets[i];
+        InstructionTriplet store(Instruction::STORE,
+                current_virtual_register,
+                {Item{ItemType::VIRTUAL_REGISTER, triplet.dst}},
+                param_sizes[i+1]);
+        effective_register = current_virtual_register;
+        emit_instruction(store);
+        
+        triplet.dst = effective_register;
+        emit_instruction(triplet);
+    }
 
     InstructionTriplet triplet = 
         InstructionTriplet(Instruction::CALL, 
                 current_virtual_register,
                 parameter_virtual_registers,
-                RegisterSize::BIT64);
+                get_register_size(s.return_type.byte_size));
     effective_register = current_virtual_register;
     emit_instruction(triplet);
 

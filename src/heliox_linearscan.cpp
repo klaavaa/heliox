@@ -7,18 +7,18 @@ LinearScanRegisterAllocation::LinearScanRegisterAllocation(InstructionData instr
     :  instruction_data(instruction_data), global_table(global_table)
 {
     function_data_info_map = std::make_shared<FunctionDataInfoMap>();
-    //register_set.set(Register::A);
-    //register_set.set(Register::B);
-    //register_set.set(Register::C);
-    //register_set.set(Register::D);
-    //register_set.set(Register::DI);
-    //register_set.set(Register::SI);
-    //register_set.set(Register::R8);
-    //register_set.set(Register::R9);
-    //register_set.set(Register::R10);
-    //register_set.set(Register::R11);
-    //register_set.set(Register::R12);
-    //register_set.set(Register::R13);
+    register_set.set(Register::A);
+    register_set.set(Register::B);
+    register_set.set(Register::C);
+    register_set.set(Register::D);
+    register_set.set(Register::DI);
+    register_set.set(Register::SI);
+    register_set.set(Register::R8);
+    register_set.set(Register::R9);
+    register_set.set(Register::R10);
+    register_set.set(Register::R11);
+    register_set.set(Register::R12);
+    register_set.set(Register::R13);
     register_set.set(Register::R14);
     register_set.set(Register::R15);
 }
@@ -111,8 +111,15 @@ void LinearScanRegisterAllocation::scan()
                 case Instruction::ADD:
                 case Instruction::SUB:
                 case Instruction::MUL:
+                case Instruction::PUSH:
                 {
                     vr_must_be_a_register.push_back(triplet.dst);
+                    break;
+                }
+                case Instruction::STORE:
+                {
+                    auto p = std::pair<virtual_register, virtual_register>(triplet.dst, triplet.items[0].value);
+                    one_vr_must_be_a_register.push_back(p);
                     break;
                 }
 
@@ -194,6 +201,32 @@ void LinearScanRegisterAllocation::spill_at_interval(LiveRange i, const std::str
             vr_must_be_a_register.end(), 
             [i](virtual_register vr)
             { return i.reg == vr; }) != vr_must_be_a_register.end() ? true : false;
+    
+    must_be_register = must_be_register || (std::find_if(one_vr_must_be_a_register.begin(), one_vr_must_be_a_register.end(),
+            [this, fname, i](std::pair<virtual_register, virtual_register> p)
+            { 
+                if (i.reg != p.first && i.reg != p.second) return false;
+                std::println("{} -> {} {}", i.reg, p.first, p.second);
+                if (i.reg == p.second && function_data_info_map->at(fname).location_map.contains(p.first))
+                {
+                    const VirtualRegisterLocation& loc = function_data_info_map->at(fname).location_map.at(p.first);
+                    if (loc.is_spilled)
+                    {
+                        return true; 
+                    }
+                }
+                if (function_data_info_map->at(fname).location_map.contains(p.second))
+                {
+                    const VirtualRegisterLocation& loc = function_data_info_map->at(fname).location_map.at(p.second);
+                    if (loc.is_spilled)
+                    {
+                        return true; 
+                    }
+                }
+                return false;
+            }
+            ) != one_vr_must_be_a_register.end() ? true : false);
+;
 
     VirtualRegisterLocation& spill = active.back();
     if (must_be_register || spill.live_range.last_use > i.last_use)

@@ -78,7 +78,8 @@ public:
 
     void scan();
     void expire_old_intervals(LiveRange i);
-    void spill_at_interval(LiveRange i, const std::string& name);
+    void spill_at_interval(LiveRange i, const std::string& fname);
+
 
     sptr<FunctionDataInfoMap> function_data_info_map;
 private:
@@ -90,6 +91,9 @@ private:
     std::vector<VirtualRegisterLocation> reserved_active;
     
     std::vector<virtual_register> vr_must_be_a_register;
+    std::vector<virtual_register> vr_must_go_to_stack_aligned;
+    
+    std::vector<std::pair<virtual_register, virtual_register>> one_vr_must_be_a_register;
 
     RegisterBitSet register_set;
 

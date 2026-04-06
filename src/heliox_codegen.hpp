@@ -19,6 +19,7 @@ namespace hx
         std::string emit_instruction_triplet(InstructionTriplet& triplet); 
         
         std::string get_location(virtual_register vr);
+        std::string get_location(virtual_register vr, RegisterSize reg_size);
         std::string get_location(Item item);
         
         RegisterBitSet get_reserved_registers_at(int64_t position);
@@ -44,5 +45,7 @@ namespace hx
 
         std::vector<Register> caller_preserved_registers;
         std::vector<Register> callee_preserved_registers;
+        
+        int64_t param_stack_position = 0;
     };
 }

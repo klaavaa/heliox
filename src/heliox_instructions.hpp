@@ -30,6 +30,7 @@ enum class Bit8Register: int
 
 enum class RegisterSize
 {
+    BIT0,
     BIT8,
     BIT16,
     BIT32,
@@ -48,6 +49,9 @@ inline std::string register_size_to_prefix(RegisterSize reg_size)
             return "word";
         case RegisterSize::BIT8:
             return "byte";
+        case RegisterSize::BIT0:
+            std::println("ERROR: TRIED TO GET REGISTER SIZE 0 PREFIX");
+            exit(-1);
     }
 }
 
@@ -139,6 +143,10 @@ inline std::string register_to_string(Register reg, RegisterSize reg_size)
                 case Register::R15: return "r15b";
                 default: return "NOT A REGISTER";
             }
+
+        case RegisterSize::BIT0:
+            std::println("ERROR: TRIED TO GET REGISTER SIZE REGISTER PREFIX");
+            exit(-1);
     }
 }
 
@@ -254,7 +262,8 @@ inline RegisterSize get_register_size(uint32_t byte_size)
             return RegisterSize::BIT16;
         case 1:
             return RegisterSize::BIT8;
-
+        case 0:
+            return RegisterSize::BIT0;
         default:
             //TODO ERROR
             std::println("Tried to fetch virtual register from invalid size: '{}'", byte_size);
@@ -320,6 +329,9 @@ inline void print_instruction(const InstructionTriplet& triplet)
         break;
     case RegisterSize::BIT8:
         prefix += std::format("{:4}", "(8)");
+        break;
+    case RegisterSize::BIT0:
+        prefix += std::format("{:4}", "(0)");
         break;
     default:
         // TODO ERROR
