@@ -137,6 +137,10 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
         return std::format("\timul {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0]));
     case Instruction::DIV:
         return std::format("\tidiv {}\n", get_location(triplet.items[0]));
+    case Instruction::NEG:
+        return std::format("\tneg {}\n", get_location(triplet.dst));
+    case Instruction::DEREF:
+        return std::format("\tmov {}, [{}]\n", get_location(triplet.dst), get_location(triplet.items[0]));
     case Instruction::LOAD_INT:
         return std::format("\tmov {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0]));
     case Instruction::LOAD_PARAM:

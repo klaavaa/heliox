@@ -152,6 +152,20 @@ uptr<int_literal_expr> Parser::parse_int_literal()
     return std::make_unique<int_literal_expr>(value);
 }
 
+expression Parser::parse_unary()
+{
+    if (is_valid_unary_operator(m_current_token.type))
+    {
+        TokenType op = m_current_token.type;
+        eat(m_current_token.type);
+
+        expression expr = parse_unary();
+
+        return std::make_unique<unary_expr>(std::move(expr), op);
+    }
+    return parse_primary();
+}
+
 expression Parser::parse_primary()
 {
     
@@ -170,6 +184,7 @@ expression Parser::parse_primary()
         eat(TokenType::R_PAREN);
         return expr;
         }
+
     default:
         std::println("Unexpected token '{}' at parser::parse_primary", 
                 get_string_from_token_type(m_current_token.type)); 
@@ -188,7 +203,7 @@ expression Parser::parse_expression_from_primary(expression primary, uint32_t mi
         TokenType op = m_current_token.type;
         uint32_t op_precedence = get_binop_precedence_level(op);
         eat(op);
-        expression rhs = parse_primary();
+        expression rhs = parse_unary();
         
         while (is_valid_binary_operator(m_current_token.type) 
              && get_binop_precedence_level(m_current_token.type) > op_precedence
@@ -209,7 +224,7 @@ expression Parser::parse_expression_from_primary(expression primary, uint32_t mi
 
 expression Parser::parse_expression()
 {
-    return parse_expression_from_primary(parse_primary(), 0);
+    return parse_expression_from_primary(parse_unary(), 0);
 }
 
 type_data Parser::parse_type()

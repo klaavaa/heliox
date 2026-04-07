@@ -26,7 +26,8 @@ private:
     expression parse_expression();
     expression parse_expression_from_primary(expression primary, uint32_t min_precedence);
     expression parse_primary(); 
-
+    
+    expression parse_unary();
 
     uptr<variable_declaration_statement> parse_variable_declaration();
 

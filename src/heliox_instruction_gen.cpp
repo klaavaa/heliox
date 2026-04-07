@@ -30,13 +30,25 @@ void InstructionGenerator::calculate_live_ranges()
 
     for (auto& func : instruction_data.instruction_functions)
     {
+        bool in_loop = false;
+        uint32_t loop_start = 0;
         for (auto& triplet : func.instruction_triplets)
         {
+            if (triplet.instruction == Instruction::WHILE)
+            {
+                in_loop = true; 
+                loop_start = instruc_count;
+            }
+            else if (triplet.instruction == Instruction::ENDWHILE)
+            {
+                in_loop = false;
+            }
             if (triplet.dst == -1) 
             {
                 instruc_count++;
                 continue;
             }  
+
             std::vector<virtual_register> used_registers;
             used_registers.push_back(triplet.dst);
             for (auto& i : triplet.items)
@@ -49,13 +61,26 @@ void InstructionGenerator::calculate_live_ranges()
             
             if (triplet.dst >= func.live_ranges.size())
                 func.live_ranges.push_back(LiveRange{triplet.dst, triplet.reg_size, instruc_count, instruc_count});
-
+             
             for (auto vreg : used_registers)
             {
+                 
                 if (vreg < func.live_ranges.size() )
                 {
                     func.live_ranges[vreg].last_use = instruc_count; 
                 }
+            }
+            const auto& all_var_vrs = current_table->get_all_variable_virtual_registers();
+            if (in_loop)
+            {
+               for (auto& live_range : func.live_ranges)
+               {
+                   if (live_range.last_use < loop_start) continue;
+                   if (std::find(all_var_vrs.begin(), all_var_vrs.end(), live_range.reg) != all_var_vrs.end())
+                   {
+                        live_range.last_use = std::max(instruc_count, live_range.last_use);
+                   }
+               }
             }
             instruc_count++;
 
@@ -305,7 +330,41 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
 }
 void InstructionGenerator::visit_unary(uptr<unary_expr>& unary)  
 {
+    Instruction instruction;
+    switch (unary->op_token)
+    {
+        case TokenType::MINUS:
+            instruction = Instruction::NEG;
+            break;
+        case TokenType::MULTIPLY:
+            {
+            visit_expression(unary->expr);
+             
+            InstructionTriplet triplet(Instruction::DEREF,
+                    current_virtual_register,
+                    {Item{ItemType::VIRTUAL_REGISTER, effective_register}},
+                    effective_register_size);
+            effective_register = current_virtual_register;
+            emit_instruction(triplet);
+            return;
+            }
+        default:
+            //TODO IMPLEMENT MORE
+            std::println("ERROR: UNKNOWN BINARY OPERATION");
+            exit(-1);
+    }
     visit_expression(unary->expr);
+    InstructionTriplet store(Instruction::STORE,
+            current_virtual_register,
+            {Item{ItemType::VIRTUAL_REGISTER, effective_register}},
+            effective_register_size);
+    effective_register = current_virtual_register;
+    emit_instruction(store);
+    InstructionTriplet triplet(instruction,
+            effective_register,
+            {},
+            effective_register_size);
+    emit_instruction(triplet, 0);
 }
 void InstructionGenerator::visit_function_call(uptr<function_call_expr>& function_call) 
 {

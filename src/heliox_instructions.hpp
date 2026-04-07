@@ -180,6 +180,9 @@ enum class Instruction
     SUB,
     DIV,
     MUL,
+    
+    NEG,
+    DEREF,
 
     IS_EQUAL,
     NOT_EQUAL,
@@ -397,7 +400,14 @@ inline void print_instruction(const InstructionTriplet& triplet)
             std::println("{} MUL   r{} {}", prefix, triplet.dst, 
                     triplet.items[0].get_string());
             break;
-        
+       
+        case Instruction::NEG:
+            std::println("{} NEG   r{}", prefix, triplet.dst);
+            break;
+        case Instruction::DEREF:
+            std::println("{} DEREF r{} {}", prefix, triplet.dst, triplet.items[0].get_string());
+            break;
+
         case Instruction::IS_EQUAL:
             std::println("{} CEQU  r{} {}", prefix, triplet.dst, 
                     triplet.items[0].get_string());

@@ -37,7 +37,8 @@ def main():
         "conditional2" : 0,
         "factorial": 0,
         "fibonacci": 0,
-        "while1": 10
+        "while1": 10,
+        "command_line_args": 0
         }
     
     expected_outputs = {
@@ -46,7 +47,12 @@ def main():
         "conditional2" : "4 != 8\n4 < 8\n4 <= 8\n",
         "factorial": "479001600",
         "fibonacci": "75025",
-        "while1": "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+        "while1": "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n",
+        "command_line_args": "0: ./command_line_args\n1: first\n2: second\n3: third\n4: fourth\n"
+    }
+
+    command_line_args = {
+        "command_line_args": ["first", "second", "third", "fourth"]
     }
     
     total_compile_time = 0
@@ -72,7 +78,11 @@ def main():
         total_compile_time += compile_time
 
         execution_time_start = timer()
-        output = subprocess.run([f"./{test}"], stdout=subprocess.PIPE)
+        command = [f"./{test}"]
+        if test in command_line_args:
+            command.extend(command_line_args[test])
+
+        output = subprocess.run(command, stdout=subprocess.PIPE)
         execution_time_end = timer()
         execution_time = execution_time_end - execution_time_start
 

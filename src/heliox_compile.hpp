@@ -50,7 +50,7 @@ inline void compile(const std::string& file_path, const std::string& output_path
 
     Parser parser = Parser(std::make_unique<Lexer>(lexer));
     uptr<Program> program = parser.parse_program();
-    
+     
     /*debug_visitor d_visitor;
     d_visitor.visit_program(program);*/
     sptr<SymbolTable> global_table = std::make_shared<SymbolTable>();
