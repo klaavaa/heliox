@@ -39,7 +39,9 @@ def main():
         "factorial": 0,
         "fibonacci": 0,
         "while1": 10,
-        "command_line_args": 0
+        "command_line_args": 0,
+        "modulo": 0,
+        "bitwise": 0
         }
     
     expected_outputs = {
@@ -49,7 +51,9 @@ def main():
         "factorial": "479001600",
         "fibonacci": "75025",
         "while1": "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n",
-        "command_line_args": "0: ./command_line_args\n1: first\n2: second\n3: third\n4: fourth\n"
+        "command_line_args": "0: ./command_line_args\n1: first\n2: second\n3: third\n4: fourth\n",
+        "modulo": "0\n3\n6\n9\n12\n15\n18\n",
+        "bitwise": "1\n7\n6\n-6\n"
     }
 
     command_line_args = {

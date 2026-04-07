@@ -46,6 +46,7 @@ bool is_valid_unary_operator(TokenType token_type)
         case TokenType::MULTIPLY:
         case TokenType::BITWISE_AND:
         case TokenType::NOT:
+        case TokenType::BITWISE_NOT:
             return true;
     default:
         return false;
@@ -101,6 +102,7 @@ uint32_t get_unop_precedence_level(TokenType token_type)
         case TokenType::MINUS:
         case TokenType::MULTIPLY:
         case TokenType::BITWISE_AND:
+        case TokenType::BITWISE_NOT:
             return 15;
 
         default: // not a un op

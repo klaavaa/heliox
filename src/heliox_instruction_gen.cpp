@@ -232,10 +232,34 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
     visit_expression(binop->left);
     virtual_register left = effective_register;
     RegisterSize left_size = effective_register_size;
+    
+    if (binop->op_token == TokenType::LOGICAL_AND)
+    {
+        
+        InstructionTriplet and_left(Instruction::LOGICAL_AND_TEST_LEFT,
+            -1,
+            {Item{ItemType::VIRTUAL_REGISTER, left}, Item{ItemType::IMMEDIATE_VALUE, logical_and_label_id}},
+            left_size);
+        emit_instruction(and_left, 0);
+    }
+
     visit_expression(binop->right);
     virtual_register right = effective_register;
     RegisterSize right_size = effective_register_size;
     
+    if (binop->op_token == TokenType::LOGICAL_AND)
+    {
+        
+        InstructionTriplet and_right(Instruction::LOGICAL_AND_TEST_RIGHT,
+            current_virtual_register,
+            {Item{ItemType::VIRTUAL_REGISTER, right}, Item{ItemType::IMMEDIATE_VALUE, logical_and_label_id}},
+            right_size);
+        emit_instruction(and_right);
+        effective_register = current_virtual_register;
+        logical_and_label_id ++;
+        return;
+    }
+
     if (left_size != right_size)
     {
         std::println("ERROR: Trying to do operations with 2 different operation sizes");
@@ -317,12 +341,12 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
             }
         case TokenType::MODULO:
             {
-                // TODO THIS CHANGES WITH THE REWORK
+            // TODO THIS CHANGES WITH THE REWORK
             instruc = Instruction::MOD;
             InstructionTriplet zero(Instruction::ZERO_DX,
                     current_virtual_register,
                     {},
-                    RegisterSize::BIT64);
+                    left_size);
             virtual_register dreg = current_virtual_register;
             emit_instruction(zero);
             InstructionTriplet triplet = 
@@ -359,6 +383,20 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
         case TokenType::LTE:
             instruc = Instruction::LESS_OR_EQUAL_THAN;
             break;
+        
+        case TokenType::LOGICAL_OR:
+            instruc = Instruction::LOGICAL_OR;
+            break;
+        case TokenType::BITWISE_AND:
+            instruc = Instruction::BITWISE_AND;
+            break;
+        case TokenType::BITWISE_OR:
+            instruc = Instruction::BITWISE_OR;
+            break;
+        case TokenType::BITWISE_XOR:
+            instruc = Instruction::BITWISE_XOR;
+            break;
+
         default:
             //TODO IMPLEMENT MORE
             std::println("ERROR: UNKNOWN BINARY OPERATION");
@@ -385,6 +423,9 @@ void InstructionGenerator::visit_unary(uptr<unary_expr>& unary)
     {
         case TokenType::MINUS:
             instruction = Instruction::NEG;
+            break;
+        case TokenType::BITWISE_NOT:
+            instruction = Instruction::BITWISE_NOT;
             break;
         case TokenType::MULTIPLY:
             {

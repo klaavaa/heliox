@@ -191,6 +191,15 @@ enum class Instruction
     GREATER_OR_EQUAL_THAN,
     LESS_THAN,
     LESS_OR_EQUAL_THAN,
+     
+    LOGICAL_AND_TEST_LEFT,
+    LOGICAL_AND_TEST_RIGHT,
+    LOGICAL_OR,
+
+    BITWISE_AND,
+    BITWISE_OR,
+    BITWISE_XOR,
+    BITWISE_NOT,
 
     RETURN,
     
@@ -490,6 +499,25 @@ inline void print_instruction(const InstructionTriplet& triplet)
         case Instruction::ENDWHILE:
             std::println("{} ENDWH  {}", prefix, triplet.items[0].value);  
             break;
+        case Instruction::BITWISE_AND:
+            std::println("{} BTAND r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
+            break;
+        case Instruction::BITWISE_OR:
+            std::println("{} BTOR  r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
+            break;
+        case Instruction::BITWISE_XOR:
+            std::println("{} BTXOR r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
+            break;
+        case Instruction::LOGICAL_AND_TEST_LEFT:
+            std::println("{} LEAND {}", prefix, triplet.items[0].get_string());  
+            break;
+        case Instruction::LOGICAL_AND_TEST_RIGHT:
+            std::println("{} RIAND {}", prefix, triplet.items[0].get_string());  
+            break;
+        case Instruction::LOGICAL_OR:
+            std::println("{} LGOR  r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
+            break;
+
 
       default:
         std::println("Instruction not implemented");

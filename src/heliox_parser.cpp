@@ -129,11 +129,11 @@ expression Parser::parse_identifier()
             expressions.push_back(parse_expression()); 
             if (m_current_token.type == TokenType::R_PAREN)
             {
-                eat(TokenType::R_PAREN);
                 break;
             }
             eat(TokenType::COMMA);
         }
+        eat(TokenType::R_PAREN);
         return std::make_unique<function_call_expr>(
                 std::move(identifier), std::move(expressions));
     }

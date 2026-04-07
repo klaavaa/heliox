@@ -143,6 +143,25 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
         return std::format("\tneg {}\n", get_location(triplet.dst));
     case Instruction::DEREF:
         return std::format("\tmov {}, [{}]\n", get_location(triplet.dst), get_location(triplet.items[0]));
+    case Instruction::BITWISE_AND:
+        return std::format("\tand {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0]));
+    case Instruction::BITWISE_OR:
+        return std::format("\tor {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0]));
+    case Instruction::BITWISE_XOR:
+        return std::format("\txor {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0]));
+    case Instruction::BITWISE_NOT:
+        return std::format("\tnot {}\n", get_location(triplet.dst));
+    case Instruction::LOGICAL_AND_TEST_LEFT:
+        return std::format("\ttest {}, {}\n\tjz .LOGICAL_AND_FALSE{}\n", get_location(triplet.items[0]), get_location(triplet.items[0]),
+                get_location(triplet.items[1]));
+    case Instruction::LOGICAL_AND_TEST_RIGHT:
+        return std::format("\ttest {}, {}\n\tjz .LOGICAL_AND_FALSE{}\n\tmov {}, 1\n\tjmp .LOGICAL_AND_TRUE{}\n.LOGICAL_AND_FALSE{}:\n\tmov {}, 0\n.LOGICAL_AND_TRUE{}:\n", 
+                get_location(triplet.items[0]), get_location(triplet.items[0]),
+                get_location(triplet.items[1]), get_location(triplet.dst), get_location(triplet.items[1]),
+                get_location(triplet.items[1]), get_location(triplet.dst), get_location(triplet.items[1]));
+    case Instruction::LOGICAL_OR:
+        std::println("LOGICAL OPS NOT IMPLEMENTED");
+        exit(-1);
     case Instruction::LOAD_INT:
         return std::format("\tmov {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0]));
     case Instruction::LOAD_PARAM:

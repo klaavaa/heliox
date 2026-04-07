@@ -14,6 +14,7 @@
 #define HX_AMPERSAND					'&'
 #define HX_PIPE						    '|'
 #define HX_CIRCUMFLEX					'^'
+#define HX_TILDE                        '~'
 
 #define HX_EXCLAMATION_MARK		    	'!'
 #define HX_QUESTION_MARK				'?'
@@ -98,6 +99,7 @@ enum class TokenType
 	BITWISE_AND,
 	BITWISE_OR,
 	BITWISE_XOR,
+    BITWISE_NOT,
 	EQU,
 	NOT,
 	INTEGER,
@@ -108,6 +110,7 @@ enum class TokenType
 
 	LOGICAL_AND,
 	LOGICAL_OR,
+
 	GT,
 	GTE,
 	LT,

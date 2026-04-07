@@ -99,6 +99,10 @@ Token Lexer::get_next()
         return Token(TokenType::BITWISE_AND, "");
 
     }
+    case HX_TILDE:
+    {
+        return Token(TokenType::BITWISE_NOT, "");
+    }
 
     case HX_CIRCUMFLEX:
     {
