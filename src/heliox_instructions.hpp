@@ -194,7 +194,8 @@ enum class Instruction
      
     LOGICAL_AND_TEST_LEFT,
     LOGICAL_AND_TEST_RIGHT,
-    LOGICAL_OR,
+    LOGICAL_OR_TEST_LEFT,
+    LOGICAL_OR_TEST_RIGHT,
 
     BITWISE_AND,
     BITWISE_OR,
@@ -514,8 +515,11 @@ inline void print_instruction(const InstructionTriplet& triplet)
         case Instruction::LOGICAL_AND_TEST_RIGHT:
             std::println("{} RIAND {}", prefix, triplet.items[0].get_string());  
             break;
-        case Instruction::LOGICAL_OR:
-            std::println("{} LGOR  r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
+        case Instruction::LOGICAL_OR_TEST_LEFT:
+            std::println("{} LEOR  {}", prefix, triplet.items[0].get_string());  
+            break;
+        case Instruction::LOGICAL_OR_TEST_RIGHT:
+            std::println("{} RIOR {}", prefix, triplet.items[0].get_string());  
             break;
 
 

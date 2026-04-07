@@ -242,6 +242,14 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
             left_size);
         emit_instruction(and_left, 0);
     }
+    else if (binop->op_token == TokenType::LOGICAL_OR)
+    {
+        InstructionTriplet or_left(Instruction::LOGICAL_OR_TEST_LEFT,
+            -1,
+            {Item{ItemType::VIRTUAL_REGISTER, left}, Item{ItemType::IMMEDIATE_VALUE, logical_or_label_id}},
+            left_size);
+        emit_instruction(or_left, 0);
+    }
 
     visit_expression(binop->right);
     virtual_register right = effective_register;
@@ -255,6 +263,18 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
             {Item{ItemType::VIRTUAL_REGISTER, right}, Item{ItemType::IMMEDIATE_VALUE, logical_and_label_id}},
             right_size);
         emit_instruction(and_right);
+        effective_register = current_virtual_register;
+        logical_and_label_id ++;
+        return;
+    }
+    else if (binop->op_token == TokenType::LOGICAL_OR)
+    {
+        
+        InstructionTriplet or_right(Instruction::LOGICAL_OR_TEST_RIGHT,
+            current_virtual_register,
+            {Item{ItemType::VIRTUAL_REGISTER, right}, Item{ItemType::IMMEDIATE_VALUE, logical_or_label_id}},
+            right_size);
+        emit_instruction(or_right);
         effective_register = current_virtual_register;
         logical_and_label_id ++;
         return;
@@ -384,9 +404,6 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
             instruc = Instruction::LESS_OR_EQUAL_THAN;
             break;
         
-        case TokenType::LOGICAL_OR:
-            instruc = Instruction::LOGICAL_OR;
-            break;
         case TokenType::BITWISE_AND:
             instruc = Instruction::BITWISE_AND;
             break;

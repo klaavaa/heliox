@@ -47,6 +47,7 @@ class InstructionGenerator : public Visitor
         uint32_t if_label_id = 0;
         uint32_t while_label_id = 0;
         uint32_t logical_and_label_id = 0;
+        uint32_t logical_or_label_id = 0;
 };
 
 }

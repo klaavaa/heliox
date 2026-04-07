@@ -159,9 +159,14 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
                 get_location(triplet.items[0]), get_location(triplet.items[0]),
                 get_location(triplet.items[1]), get_location(triplet.dst), get_location(triplet.items[1]),
                 get_location(triplet.items[1]), get_location(triplet.dst), get_location(triplet.items[1]));
-    case Instruction::LOGICAL_OR:
-        std::println("LOGICAL OPS NOT IMPLEMENTED");
-        exit(-1);
+    case Instruction::LOGICAL_OR_TEST_LEFT:
+        return std::format("\ttest {}, {}\n\tjnz .LOGICAL_OR_TRUE{}\n", get_location(triplet.items[0]), get_location(triplet.items[0]),
+                get_location(triplet.items[1]));
+    case Instruction::LOGICAL_OR_TEST_RIGHT:
+        return std::format("\ttest {}, {}\n\tjnz .LOGICAL_OR_TRUE{}\n\tmov {}, 0\n\tjmp .LOGICAL_OR_FALSE{}\n.LOGICAL_OR_TRUE{}:\n\tmov {}, 1\n.LOGICAL_OR_FALSE{}:\n", 
+                get_location(triplet.items[0]), get_location(triplet.items[0]),
+                get_location(triplet.items[1]), get_location(triplet.dst), get_location(triplet.items[1]),
+                get_location(triplet.items[1]), get_location(triplet.dst), get_location(triplet.items[1]));
     case Instruction::LOAD_INT:
         return std::format("\tmov {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0]));
     case Instruction::LOAD_PARAM:
