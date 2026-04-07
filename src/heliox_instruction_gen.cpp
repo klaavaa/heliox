@@ -444,6 +444,9 @@ void InstructionGenerator::visit_unary(uptr<unary_expr>& unary)
         case TokenType::BITWISE_NOT:
             instruction = Instruction::BITWISE_NOT;
             break;
+        case TokenType::NOT:
+            instruction = Instruction::LOGICAL_NOT;
+            break;
         case TokenType::MULTIPLY:
             {
             visit_expression(unary->expr);
@@ -458,7 +461,7 @@ void InstructionGenerator::visit_unary(uptr<unary_expr>& unary)
             }
         default:
             //TODO IMPLEMENT MORE
-            std::println("ERROR: UNKNOWN BINARY OPERATION");
+            std::println("ERROR: UNKNOWN UNARY OPERATION");
             exit(-1);
     }
     visit_expression(unary->expr);

@@ -167,6 +167,8 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
                 get_location(triplet.items[0]), get_location(triplet.items[0]),
                 get_location(triplet.items[1]), get_location(triplet.dst), get_location(triplet.items[1]),
                 get_location(triplet.items[1]), get_location(triplet.dst), get_location(triplet.items[1]));
+    case Instruction::LOGICAL_NOT:
+        return std::format("\tcmp {}, {}\n\tsete {}\n", get_location(triplet.dst), 0, get_location(triplet.dst, RegisterSize::BIT8));
     case Instruction::LOAD_INT:
         return std::format("\tmov {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0]));
     case Instruction::LOAD_PARAM:

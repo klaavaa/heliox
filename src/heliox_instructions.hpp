@@ -196,6 +196,8 @@ enum class Instruction
     LOGICAL_AND_TEST_RIGHT,
     LOGICAL_OR_TEST_LEFT,
     LOGICAL_OR_TEST_RIGHT,
+    LOGICAL_NOT,
+
 
     BITWISE_AND,
     BITWISE_OR,
