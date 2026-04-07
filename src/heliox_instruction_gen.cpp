@@ -242,10 +242,40 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
         exit(-1);
     }
     
-    if (binop->op_token == TokenType::EQU)
+    Instruction instruc;
+    bool is_equals_op = true;
+    switch (binop->op_token)
+    {
+        case TokenType::EQU: 
+            instruc = Instruction::STORE;
+            break;
+        case TokenType::PLUSEQUALS: 
+            instruc = Instruction::ADD;
+            break;
+        case TokenType::MINUSEQUALS: 
+            instruc = Instruction::SUB;
+            break;
+        case TokenType::MULEQUALS: 
+            instruc = Instruction::MUL;
+            break;
+        case TokenType::DIVEQUALS:
+            {
+            instruc = Instruction::DIV;
+            InstructionTriplet zero(Instruction::ZERO_DX,
+                    current_virtual_register,
+                    {},
+                    RegisterSize::BIT64);
+            emit_instruction(zero);
+            break;
+            }
+        default:
+            is_equals_op = false;
+
+    }
+    if (is_equals_op)
     {
         InstructionTriplet triplet = InstructionTriplet(
-            Instruction::STORE,
+            instruc,
             left,
             {Item{ItemType::VIRTUAL_REGISTER, right}},
             left_size);
@@ -253,6 +283,8 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
         emit_instruction(triplet, 0);
         return;
     }
+
+
     InstructionTriplet left_side_triplet(
         Instruction::STORE,
         current_virtual_register,
@@ -261,25 +293,7 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
     );
     effective_register = current_virtual_register;
     emit_instruction(left_side_triplet);
-    if (binop->op_token == TokenType::DIVIDE)
-    {
-        InstructionTriplet zero(Instruction::ZERO_DX,
-                current_virtual_register,
-                {},
-                RegisterSize::BIT64);
-        emit_instruction(zero);
-        InstructionTriplet division = InstructionTriplet(
-            Instruction::DIV,
-            effective_register,
-            {Item{ItemType::VIRTUAL_REGISTER, right}},
-            left_size);
-        
-        emit_instruction(division, 0);
-        return;
-    }
 
-
-    Instruction instruc;
     switch (binop->op_token)
     {
         case TokenType::PLUS:
@@ -291,6 +305,16 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
         case TokenType::MULTIPLY:
             instruc = Instruction::MUL;
             break;
+        case TokenType::DIVIDE:
+            {
+            instruc = Instruction::DIV;
+            InstructionTriplet zero(Instruction::ZERO_DX,
+                    current_virtual_register,
+                    {},
+                    RegisterSize::BIT64);
+            emit_instruction(zero);
+            break;
+            }
         case TokenType::DOUBLE_EQU:
             instruc = Instruction::IS_EQUAL;
             break;

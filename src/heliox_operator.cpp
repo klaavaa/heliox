@@ -11,6 +11,10 @@ bool is_valid_binary_operator(TokenType token_type)
     case TokenType::MINUS:
     case TokenType::MULTIPLY:
     case TokenType::DIVIDE:
+    case TokenType::PLUSEQUALS:
+    case TokenType::MINUSEQUALS:
+    case TokenType::DIVEQUALS:
+    case TokenType::MULEQUALS:
     case TokenType::EQU:
     case TokenType::DOUBLE_EQU:
     case TokenType::NEQU:
@@ -52,6 +56,10 @@ uint32_t get_binop_precedence_level(TokenType token_type)
 	switch (token_type)
 	{
         case TokenType::EQU:
+        case TokenType::PLUSEQUALS:
+        case TokenType::MINUSEQUALS:
+        case TokenType::DIVEQUALS:
+        case TokenType::MULEQUALS:
             return 2;
         case TokenType::LOGICAL_OR:
             return 4;

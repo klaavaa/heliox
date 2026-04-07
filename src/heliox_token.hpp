@@ -76,6 +76,11 @@ enum class TokenType
 	MINUS,
 	DIVIDE,
 	MULTIPLY,
+    
+    PLUSEQUALS,
+    MINUSEQUALS,
+    MULEQUALS,
+    DIVEQUALS,
 
 	L_PAREN,
 	R_PAREN,
@@ -128,6 +133,10 @@ static const std::unordered_map<TokenType, std::string>  token_to_string_map =
 { TokenType::MINUS,							"MINUS" },
 { TokenType::DIVIDE,							"SLASH" },
 { TokenType::MULTIPLY,						"STAR" },
+{ TokenType::PLUSEQUALS,						"PLUSEQUALS" },
+{ TokenType::MINUSEQUALS,						"MINUSEQUALS" },
+{ TokenType::DIVEQUALS,						"DIVEQUALS" },
+{ TokenType::MULEQUALS,						"MULEQUALS" },
 { TokenType::L_PAREN,							"LPAREN" },
 { TokenType::R_PAREN,							"RPAREN" },
 { TokenType::L_BRACE,							"LBRACE" },

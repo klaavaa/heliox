@@ -28,6 +28,7 @@ def main():
 
     expected_values = {
         "operators1" : 23,
+        "operators2": 29,
         "nested_calls1" : 12,
         "nested_calls2" : 9,
         "expression1" : 15,

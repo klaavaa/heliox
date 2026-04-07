@@ -117,6 +117,11 @@ Token Lexer::get_next()
 
     case HX_PLUS:
     {
+        if (peek_next() == HX_EQUALS)
+        {
+            advance();
+            return Token(TokenType::PLUSEQUALS, "");
+        }
         return Token(TokenType::PLUS, "");
     }
     case HX_MINUS:
@@ -126,6 +131,11 @@ Token Lexer::get_next()
         {
             advance();
             return Token(TokenType::ARROW, "");
+        }
+        if (peek_next() == HX_EQUALS)
+        {
+            advance();
+            return Token(TokenType::MINUSEQUALS, "");
         }
         
         return Token(TokenType::MINUS, "");
@@ -182,12 +192,21 @@ Token Lexer::get_next()
 
             return get_next();
         }
-
+        if (peek_next() == HX_EQUALS)
+        {
+            advance();
+            return Token(TokenType::DIVEQUALS, "");
+        }
 
         return Token(TokenType::DIVIDE, "");
     }
     case HX_STAR:
     {
+        if (peek_next() == HX_EQUALS)
+        {
+            advance();
+            return Token(TokenType::MULEQUALS, "");
+        }
         return Token(TokenType::MULTIPLY, "");
     }
     case HX_LEFT_BRACE:
