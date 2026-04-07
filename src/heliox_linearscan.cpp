@@ -107,6 +107,21 @@ void LinearScanRegisterAllocation::scan()
                     reserved_active.push_back(location);
                     break;
                     }
+                case Instruction::MOD:
+                    {
+                    VirtualRegisterLocation location; 
+                    location.live_range = *std::find_if(instruction_function.live_ranges.begin(), instruction_function.live_ranges.end(), [triplet](LiveRange lr){ return lr.reg == triplet.dst; });
+                    location.allocated_register = Register::A;
+                    (*function_data_info_map)[fname].location_map[triplet.dst] = location;
+                    reserved_active.push_back(location);
+
+                    VirtualRegisterLocation location2; 
+                    location.live_range = *std::find_if(instruction_function.live_ranges.begin(), instruction_function.live_ranges.end(), [triplet](LiveRange lr){ return lr.reg == triplet.items[1].value; });
+                    location.allocated_register = Register::D;
+                    (*function_data_info_map)[fname].location_map[triplet.items[1].value] = location;
+                    reserved_active.push_back(location2);
+                    break;
+                    }
                 case Instruction::LOAD_STRING:
                 case Instruction::ADD:
                 case Instruction::SUB:

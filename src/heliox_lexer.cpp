@@ -233,6 +233,10 @@ Token Lexer::get_next()
     {
         return Token(TokenType::R_BRACK, "");
     }
+    case HX_MODULO:
+    {
+        return Token(TokenType::MODULO, "");
+    }
     /*
     case AT:
     {

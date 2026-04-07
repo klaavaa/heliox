@@ -180,6 +180,7 @@ enum class Instruction
     SUB,
     DIV,
     MUL,
+    MOD,
     
     NEG,
     DEREF,
@@ -393,6 +394,11 @@ inline void print_instruction(const InstructionTriplet& triplet)
 
         case Instruction::DIV:
             std::println("{} DIV   r{} {}", prefix, triplet.dst, 
+                    triplet.items[0].get_string());
+            break;
+
+        case Instruction::MOD:
+            std::println("{} MOD   r{} {}", prefix, triplet.dst, 
                     triplet.items[0].get_string());
             break;
 

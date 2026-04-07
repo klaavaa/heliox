@@ -315,6 +315,32 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
             emit_instruction(zero);
             break;
             }
+        case TokenType::MODULO:
+            {
+                // TODO THIS CHANGES WITH THE REWORK
+            instruc = Instruction::MOD;
+            InstructionTriplet zero(Instruction::ZERO_DX,
+                    current_virtual_register,
+                    {},
+                    RegisterSize::BIT64);
+            virtual_register dreg = current_virtual_register;
+            emit_instruction(zero);
+            InstructionTriplet triplet = 
+                InstructionTriplet(instruc, 
+                        effective_register,
+                        {Item{ItemType::VIRTUAL_REGISTER, right},
+                        Item{ItemType::VIRTUAL_REGISTER, current_virtual_register + 1}},
+                        left_size);
+            emit_instruction(triplet, 0);
+            InstructionTriplet store = 
+                InstructionTriplet(Instruction::STORE, 
+                        current_virtual_register,
+                        {Item{ItemType::VIRTUAL_REGISTER, dreg}},
+                        left_size);
+            effective_register = current_virtual_register;
+            emit_instruction(store);
+            return;
+            }
         case TokenType::DOUBLE_EQU:
             instruc = Instruction::IS_EQUAL;
             break;

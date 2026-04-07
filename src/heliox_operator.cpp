@@ -11,6 +11,7 @@ bool is_valid_binary_operator(TokenType token_type)
     case TokenType::MINUS:
     case TokenType::MULTIPLY:
     case TokenType::DIVIDE:
+    case TokenType::MODULO:
     case TokenType::PLUSEQUALS:
     case TokenType::MINUSEQUALS:
     case TokenType::DIVEQUALS:
@@ -84,6 +85,7 @@ uint32_t get_binop_precedence_level(TokenType token_type)
             return 12;
         case TokenType::MULTIPLY:
         case TokenType::DIVIDE:
+        case TokenType::MODULO:
             return 14;
         
         default:
@@ -112,6 +114,10 @@ op_associativity get_binop_associativity(TokenType token_type)
 	{
 		// 2
 	case TokenType::EQU:
+    case TokenType::PLUSEQUALS:
+    case TokenType::MINUSEQUALS:
+    case TokenType::DIVEQUALS:
+    case TokenType::MULEQUALS:
         return op_associativity::RIGHT_TO_LEFT;
 		// 4
 	case TokenType::LOGICAL_OR:

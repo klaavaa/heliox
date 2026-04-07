@@ -24,6 +24,8 @@
 #define HX_BACKSLASH                    '\\'
 #define HX_STAR					    	'*'
 
+#define HX_MODULO                       '%'
+
 #define HX_EQUALS						'='
 
 
@@ -76,7 +78,8 @@ enum class TokenType
 	MINUS,
 	DIVIDE,
 	MULTIPLY,
-    
+    MODULO, 
+
     PLUSEQUALS,
     MINUSEQUALS,
     MULEQUALS,
