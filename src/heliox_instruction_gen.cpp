@@ -276,7 +276,7 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
             right_size);
         emit_instruction(or_right);
         effective_register = current_virtual_register;
-        logical_and_label_id ++;
+        logical_or_label_id ++;
         return;
     }
 
