@@ -528,8 +528,25 @@ void InstructionGenerator::visit_conditional(uptr<conditional_statement>& condit
 }
 void InstructionGenerator::visit_while(uptr<while_statement>& while_s) 
 {
+    InstructionTriplet while_begin(Instruction::WHILE,
+            -1,
+            {Item{ItemType::IMMEDIATE_VALUE, while_label_id}},
+            RegisterSize::BIT0);
+    emit_instruction(while_begin, 0);
     visit_expression(while_s->condition);
+    InstructionTriplet jump(Instruction::WHILE_JUMPEND,
+            -1,
+            {Item{ItemType::IMMEDIATE_VALUE, while_label_id},
+             Item{ItemType::VIRTUAL_REGISTER, effective_register}},
+            RegisterSize::BIT0);
+    emit_instruction(jump, 0);
+
     visit_statement(while_s->loop);
+    InstructionTriplet while_end(Instruction::ENDWHILE,
+            -1,
+            {Item{ItemType::IMMEDIATE_VALUE, while_label_id}},
+            RegisterSize::BIT0);
+    emit_instruction(while_end, 0);
 }
 void InstructionGenerator::visit_expression_s(uptr<expression_statement>& expr) 
 {

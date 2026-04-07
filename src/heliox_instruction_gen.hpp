@@ -45,6 +45,7 @@ class InstructionGenerator : public Visitor
         SymbolTable* current_table;
         
         uint32_t if_label_id = 0;
+        uint32_t while_label_id = 0;
 };
 
 }

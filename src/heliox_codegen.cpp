@@ -176,6 +176,15 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
         return std::format("\tjmp .IFEND{}\n.ELSE{}:\n", get_location(triplet.items[0]), get_location(triplet.items[0]));
     case Instruction::ENDIF:
         return std::format(".IFEND{}:\n", get_location(triplet.items[0]));
+    case Instruction::WHILE:
+        return std::format(".WHILE{}:\n", get_location(triplet.items[0]));
+    case Instruction::WHILE_JUMPEND:
+        return std::format("\ttest {}, {}\n\tjz .WHILEEND{}\n", get_location(triplet.items[1]), get_location(triplet.items[1]),
+                get_location(triplet.items[0]));
+    case Instruction::ENDWHILE:
+        return std::format("\tjmp .WHILE{}\n.WHILEEND{}:\n", get_location(triplet.items[0]),
+                get_location(triplet.items[0]));
+
     case Instruction::SAVE_CALLER:
         {
         RegisterBitSet reserved_registers = get_reserved_registers_at(triplet.instruc_count)

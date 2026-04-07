@@ -193,6 +193,11 @@ enum class Instruction
     IF,
     ELSE,
     ENDIF,
+
+    WHILE,
+    WHILE_JUMPEND,
+    ENDWHILE,
+    
 };
 
 using virtual_register = int64_t;
@@ -459,6 +464,15 @@ inline void print_instruction(const InstructionTriplet& triplet)
             break;
         case Instruction::ENDIF:
             std::println("{} ENDIF  {}", prefix, triplet.items[0].value);  
+            break;
+        case Instruction::WHILE:
+            std::println("{} WHILE  {}", prefix, triplet.items[0].value);  
+            break;
+        case Instruction::WHILE_JUMPEND:
+            std::println("{} WHIJZ r{} {}", prefix, triplet.items[1].value, triplet.items[0].value);  
+            break;
+        case Instruction::ENDWHILE:
+            std::println("{} ENDWH  {}", prefix, triplet.items[0].value);  
             break;
 
       default:

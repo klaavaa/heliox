@@ -38,6 +38,7 @@ private:
     statement parse_keyword_statement();
     uptr<return_statement> parse_return_statement();
     uptr<conditional_statement> parse_conditional_statement();
+    uptr<while_statement> parse_while_statement();
 
 	void eat(TokenType token_type);
      

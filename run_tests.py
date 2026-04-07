@@ -36,8 +36,8 @@ def main():
         "conditional1" : 9,
         "conditional2" : 0,
         "factorial": 0,
-        "fibonacci": 0
-    
+        "fibonacci": 0,
+        "while1": 10
         }
     
     expected_outputs = {
@@ -45,20 +45,24 @@ def main():
         "operators1": "div: 14 / 3 = 42\nmul: 4 * 3 = 12\nsub: 12 - 3 = 9\nadd: 14 + 9 = 23\n",
         "conditional2" : "4 != 8\n4 < 8\n4 <= 8\n",
         "factorial": "479001600",
-        "fibonacci": "75025"
+        "fibonacci": "75025",
+        "while1": "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n"
     }
     
     total_compile_time = 0
     total_execution_time = 0
     max_compile_time = [0, "no_test"]
     max_execution_time = [0, "no_test"]
+    
+    passed_tests = []
+    failed_tests = []
 
     for test_path in tests:
         test, ext = os.path.splitext(test_path)
         if ext != ".hx": continue
         compile_time_start = timer()
         if not compile_test(test):
-            print(f"{bcolors.FAIL}TEST \"{test}\" FAILED{bcolors.ENDC} -- FAILED TO COMPILE TEST")
+            failed_tests.append(f"{bcolors.FAIL}TEST \"{test}\" FAILED{bcolors.ENDC} -- FAILED TO COMPILE TEST")
             continue
         compile_time_end = timer()
         compile_time = compile_time_end - compile_time_start 
@@ -79,17 +83,24 @@ def main():
         total_execution_time += execution_time 
 
         if output.returncode != expected_values[test]:
-            print(f"{bcolors.FAIL}TEST \"{test}\" FAILED{bcolors.ENDC} -- {output.returncode} did not equal {expected_values[test]}")
+            failed_tests.append(f"{bcolors.FAIL}TEST \"{test}\" FAILED{bcolors.ENDC} -- {output.returncode} did not equal {expected_values[test]}")
             continue 
         if test in expected_outputs: 
               if expected_outputs[test] != output.stdout.decode():
-                  print(f"{bcolors.FAIL}TEST \"{test}\" FAILED{bcolors.ENDC} \n\toutput: \n{output.stdout.decode()}\n\tdid not equal\n{expected_outputs[test]}")
-        print(f"{bcolors.OKGREEN}TEST \"{test}\" PASSED{bcolors.ENDC}")
+                  failed_tests.append(f"{bcolors.FAIL}TEST \"{test}\" FAILED{bcolors.ENDC} \n\toutput: \n{output.stdout.decode()}\n\tdid not equal\n{expected_outputs[test]}")
+        passed_tests.append(f"{bcolors.OKGREEN}TEST \"{test}\" PASSED{bcolors.ENDC}")
     
     for file in os.listdir("."):
         ext = os.path.splitext(file)[1]
         if ext != ".hx":
             os.remove(file)
+    
+    for passed in passed_tests:
+        print(passed)
+    print("")
+    for failed in failed_tests:
+        print(failed)
+
     avg_compile_time = round(total_compile_time / len(tests) * 1000.0, 0)
     avg_execution_time = round(total_execution_time / len(tests) * 1000.0, 0 )
     max_compile_time[0] = round(max_compile_time[0] * 1000.0, 0)

@@ -279,6 +279,8 @@ statement Parser::parse_keyword_statement()
             return parse_return_statement();
         case KeyWord::IF: 
             return parse_conditional_statement();
+        case KeyWord::WHILE:
+            return parse_while_statement();
     default:
         println("Unexpected keyword '{}' at parser::parse_keyword_statement",
                 get_string_from_kword(kw));
@@ -309,6 +311,18 @@ uptr<conditional_statement> Parser::parse_conditional_statement()
         else_stat = parse_statement();
     }
     return std::make_unique<conditional_statement>(std::move(expr), std::move(stat), std::move(else_stat));
+}
+
+uptr<while_statement> Parser::parse_while_statement()
+{
+    eat(TokenType::KEYWORD);
+    eat(TokenType::L_PAREN);
+    expression expr = parse_expression(); 
+    eat(TokenType::R_PAREN);
+    statement stat = parse_statement();
+    
+    return std::make_unique<while_statement>(std::move(expr), std::move(stat));
+
 }
 
 statement Parser::parse_type_statement()
