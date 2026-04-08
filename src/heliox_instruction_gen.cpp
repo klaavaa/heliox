@@ -67,12 +67,12 @@ void InstructionGenerator::calculate_live_ranges()
                  
                 if (vreg < func.live_ranges.size() )
                 {
-                    func.live_ranges[vreg].last_use = instruc_count; 
+                    func.live_ranges[vreg].last_use = std::max(instruc_count, func.live_ranges[vreg].last_use); 
                 }
             }
-            const auto& all_var_vrs = current_table->get_all_variable_virtual_registers();
             if (in_loop)
             {
+               const auto& all_var_vrs = current_table->get_all_variable_virtual_registers();
                for (auto& live_range : func.live_ranges)
                {
                    if (live_range.last_use < loop_start) continue;
@@ -697,6 +697,7 @@ void InstructionGenerator::visit_while(uptr<while_statement>& while_s)
             {Item{ItemType::IMMEDIATE_VALUE, while_label_id}},
             RegisterSize::BIT0);
     emit_instruction(while_end, 0);
+    while_label_id++;
 }
 void InstructionGenerator::visit_expression_s(uptr<expression_statement>& expr) 
 {
