@@ -35,7 +35,12 @@ class InstructionGenerator : public Visitor
         void visit_noop(uptr<noop_statement>& noop) override;
         
         void calculate_live_ranges();
+        
+        void reserve_register(virtual_register vr, ReservedRegister reservation);
+        void set_vr_reg_size(virtual_register vr, RegisterSize reg_size);
 
+
+        std::array<Register, 6> register_passed_arguments = {Register::DI, Register::SI, Register::D, Register::C, Register::R8, Register::R9};
         InstructionData instruction_data;
         virtual_register current_virtual_register = 0;
         virtual_register effective_register = 0;
@@ -48,6 +53,7 @@ class InstructionGenerator : public Visitor
         uint32_t while_label_id = 0;
         uint32_t logical_and_label_id = 0;
         uint32_t logical_or_label_id = 0;
+
 };
 
 }

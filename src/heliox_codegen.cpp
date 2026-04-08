@@ -4,8 +4,8 @@
 namespace hx
 {
     
-CodeGeneration::CodeGeneration(sptr<SymbolTable> global_table, sptr<FunctionDataInfoMap> function_data_info_map)
-    : global_table(global_table), function_data_info_map(function_data_info_map)
+CodeGeneration::CodeGeneration(sptr<SymbolTable> global_table, sptr<FunctionLocationData> function_location_data)
+    : global_table(global_table), function_location_data(function_location_data)
 {
     callee_saved_registers.set(Register::B);
     callee_saved_registers.set(Register::R15);
@@ -37,7 +37,7 @@ std::string CodeGeneration::generate(InstructionData& instruction_data)
             externs += std::format("extern {}\n", func.name);
             continue;
         }
-        current_func_vr_locations = function_data_info_map->at(func.name).location_map;
+        current_func_vr_locations = function_location_data->at(func.name);
         text_section += emit_instruction_function(func); 
     }
 
@@ -105,14 +105,26 @@ std::string CodeGeneration::emit_instruction_function(InstructionFunction& instr
     std::string body = std::format("global {}\n{}:\n", instruc_func.name, instruc_func.name);
     body += "\tpush rbp\n\tmov rbp, rsp\n";
     
-
-    int64_t stack_allocated_memory = -function_data_info_map->at(instruc_func.name).stack_allocated_memory;
+    // TODO 
+    /*
+    auto[vr, loc] = *std::max_element(function_location_data->at(instruc_func.name).begin(),
+            function_location_data->at(instruc_func.name).end(),
+            [](const auto& l1, const auto& l2)
+            {
+                return l1.second.is_spilled && l2.second.is_spilled && l1.second.stack_position < l2.second.stack_position;
+            }
+    );
+    std::println("max element: {} {}", vr, loc.stack_position); 
+    int64_t stack_allocated_memory = (-loc.stack_position + 15) & ~15;
     if (stack_allocated_memory != 0)
-        body += std::format("\tsub rsp, {}\n", -function_data_info_map->at(instruc_func.name).stack_allocated_memory);
+        body += std::format("\tsub rsp, {}\n", stack_allocated_memory);
+    */
+    
 
     // callee saved stuff
     callee_preserved_registers.clear();
     added_padding_from_callee_save = false;
+    body += save_callee();
     for (auto& triplet : instruc_func.instruction_triplets)
     {
         body += emit_instruction_triplet(triplet);
@@ -123,6 +135,7 @@ std::string CodeGeneration::emit_instruction_function(InstructionFunction& instr
 
 std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet)
 {
+    instruction_reg_size = triplet.reg_size;
     switch (triplet.instruction)
     {
     case Instruction::STORE:
@@ -136,9 +149,9 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
     case Instruction::MUL:
         return std::format("\timul {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0]));
     case Instruction::DIV:
-        return std::format("\tidiv {}\n", get_location(triplet.items[0]));
+        return std::format("\txor rdx, rdx\n\tidiv {}\n", get_location(triplet.items[0]));
     case Instruction::MOD:
-        return std::format("\tidiv {}\n", get_location(triplet.items[0]));
+        return std::format("\txor rdx, rdx\n\tidiv {}\n", get_location(triplet.items[1]));
     case Instruction::NEG:
         return std::format("\tneg {}\n", get_location(triplet.dst));
     case Instruction::DEREF:
@@ -152,19 +165,19 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
     case Instruction::BITWISE_NOT:
         return std::format("\tnot {}\n", get_location(triplet.dst));
     case Instruction::LOGICAL_AND_TEST_LEFT:
-        return std::format("\ttest {}, {}\n\tjz .LOGICAL_AND_FALSE{}\n", get_location(triplet.items[0]), get_location(triplet.items[0]),
+        return std::format("\tcmp {}, 0\n\tjz .LOGICAL_AND_FALSE{}\n", get_location(triplet.items[0]),
                 get_location(triplet.items[1]));
     case Instruction::LOGICAL_AND_TEST_RIGHT:
-        return std::format("\ttest {}, {}\n\tjz .LOGICAL_AND_FALSE{}\n\tmov {}, 1\n\tjmp .LOGICAL_AND_TRUE{}\n.LOGICAL_AND_FALSE{}:\n\tmov {}, 0\n.LOGICAL_AND_TRUE{}:\n", 
-                get_location(triplet.items[0]), get_location(triplet.items[0]),
+        return std::format("\tcmp {}, 0\n\tjz .LOGICAL_AND_FALSE{}\n\tmov {}, 1\n\tjmp .LOGICAL_AND_TRUE{}\n.LOGICAL_AND_FALSE{}:\n\tmov {}, 0\n.LOGICAL_AND_TRUE{}:\n", 
+                get_location(triplet.items[0]),
                 get_location(triplet.items[1]), get_location(triplet.dst), get_location(triplet.items[1]),
                 get_location(triplet.items[1]), get_location(triplet.dst), get_location(triplet.items[1]));
     case Instruction::LOGICAL_OR_TEST_LEFT:
-        return std::format("\ttest {}, {}\n\tjnz .LOGICAL_OR_TRUE{}\n", get_location(triplet.items[0]), get_location(triplet.items[0]),
+        return std::format("\tcmp {}, 0\n\tjnz .LOGICAL_OR_TRUE{}\n", get_location(triplet.items[0]),
                 get_location(triplet.items[1]));
     case Instruction::LOGICAL_OR_TEST_RIGHT:
-        return std::format("\ttest {}, {}\n\tjnz .LOGICAL_OR_TRUE{}\n\tmov {}, 0\n\tjmp .LOGICAL_OR_FALSE{}\n.LOGICAL_OR_TRUE{}:\n\tmov {}, 1\n.LOGICAL_OR_FALSE{}:\n", 
-                get_location(triplet.items[0]), get_location(triplet.items[0]),
+        return std::format("\tcmp {}, 0\n\tjnz .LOGICAL_OR_TRUE{}\n\tmov {}, 0\n\tjmp .LOGICAL_OR_FALSE{}\n.LOGICAL_OR_TRUE{}:\n\tmov {}, 1\n.LOGICAL_OR_FALSE{}:\n", 
+                get_location(triplet.items[0]), 
                 get_location(triplet.items[1]), get_location(triplet.dst), get_location(triplet.items[1]),
                 get_location(triplet.items[1]), get_location(triplet.dst), get_location(triplet.items[1]));
     case Instruction::LOGICAL_NOT:
@@ -176,11 +189,16 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
     case Instruction::LOAD_STRING:
         return std::format("\tlea {}, [rel {}]\n", get_location(triplet.dst), get_location(triplet.items[0]));
     case Instruction::RETURN:
-        return std::format("\tmov rsp, rbp\n\tpop rbp\n\tret\n", get_location(triplet.dst));
+        return std::format("{}\tmov rsp, rbp\n\tpop rbp\n\tret\n", load_callee(), get_location(triplet.dst));
     case Instruction::ALIGN:
         return std::format("\tadd rsp, {}\n", get_location(triplet.items[0]));
     case Instruction::CALL:
-        return std::format("\tcall {}\n", global_table->get_function_name_from_id(triplet.items[0].value));
+        {
+        std::string base = save_caller(triplet.instruc_count);
+        base += std::format("\tcall {}\n", global_table->get_function_name_from_id(triplet.items[0].value));
+        base += load_caller();
+        return base;
+        }
     case Instruction::ZERO_DX:
         return std::format("\txor {}, {}\n", get_location(triplet.dst), get_location(triplet.dst));
     case Instruction::IS_EQUAL:
@@ -202,7 +220,7 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
         return std::format("\tcmp {}, {}\n\tsetle {}\n", get_location(triplet.dst), get_location(triplet.items[0]), 
                 get_location(triplet.dst, RegisterSize::BIT8));
     case Instruction::IF:
-        return std::format("\ttest {}, {}\n\tjz .ELSE{}\n", get_location(triplet.items[1]), get_location(triplet.items[1]), 
+        return std::format("\tcmp {}, 0\n\tjz .ELSE{}\n", get_location(triplet.items[1]), 
                 get_location(triplet.items[0]));
     case Instruction::ELSE:
         return std::format("\tjmp .IFEND{}\n.ELSE{}:\n", get_location(triplet.items[0]), get_location(triplet.items[0]));
@@ -211,13 +229,13 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
     case Instruction::WHILE:
         return std::format(".WHILE{}:\n", get_location(triplet.items[0]));
     case Instruction::WHILE_JUMPEND:
-        return std::format("\ttest {}, {}\n\tjz .WHILEEND{}\n", get_location(triplet.items[1]), get_location(triplet.items[1]),
+        return std::format("\tcmp {}, 0\n\tjz .WHILEEND{}\n", get_location(triplet.items[1]),
                 get_location(triplet.items[0]));
     case Instruction::ENDWHILE:
         return std::format("\tjmp .WHILE{}\n.WHILEEND{}:\n", get_location(triplet.items[0]),
                 get_location(triplet.items[0]));
 
-    case Instruction::SAVE_CALLER:
+    /*case Instruction::SAVE_CALLER:
         {
         RegisterBitSet reserved_registers = get_reserved_registers_at(triplet.instruc_count)
                 .get_bits_in_other(caller_saved_registers);
@@ -250,40 +268,7 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
 
             caller_preserved_registers.clear();
             return base;
-        }
-    case Instruction::SAVE_CALLEE:
-        {
-            std::string base = "";
-            RegisterBitSet used_registers = get_function_used_registers();
-            RegisterBitSet to_preserve = used_registers.get_bits_in_other(callee_saved_registers);
-            
-            for (const auto reg : to_preserve.get_available_registers())
-            {
-                base += std::format("\tpush {}\n", register_to_string(reg, RegisterSize::BIT64));
-                callee_preserved_registers.push_back(reg);
-            }
-            if (callee_preserved_registers.size() % 2 == 1)
-            {
-                base += std::format("\tsub rsp, 8\n");
-                added_padding_from_callee_save = true;
-            }
-            return base;
-        }
-    case Instruction::LOAD_CALLEE:
-        {
-            std::string base = "";
-            if (added_padding_from_callee_save)
-            {
-                base += std::format("\tadd rsp, 8\n");
-            }
-
-            for (int i = callee_preserved_registers.size()-1; i >= 0; i--)
-            {
-                const auto reg = callee_preserved_registers[i];
-                base += std::format("\tpop {}\n", register_to_string(reg, RegisterSize::BIT64)); 
-            }
-            return base;
-        }
+        }*/
     default:
         return "not yet implemented\n";
         //TODO ERROR
@@ -317,8 +302,7 @@ std::string CodeGeneration::get_location(Item item)
 }
 std::string CodeGeneration::get_location(virtual_register vr)
 {
-    const VirtualRegisterLocation& location = current_func_vr_locations[vr];
-    return get_location(vr, location.live_range.reg_size);
+    return get_location(vr, instruction_reg_size);
 }
 
 std::string CodeGeneration::get_location(virtual_register vr, RegisterSize reg_size)
@@ -361,6 +345,75 @@ RegisterBitSet CodeGeneration::get_function_used_registers()
         used_registers.set(loc.allocated_register);
     }
     return used_registers;
+}
+
+std::string CodeGeneration::save_caller(uint32_t instruc_count)
+{
+    RegisterBitSet reserved_registers = get_reserved_registers_at(instruc_count)
+            .get_bits_in_other(caller_saved_registers);
+    std::string base = "";
+    for (const auto reg : reserved_registers.get_available_registers())
+    {
+        base += std::format("\tpush {}\n", register_to_string(reg, RegisterSize::BIT64)); 
+        caller_preserved_registers.push_back(reg);
+    }
+    if (caller_preserved_registers.size() % 2 == 1)
+    {
+        added_padding_from_caller_save = true;
+        base += std::format("\tsub rsp, 8\n");
+    }
+    return base;
+}
+std::string CodeGeneration::load_caller()
+{
+
+    std::string base = "";
+    if (added_padding_from_caller_save)
+    {
+        base += std::format("\tadd rsp, 8\n");
+        added_padding_from_caller_save = false;
+    }
+    for (int i = caller_preserved_registers.size()-1; i >= 0; i--)
+    {
+        const auto reg = caller_preserved_registers[i];
+        base += std::format("\tpop {}\n", register_to_string(reg, RegisterSize::BIT64)); 
+    }
+
+    caller_preserved_registers.clear();
+    return base;
+}
+std::string CodeGeneration::save_callee()
+{
+    std::string base = "";
+    RegisterBitSet used_registers = get_function_used_registers();
+    RegisterBitSet to_preserve = used_registers.get_bits_in_other(callee_saved_registers);
+    
+    for (const auto reg : to_preserve.get_available_registers())
+    {
+        base += std::format("\tpush {}\n", register_to_string(reg, RegisterSize::BIT64));
+        callee_preserved_registers.push_back(reg);
+    }
+    if (callee_preserved_registers.size() % 2 == 1)
+    {
+        base += std::format("\tsub rsp, 8\n");
+        added_padding_from_callee_save = true;
+    }
+    return base;
+}
+std::string CodeGeneration::load_callee()
+{
+    std::string base = "";
+    if (added_padding_from_callee_save)
+    {
+        base += std::format("\tadd rsp, 8\n");
+    }
+
+    for (int i = callee_preserved_registers.size()-1; i >= 0; i--)
+    {
+        const auto reg = callee_preserved_registers[i];
+        base += std::format("\tpop {}\n", register_to_string(reg, RegisterSize::BIT64)); 
+    }
+    return base;
 }
 
 }

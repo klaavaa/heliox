@@ -42,12 +42,13 @@ def main():
         "command_line_args": 0,
         "modulo": 0,
         "bitwise": 0,
-        "logical": 0
+        "logical": 0,
+        "multiple_operations": 30,
         }
     
     expected_outputs = {
         "print": "argc: 1\n\tthis is the number 10 -> 10",
-        "operators1": "div: 14 / 3 = 42\nmul: 4 * 3 = 12\nsub: 12 - 3 = 9\nadd: 14 + 9 = 23\n",
+        "operators1": "div: 14 / 3 = 4\nmul: 4 * 3 = 12\nsub: 12 - 3 = 9\nadd: 14 + 9 = 23\n",
         "conditional2" : "4 != 8\n4 < 8\n4 <= 8\n",
         "factorial": "479001600",
         "fibonacci": "75025",
@@ -103,8 +104,13 @@ def main():
             failed_tests.append(f"{bcolors.FAIL}TEST \"{test}\" FAILED{bcolors.ENDC} -- {output.returncode} did not equal {expected_values[test]}")
             continue 
         if test in expected_outputs: 
-              if expected_outputs[test] != output.stdout.decode():
-                  failed_tests.append(f"{bcolors.FAIL}TEST \"{test}\" FAILED{bcolors.ENDC} \n\toutput: \n{output.stdout.decode()}\n\tdid not equal\n{expected_outputs[test]}")
+            ostr = ""
+            try:
+                ostr = output.stdout.decode()
+            except (UnicodeDecodeError):
+                ostr = str(output.stdout)
+            if expected_outputs[test] != ostr:
+                  failed_tests.append(f"{bcolors.FAIL}TEST \"{test}\" FAILED{bcolors.ENDC} \n\toutput: \n{ostr}\n\tdid not equal\n{expected_outputs[test]}")
         passed_tests.append(f"{bcolors.OKGREEN}TEST \"{test}\" PASSED{bcolors.ENDC}")
     
     for file in os.listdir("."):

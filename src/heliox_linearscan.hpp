@@ -16,22 +16,22 @@ namespace hx
 struct VirtualRegisterLocation
 {
     LiveRange live_range;
-    union{
+    union
+    {
         Register allocated_register;
         int32_t stack_position;
     };
     bool is_spilled = false;
 };
 
-using VirtualRegisterLocationMap = std::unordered_map<virtual_register, VirtualRegisterLocation>;
-
-struct FunctionDataInfo
+struct VRLocationPair
 {
-    VirtualRegisterLocationMap location_map;
-    int64_t stack_allocated_memory;
+    virtual_register vr;
+    VirtualRegisterLocation location;
 };
 
-using FunctionDataInfoMap = std::unordered_map<std::string, FunctionDataInfo>;
+using VirtualRegisterLocationMap = std::unordered_map<virtual_register, VirtualRegisterLocation>;
+using FunctionLocationData = std::unordered_map<std::string, VirtualRegisterLocationMap>;
 
 struct RegisterBitSet {
     static const size_t register_count = 16;
@@ -77,18 +77,24 @@ public:
     LinearScanRegisterAllocation(InstructionData instruction_data, sptr<SymbolTable> global_table);
 
     void scan();
+
+    
+    sptr<FunctionLocationData> function_location_data;
+
+private:
     void expire_old_intervals(LiveRange i);
-    void spill_at_interval(LiveRange i, const std::string& fname);
+    void spill_at_interval(virtual_register vr, LiveRange lr, const std::string& fname, const VirtualRegisterRegSizes& vr_sizes);
+    
+    VirtualRegisterLocationMap& get_locations() const;
+    
 
-
-    sptr<FunctionDataInfoMap> function_data_info_map;
 private:
     const std::array<Register, 6> integer_arguments_registers = {Register::DI, Register::SI, Register::D, Register::C, Register::R8, Register::R9};
 
     InstructionData instruction_data;
 
-    std::vector<VirtualRegisterLocation> active;
-    std::vector<VirtualRegisterLocation> reserved_active;
+    std::vector<VRLocationPair> active;
+    std::vector<VRLocationPair> reserved_active;
     
     std::vector<virtual_register> vr_must_be_a_register;
     std::vector<virtual_register> vr_must_go_to_stack_aligned;

@@ -50,7 +50,8 @@ inline void compile(const std::string& file_path, const std::string& output_path
 
     Parser parser = Parser(std::make_unique<Lexer>(lexer));
     uptr<Program> program = parser.parse_program();
-     
+    
+    
     /*debug_visitor d_visitor;
     d_visitor.visit_program(program);*/
     sptr<SymbolTable> global_table = std::make_shared<SymbolTable>();
@@ -61,7 +62,7 @@ inline void compile(const std::string& file_path, const std::string& output_path
     linear_scan.scan();
 
 
-    CodeGeneration codegen(global_table, linear_scan.function_data_info_map);
+    CodeGeneration codegen(global_table, linear_scan.function_location_data);
     std::string generated_nasm = codegen.generate(instruction_gen.instruction_data);
     std::println("{}", generated_nasm);
     create_assembly_file(file_path_stripped, generated_nasm);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include "heliox_types.hpp"
 #include "heliox_pointer.hpp"
@@ -55,17 +56,17 @@ namespace hx
         const std::unordered_map<uint32_t, std::string>& get_string_table() const { return string_table; }
         const std::unordered_map<uint32_t, std::string>& get_function_table() const { return function_table; }
 
-        std::vector<virtual_register> get_all_variable_virtual_registers() const
+        std::unordered_set<virtual_register> get_all_variable_virtual_registers() const
         {
-            std::vector<virtual_register> all;
+            std::unordered_set<virtual_register> all;
             if (parent)
             {
-                const std::vector<virtual_register> parents = parent->get_all_variable_virtual_registers();
-                all.insert(all.end(), parents.begin(), parents.end());
+                const auto parents = parent->get_all_variable_virtual_registers();
+                all.insert(parents.begin(), parents.end());
             }
             for (auto& [key, symbol] : variable_symbols)
             {
-                all.push_back(symbol.vr); 
+                all.insert(symbol.vr); 
             }
             return all;
         }

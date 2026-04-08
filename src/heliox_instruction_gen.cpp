@@ -26,7 +26,6 @@ void InstructionGenerator::visit_program(uptr<Program>& prog)
 void InstructionGenerator::calculate_live_ranges()
 {
     
-    uint32_t instruc_count = 0;
 
     for (auto& func : instruction_data.instruction_functions)
     {
@@ -34,66 +33,66 @@ void InstructionGenerator::calculate_live_ranges()
         uint32_t loop_start = 0;
         for (auto& triplet : func.instruction_triplets)
         {
+            uint32_t instruc_count = triplet.instruc_count;
             if (triplet.instruction == Instruction::WHILE)
             {
-                in_loop = true; 
+                in_loop = true;
                 loop_start = instruc_count;
             }
             else if (triplet.instruction == Instruction::ENDWHILE)
             {
                 in_loop = false;
             }
-            if (triplet.dst == -1) 
-            {
-                instruc_count++;
-                continue;
-            }  
-
-            std::vector<virtual_register> used_registers;
-            used_registers.push_back(triplet.dst);
-            for (auto& i : triplet.items)
-            {
-               if(i.item_type == ItemType::VIRTUAL_REGISTER)
-               {
-                    used_registers.push_back(i.value);
-               }
-            }
             
-            if (triplet.dst >= func.live_ranges.size())
-                func.live_ranges.push_back(LiveRange{triplet.dst, triplet.reg_size, instruc_count, instruc_count});
-             
-            for (auto vreg : used_registers)
+
+
+            if (triplet.dst != -1)                 
             {
-                 
-                if (vreg < func.live_ranges.size() )
+                if (!func.live_ranges.contains(triplet.dst))
                 {
-                    func.live_ranges[vreg].last_use = std::max(instruc_count, func.live_ranges[vreg].last_use); 
+                    func.live_ranges.insert({triplet.dst, LiveRange{instruc_count, instruc_count}});
+                }
+                else
+                {
+                    uint32_t& last_use = func.live_ranges.at(triplet.dst).last_use;
+                    last_use = std::max(instruc_count, last_use);
                 }
             }
+            for (auto& item : triplet.items)
+            {
+                if (item.item_type != ItemType::VIRTUAL_REGISTER) continue;
+                if (!func.live_ranges.contains(item.value))
+                {
+                    func.live_ranges.insert({item.value, LiveRange{instruc_count, instruc_count}});
+                }
+                else
+                {
+                    uint32_t& last_use = func.live_ranges.at(item.value).last_use;
+                    last_use = std::max(instruc_count, last_use);
+                }
+            }
+
             if (in_loop)
             {
-               const auto& all_var_vrs = current_table->get_all_variable_virtual_registers();
-               for (auto& live_range : func.live_ranges)
-               {
-                   if (live_range.last_use < loop_start) continue;
-                   if (std::find(all_var_vrs.begin(), all_var_vrs.end(), live_range.reg) != all_var_vrs.end())
-                   {
-                        live_range.last_use = std::max(instruc_count, live_range.last_use);
-                   }
-               }
+                for (auto& [vr, live_range] : func.live_ranges)
+                {
+                    const auto var_vrs = current_table->get_all_variable_virtual_registers();
+                    if (!var_vrs.contains(vr)) continue;
+                    if (!func.live_ranges.contains(vr)) continue;
+                    uint32_t& last_use = func.live_ranges.at(vr).last_use;
+                    func.live_ranges.at(vr).last_use = std::max(instruc_count, last_use);
+                }
             }
-            instruc_count++;
-
         }
     }
      
     for (auto& func : instruction_data.instruction_functions) 
     {
-        for (size_t i = 0; i < func.live_ranges.size(); i++)
+        for (const auto& [vr, live_range] : func.live_ranges)
         {
             std::println("r{} [{} -> {}]", 
-                    func.live_ranges[i].reg, func.live_ranges[i].first_use,
-                    func.live_ranges[i].last_use);
+                    vr, live_range.first_use,
+                    live_range.last_use);
         }
     }
     
@@ -104,6 +103,7 @@ void InstructionGenerator::emit_instruction(InstructionTriplet triplet, uint32_t
     triplet.instruc_count = instruction_count;
     instruction_count ++;
     print_instruction(triplet);
+    set_vr_reg_size(triplet.dst, triplet.reg_size);
     current_virtual_register += increment;
     instruction_data.instruction_functions.back().instruction_triplets.push_back(triplet);
 }
@@ -119,20 +119,27 @@ void InstructionGenerator::visit_function(uptr<function>& func)
     
     instruction_data.instruction_functions.push_back({func->identifier->name});
 
-    InstructionTriplet save_callee(Instruction::SAVE_CALLEE,
-            -1, {}, RegisterSize::BIT64);
-    emit_instruction(save_callee, 0);
 
     int parameter_position = 0;
     for (auto& param : func->params)
     {
+        ReservedRegister reg_pair;
+        if (parameter_position < 6)
+        {
+           reg_pair.reg = register_passed_arguments[parameter_position]; 
+        }
+        else
+        {
+            reg_pair.on_stack = true;
+            reg_pair.stack_position = 16 + (parameter_position-6) * 8;
+        }
         RegisterSize reg_size = get_register_size(param->var_type.byte_size);
         InstructionTriplet triplet = 
             InstructionTriplet(Instruction::LOAD_PARAM, 
                     current_virtual_register,
                     {Item{ItemType::PARAMETER_INDEX, parameter_position}},
                     reg_size);
-
+        reserve_register(current_virtual_register, reg_pair); 
         effective_register = current_virtual_register;
         effective_register_size = reg_size;
         emit_instruction(triplet);
@@ -142,7 +149,6 @@ void InstructionGenerator::visit_function(uptr<function>& func)
                     current_virtual_register,
                     {Item{ItemType::VIRTUAL_REGISTER, effective_register}},
                     reg_size);
-        
         effective_register = current_virtual_register;
         emit_instruction(store);
 
@@ -166,8 +172,9 @@ void InstructionGenerator::visit_int_literal(uptr<int_literal_expr>& int_literal
         InstructionTriplet(Instruction::LOAD_INT, 
                 current_virtual_register,
                 {Item{ItemType::IMMEDIATE_VALUE, std::stol(int_literal->value)}},
-                effective_register_size);
+                RegisterSize::BIT64);
     effective_register = current_virtual_register;
+    effective_register_size = RegisterSize::BIT64;
     emit_instruction(triplet);
 
 }
@@ -241,6 +248,14 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
     virtual_register right = effective_register;
     RegisterSize right_size = effective_register_size;
     
+
+    if (left_size != right_size)
+    {
+        std::println("WARNING: Trying to do operations with 2 different operation sizes");
+        left_size = std::min(left_size, right_size);
+        right_size = left_size;
+    }
+
     if (binop->op_token == TokenType::LOGICAL_AND)
     {
         
@@ -248,8 +263,8 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
             current_virtual_register,
             {Item{ItemType::VIRTUAL_REGISTER, right}, Item{ItemType::IMMEDIATE_VALUE, logical_and_label_id}},
             right_size);
-        emit_instruction(and_right);
         effective_register = current_virtual_register;
+        emit_instruction(and_right);
         logical_and_label_id ++;
         return;
     }
@@ -260,16 +275,10 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
             current_virtual_register,
             {Item{ItemType::VIRTUAL_REGISTER, right}, Item{ItemType::IMMEDIATE_VALUE, logical_or_label_id}},
             right_size);
-        emit_instruction(or_right);
         effective_register = current_virtual_register;
+        emit_instruction(or_right);
         logical_or_label_id ++;
         return;
-    }
-
-    if (left_size != right_size)
-    {
-        std::println("ERROR: Trying to do operations with 2 different operation sizes");
-        exit(-1);
     }
     
     Instruction instruc;
@@ -291,11 +300,10 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
         case TokenType::DIVEQUALS:
             {
             instruc = Instruction::DIV;
-            InstructionTriplet zero(Instruction::ZERO_DX,
-                    current_virtual_register,
-                    {},
-                    RegisterSize::BIT64);
-            emit_instruction(zero);
+            ReservedRegister reserved_register; 
+            reserved_register.reg = Register::A;
+            reserved_register.reserved_without_vr.push_back(Register::D);
+            reserve_register(left, reserved_register);
             break;
             }
         default:
@@ -319,8 +327,8 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
         Instruction::STORE,
         current_virtual_register,
         {Item{ItemType::VIRTUAL_REGISTER, left}},
-        left_size 
-    );
+        left_size);
+
     effective_register = current_virtual_register;
     emit_instruction(left_side_triplet);
 
@@ -338,37 +346,25 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
         case TokenType::DIVIDE:
             {
             instruc = Instruction::DIV;
-            InstructionTriplet zero(Instruction::ZERO_DX,
-                    current_virtual_register,
-                    {},
-                    RegisterSize::BIT64);
-            emit_instruction(zero);
+            ReservedRegister reserved_register; 
+            reserved_register.reg = Register::A;
+            reserved_register.reserved_without_vr.push_back(Register::D);
+            reserve_register(effective_register, reserved_register);
             break;
             }
         case TokenType::MODULO:
             {
-            // TODO THIS CHANGES WITH THE REWORK
             instruc = Instruction::MOD;
-            InstructionTriplet zero(Instruction::ZERO_DX,
-                    current_virtual_register,
-                    {},
-                    left_size);
-            virtual_register dreg = current_virtual_register;
-            emit_instruction(zero);
+            reserve_register(effective_register, {Register::A});
+            reserve_register(current_virtual_register, {Register::D});
             InstructionTriplet triplet = 
                 InstructionTriplet(instruc, 
-                        effective_register,
-                        {Item{ItemType::VIRTUAL_REGISTER, right},
-                        Item{ItemType::VIRTUAL_REGISTER, current_virtual_register + 1}},
-                        left_size);
-            emit_instruction(triplet, 0);
-            InstructionTriplet store = 
-                InstructionTriplet(Instruction::STORE, 
                         current_virtual_register,
-                        {Item{ItemType::VIRTUAL_REGISTER, dreg}},
+                        {Item{ItemType::VIRTUAL_REGISTER, effective_register},
+                        Item{ItemType::VIRTUAL_REGISTER, right}},
                         left_size);
             effective_register = current_virtual_register;
-            emit_instruction(store);
+            emit_instruction(triplet);
             return;
             }
         case TokenType::DOUBLE_EQU:
@@ -494,20 +490,16 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         auto& item = parameter_virtual_registers[i];
         InstructionTriplet triplet(Instruction::STORE,
             current_virtual_register,
-            {Item{ItemType::VIRTUAL_REGISTER, item.value}},
+            {item},
             param_sizes[i]);
+        ReservedRegister res;
+        res.reg = register_passed_arguments[i-1];
+        reserve_register(current_virtual_register, res);
         effective_register = current_virtual_register;
         emit_instruction(triplet);
         item.value = effective_register;
     }
 
-    InstructionTriplet save(
-            Instruction::SAVE_CALLER,
-            -1,
-            {},
-            RegisterSize::BIT64
-            );
-    emit_instruction(save, 0);
 
     // align stack
     bool did_allignment = false;
@@ -520,8 +512,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
                 Instruction::ALIGN,
                 -1,
                 {Item{ItemType::IMMEDIATE_VALUE, -8}},
-                RegisterSize::BIT64 
-            );
+                RegisterSize::BIT64);
             emit_instruction(align_triplet, 0);
             did_allignment = true;
         }
@@ -541,22 +532,25 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         emit_instruction(triplet);
     }
 
-    InstructionTriplet triplet = 
-        InstructionTriplet(Instruction::CALL, 
+    std::vector<ReservedRegister> reserved_registers;
+    if (s.return_type.byte_size != 0)
+    {
+        reserve_register(current_virtual_register, {Register::A});
+    }
+    InstructionTriplet triplet(Instruction::CALL, 
                 current_virtual_register,
                 parameter_virtual_registers,
                 get_register_size(s.return_type.byte_size));
+
     effective_register = current_virtual_register;
     emit_instruction(triplet);
-
     if (did_allignment)
     {
         InstructionTriplet align_triplet(
             Instruction::ALIGN,
             -1,
             {Item{ItemType::IMMEDIATE_VALUE, 8 + 8*pushed_param_count}},
-            RegisterSize::BIT64 
-        );
+            RegisterSize::BIT64);
         emit_instruction(align_triplet, 0);
     }
     
@@ -569,11 +563,6 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         effective_register = current_virtual_register;
         emit_instruction(store);
     }
-    InstructionTriplet load_caller(Instruction::LOAD_CALLER,
-            -1,
-            {},
-            RegisterSize::BIT64);
-    emit_instruction(load_caller, 0);
 }
 
 void InstructionGenerator::visit_compound(uptr<compound_statement>& compound) 
@@ -596,16 +585,13 @@ void InstructionGenerator::visit_return(uptr<return_statement>& return_s)
     effective_register = current_virtual_register;
     emit_instruction(store);
 
-    InstructionTriplet load_callee(Instruction::LOAD_CALLEE,
-            -1, {}, RegisterSize::BIT64);
-    emit_instruction(load_callee, 0);
 
     InstructionTriplet triplet = 
         InstructionTriplet(Instruction::RETURN, 
                  effective_register,
                 {},
                 effective_register_size);
-    effective_register = current_virtual_register;
+    reserve_register(effective_register, {Register::A});
     emit_instruction(triplet, 0);
 
 }
@@ -652,7 +638,8 @@ void InstructionGenerator::visit_conditional(uptr<conditional_statement>& condit
         Instruction::IF,
         -1,
         {Item{ItemType::IMMEDIATE_VALUE, if_label_id}, Item{ItemType::VIRTUAL_REGISTER, effective_register}},
-        RegisterSize::BIT0);
+        effective_register_size);
+
     emit_instruction(if_begin, 0);     
 
     visit_statement(conditional->then_stat);
@@ -688,7 +675,7 @@ void InstructionGenerator::visit_while(uptr<while_statement>& while_s)
             -1,
             {Item{ItemType::IMMEDIATE_VALUE, while_label_id},
              Item{ItemType::VIRTUAL_REGISTER, effective_register}},
-            RegisterSize::BIT0);
+            effective_register_size);
     emit_instruction(jump, 0);
 
     visit_statement(while_s->loop);
@@ -707,7 +694,13 @@ void InstructionGenerator::visit_noop(uptr<noop_statement>& noop)
 {
 } 
 
-
-
+void InstructionGenerator::reserve_register(virtual_register vr, ReservedRegister reservation)
+{
+    instruction_data.instruction_functions.back().reserved_registers.insert({vr, reservation});
+}
+void InstructionGenerator::set_vr_reg_size(virtual_register vr, RegisterSize reg_size)
+{
+    instruction_data.instruction_functions.back().vr_reg_sizes.insert({vr, reg_size});
+}
 
 }

@@ -28,7 +28,7 @@ fun mul(i64 a, i64 b) i64
 
 fun div(i64 a, i64 b) i64
 {
-    printf("div: %d / %d = %d\n", a, b, a*b);
+    printf("div: %d / %d = %d\n", a, b, a/b);
     return a / b;
 }
 

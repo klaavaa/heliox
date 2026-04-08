@@ -9,7 +9,7 @@ namespace hx
     class CodeGeneration
     {
     public:
-        CodeGeneration(sptr<SymbolTable> global_table, sptr<FunctionDataInfoMap> function_data_info_map);
+        CodeGeneration(sptr<SymbolTable> global_table, sptr<FunctionLocationData> function_location_data);
         std::string generate(InstructionData& instruction_data);
     private:
 
@@ -27,6 +27,11 @@ namespace hx
 
         std::string parse_string(const std::string& str);
 
+        std::string save_caller(uint32_t instruc_count);
+        std::string load_caller();
+        std::string save_callee();
+        std::string load_callee();
+
     private:
         std::string externs;
         std::string data_section;
@@ -34,9 +39,10 @@ namespace hx
         std::string bss_section;
 
         sptr<SymbolTable> global_table; 
-        sptr<FunctionDataInfoMap> function_data_info_map;
+        sptr<FunctionLocationData> function_location_data;
         VirtualRegisterLocationMap current_func_vr_locations;
         
+
         RegisterBitSet callee_saved_registers;
         RegisterBitSet caller_saved_registers;
 
@@ -47,5 +53,7 @@ namespace hx
         std::vector<Register> callee_preserved_registers;
         
         int64_t param_stack_position = 0;
+        
+        RegisterSize instruction_reg_size;
     };
 }

@@ -6,19 +6,19 @@ namespace hx
 LinearScanRegisterAllocation::LinearScanRegisterAllocation(InstructionData instruction_data, sptr<SymbolTable> global_table)
     :  instruction_data(instruction_data), global_table(global_table)
 {
-    function_data_info_map = std::make_shared<FunctionDataInfoMap>();
-    register_set.set(Register::A);
-    register_set.set(Register::B);
-    register_set.set(Register::C);
-    register_set.set(Register::D);
-    register_set.set(Register::DI);
-    register_set.set(Register::SI);
-    register_set.set(Register::R8);
-    register_set.set(Register::R9);
-    register_set.set(Register::R10);
-    register_set.set(Register::R11);
-    register_set.set(Register::R12);
-    register_set.set(Register::R13);
+    function_location_data = std::make_shared<FunctionLocationData>();
+    //register_set.set(Register::A);
+    //register_set.set(Register::B);
+    //register_set.set(Register::C);
+    //register_set.set(Register::D);
+    //register_set.set(Register::DI);
+    //register_set.set(Register::SI);
+    //register_set.set(Register::R8);
+    //register_set.set(Register::R9);
+    //register_set.set(Register::R10);
+    //register_set.set(Register::R11);
+    //register_set.set(Register::R12);
+    //register_set.set(Register::R13);
     register_set.set(Register::R14);
     register_set.set(Register::R15);
 }
@@ -30,145 +30,64 @@ void LinearScanRegisterAllocation::scan()
         reserved_active.clear();
         active.clear();
         const std::string& fname = instruction_function.name;
-        // do a pre-scan to reserve certain registers at needed times (such as function call parameters)
+        function_location_data->insert({fname, {}});
+        auto& current_locations = function_location_data->at(fname);
         int param_offset = 16;
-        for (const auto& triplet : instruction_function.instruction_triplets)
-        {
-            switch (triplet.instruction)
-            {
-                // this is the case for (unsigned) MUL 
-                //case Instruction::MUL:
-                case Instruction::RETURN:
-                {
-                    
-                    VirtualRegisterLocation location; 
-                    location.live_range = *std::find_if(instruction_function.live_ranges.begin(), instruction_function.live_ranges.end(), [triplet](LiveRange lr){ return lr.reg == triplet.dst; });
-                    location.allocated_register = Register::A;
-                    (*function_data_info_map)[fname].location_map[triplet.dst] = location;
-                    reserved_active.push_back(location);
-                    break;
-                }
-                case Instruction::CALL:
-                {
-
-                    for (size_t i = 1; i < triplet.items.size(); i++)                      
-                    {
-                        if ((i-1) >= integer_arguments_registers.size()) continue;
-                        // RESERVE REGISTERS TO PASS FUNCTION PARAMS TO
-                        const auto& item = triplet.items[i];
-                        VirtualRegisterLocation location; 
-                        location.live_range = *std::find_if(instruction_function.live_ranges.begin(), instruction_function.live_ranges.end(), [item](LiveRange lr){ return lr.reg == item.value; });
-                        location.allocated_register = integer_arguments_registers[i-1];
-                        (*function_data_info_map)[fname].location_map[item.value] = location;
-                        reserved_active.push_back(location);
-                    }
-                    VirtualRegisterLocation location; 
-                    //location.live_range.reg = triplet.dst;
-                    location.live_range = *std::find_if(instruction_function.live_ranges.begin(), instruction_function.live_ranges.end(), [triplet](LiveRange lr){ return lr.reg == triplet.dst; });
-                    location.allocated_register = Register::A;
-                    (*function_data_info_map)[fname].location_map[triplet.dst] = location;
-                    reserved_active.push_back(location);
-                    break;
-                }
-                case Instruction::LOAD_PARAM:
-                    {
-                    VirtualRegisterLocation location; 
-                    location.live_range = *std::find_if(instruction_function.live_ranges.begin(), instruction_function.live_ranges.end(), [triplet](LiveRange lr){ return lr.reg == triplet.dst; });
-                    //location.live_range.reg = triplet.dst;
-                    if (triplet.items[0].value < integer_arguments_registers.size()) 
-                    {
-                        location.allocated_register = integer_arguments_registers[triplet.items[0].value];
-                    }
-                    else
-                    {
-                        location.is_spilled = true;
-                        location.stack_position = param_offset;
-                        param_offset += 8;
-                    }
-                    (*function_data_info_map)[fname].location_map[triplet.dst] = location;
-                    reserved_active.push_back(location);
-                    break;
-                    }
-                case Instruction::ZERO_DX:
-                    {
-                    VirtualRegisterLocation location; 
-                    location.live_range = *std::find_if(instruction_function.live_ranges.begin(), instruction_function.live_ranges.end(), [triplet](LiveRange lr){ return lr.reg == triplet.dst; });
-                    location.allocated_register = Register::D;
-                    (*function_data_info_map)[fname].location_map[triplet.dst] = location;
-                    reserved_active.push_back(location);
-                    break;
-                    }
-                case Instruction::DIV:
-                    {
-                    VirtualRegisterLocation location; 
-                    location.live_range = *std::find_if(instruction_function.live_ranges.begin(), instruction_function.live_ranges.end(), [triplet](LiveRange lr){ return lr.reg == triplet.dst; });
-                    location.allocated_register = Register::A;
-                    (*function_data_info_map)[fname].location_map[triplet.dst] = location;
-                    reserved_active.push_back(location);
-                    break;
-                    }
-                case Instruction::MOD:
-                    {
-                    VirtualRegisterLocation location; 
-                    location.live_range = *std::find_if(instruction_function.live_ranges.begin(), instruction_function.live_ranges.end(), [triplet](LiveRange lr){ return lr.reg == triplet.dst; });
-                    location.allocated_register = Register::A;
-                    (*function_data_info_map)[fname].location_map[triplet.dst] = location;
-                    reserved_active.push_back(location);
-
-                    VirtualRegisterLocation location2; 
-                    location.live_range = *std::find_if(instruction_function.live_ranges.begin(), instruction_function.live_ranges.end(), [triplet](LiveRange lr){ return lr.reg == triplet.items[1].value; });
-                    location.allocated_register = Register::D;
-                    (*function_data_info_map)[fname].location_map[triplet.items[1].value] = location;
-                    reserved_active.push_back(location2);
-                    break;
-                    }
-                case Instruction::LOAD_STRING:
-                case Instruction::ADD:
-                case Instruction::SUB:
-                case Instruction::MUL:
-                case Instruction::PUSH:
-                {
-                    vr_must_be_a_register.push_back(triplet.dst);
-                    break;
-                }
-                case Instruction::STORE:
-                {
-                    auto p = std::pair<virtual_register, virtual_register>(triplet.dst, triplet.items[0].value);
-                    one_vr_must_be_a_register.push_back(p);
-                    break;
-                }
-
-                default:
-                    break;
-            }
-        }
-        
-        // do the actual scan 
         local_stack_offset = 0;
-        for (const auto& live_range : instruction_function.live_ranges)
+        for (const auto& [vr, reserved_reg] : instruction_function.reserved_registers)
         {
-            std::sort(reserved_active.begin(), reserved_active.end(),
-                    [](VirtualRegisterLocation a, VirtualRegisterLocation b) { return a.live_range.last_use < b.live_range.last_use; });
-            std::sort(active.begin(), active.end(), [](VirtualRegisterLocation a, VirtualRegisterLocation b) { return a.live_range.last_use < b.live_range.last_use; });
-            if (live_range.reg == -1) continue;
-            if ((*function_data_info_map)[fname].location_map.contains(live_range.reg)) continue;
+                VirtualRegisterLocation location; 
+                location.live_range = instruction_function.live_ranges.at(vr);
+                std::println("vr: {} -> {}, [{} - {}]", vr, register_to_string(reserved_reg.reg, RegisterSize::BIT64),
+                        location.live_range.first_use, location.live_range.last_use);
+                if (reserved_reg.on_stack)
+                {
+                    location.stack_position = reserved_reg.stack_position;
+                    location.is_spilled = true;
+                }
+                else
+                {
+                    location.allocated_register = reserved_reg.reg;
+                }
+                current_locations.insert({vr, location});
+                reserved_active.push_back({vr, location});
+                for (auto reg : reserved_reg.reserved_without_vr)
+                {
+                    VirtualRegisterLocation loc;
+                    loc.live_range = location.live_range;
+                    loc.allocated_register = reg;
+                    std::println("vr: {} -> {}, [{} - {}]", vr, register_to_string(reserved_reg.reg, RegisterSize::BIT64),
+                        loc.live_range.first_use, loc.live_range.last_use);
+                    reserved_active.push_back({-1, loc});
+                }
+        }
+        for (const auto& [vr, live_range] : instruction_function.live_ranges)
+        {
+            if (current_locations.contains(vr)) continue;
 
+            std::sort(reserved_active.begin(), reserved_active.end(),
+                    [](const VRLocationPair& a, const VRLocationPair& b) { return a.location.live_range.last_use < b.location.live_range.last_use; });
+
+            std::sort(active.begin(), active.end(), [](const VRLocationPair& a, const VRLocationPair& b) { return a.location.live_range.last_use < b.location.live_range.last_use; });
+            
             expire_old_intervals(live_range);
             RegisterBitSet free_registers = register_set;
-            for (auto& loc : active)
+            for (auto& [vr1, loc1] : active)
             {
-                if (loc.is_spilled) continue;
-                free_registers.reset(loc.allocated_register);
+                if (loc1.is_spilled) continue;
+                free_registers.reset(loc1.allocated_register);
             }
-            for (auto& loc : reserved_active)
+
+            for (auto& [vr2, loc2] : reserved_active)
             {
-                if (loc.is_spilled) continue;
-                free_registers.reset(loc.allocated_register);
+                if (loc2.is_spilled) continue;
+                //if (loc.live_range.first_use > live_range.last_use) continue;
+                free_registers.reset(loc2.allocated_register);
             }
 
             if (free_registers.count() == 0)
             {
-                spill_at_interval(live_range, fname);
+                spill_at_interval(vr, live_range, fname, instruction_function.vr_reg_sizes);
             }
             else
             {
@@ -176,14 +95,10 @@ void LinearScanRegisterAllocation::scan()
                 VirtualRegisterLocation location; 
                 location.live_range = live_range;
                 location.allocated_register = allocated_register;
-                (*function_data_info_map)[fname].location_map[live_range.reg] = location;
-                active.push_back(location);
+                current_locations.insert({vr, location});
+                active.push_back({vr, location});
             }
         }
-        
-        // align the local stack offset by 16
-        local_stack_offset = -((abs(local_stack_offset) + 15) & ~15);
-        (*function_data_info_map)[fname].stack_allocated_memory = local_stack_offset;
     }
 }
 
@@ -191,96 +106,66 @@ void LinearScanRegisterAllocation::expire_old_intervals(LiveRange i)
 {
     for (auto it = active.begin(); it != active.end(); )
     {
-        VirtualRegisterLocation& location = *it;
-        if (location.live_range.last_use > i.first_use)
+        VRLocationPair& pair = *it;
+        if (pair.location.live_range.last_use > i.first_use)
         {
-            return;
+            break;
         }
         it = active.erase(it);
     }
     for (auto it = reserved_active.begin(); it != reserved_active.end();)
     {
-        VirtualRegisterLocation& location = *it;
-        if (location.live_range.last_use > i.first_use)
+        VRLocationPair& pair = *it;
+        if (pair.location.live_range.last_use > i.first_use)
         {
-            return;
+            break;
         }
         it = reserved_active.erase(it);
     }
 
 }
 
-void LinearScanRegisterAllocation::spill_at_interval(LiveRange i, const std::string& fname)
+void LinearScanRegisterAllocation::spill_at_interval(virtual_register vr, LiveRange lr, const std::string& fname, const VirtualRegisterRegSizes& vr_sizes)
 {
-    // this segment is the most disguisting code i have ever written
-    // ----------------------------------------------------------------- //
-    bool must_be_register = std::find_if(vr_must_be_a_register.begin(),
-            vr_must_be_a_register.end(), 
-            [i](virtual_register vr)
-            { return i.reg == vr; }) != vr_must_be_a_register.end() ? true : false;
-    
-    must_be_register = must_be_register || (std::find_if(one_vr_must_be_a_register.begin(), one_vr_must_be_a_register.end(),
-            [this, fname, i](std::pair<virtual_register, virtual_register> p)
-            { 
-                if (i.reg != p.first && i.reg != p.second) return false;
-                std::println("{} -> {} {}", i.reg, p.first, p.second);
-                if (i.reg == p.second && function_data_info_map->at(fname).location_map.contains(p.first))
-                {
-                    const VirtualRegisterLocation& loc = function_data_info_map->at(fname).location_map.at(p.first);
-                    if (loc.is_spilled)
-                    {
-                        return true; 
-                    }
-                }
-                if (function_data_info_map->at(fname).location_map.contains(p.second))
-                {
-                    const VirtualRegisterLocation& loc = function_data_info_map->at(fname).location_map.at(p.second);
-                    if (loc.is_spilled)
-                    {
-                        return true; 
-                    }
-                }
-                return false;
-            }
-            ) != one_vr_must_be_a_register.end() ? true : false);
-    // ----------------------------------------------------------------- //
+    VRLocationPair& spill = active.back();
+    auto& current_locations = function_location_data->at(fname);
 
-    VirtualRegisterLocation& spill = active.back();
-    if (must_be_register || spill.live_range.last_use > i.last_use)
+    if (spill.location.live_range.last_use > lr.last_use)
     {
         VirtualRegisterLocation location;
-        location.live_range = i;
-        location.allocated_register = spill.allocated_register;
-        (*function_data_info_map)[fname].location_map[i.reg] = location;
+        location.live_range = lr;
+        location.allocated_register = spill.location.allocated_register;
+        current_locations.insert({vr, location});
             
-        (*function_data_info_map)[fname].location_map[spill.live_range.reg].is_spilled = true;
-        uint32_t byte_size = get_byte_size_from_register_size(spill.live_range.reg_size);
+        current_locations.at(spill.vr).is_spilled = true;
+        uint32_t byte_size = get_byte_size_from_register_size(vr_sizes.at(spill.vr));
         local_stack_offset -= byte_size;
+        
         int not_aligned = abs(local_stack_offset) % byte_size;
         if (not_aligned != 0)
         {
             local_stack_offset -= not_aligned;
         }
-        (*function_data_info_map)[fname].location_map[spill.live_range.reg].stack_position = local_stack_offset;
-        active.pop_back();
-        if (must_be_register)
-        { 
-            reserved_active.push_back((*function_data_info_map)[fname].location_map[i.reg]);
-            return;
-        }
-        active.push_back((*function_data_info_map)[fname].location_map[i.reg]);
+
+        current_locations.at(spill.vr).stack_position = local_stack_offset;
+        //if (must_be_register)
+        //{ 
+        //    reserved_active.push_back((*function_data_info_map)[fname].location_map[i.reg]);
+        //    return;
+        //}
+
+        active[active.size()-1] = {vr, location};
     }
     else
     {
         VirtualRegisterLocation location;
-        location.live_range = i;
+        location.live_range = lr;
         location.is_spilled = true;
-        local_stack_offset -= get_byte_size_from_register_size(location.live_range.reg_size);
+        local_stack_offset -= get_byte_size_from_register_size(vr_sizes.at(vr));
         location.stack_position = local_stack_offset;
-        (*function_data_info_map)[fname].location_map[i.reg] = location;
+        current_locations.insert({vr, location});
 
     }
 }
-
 
 }

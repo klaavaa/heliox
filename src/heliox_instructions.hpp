@@ -2,6 +2,8 @@
 #include <print>
 #include <format>
 #include <vector>
+#include <unordered_map>
+#include <map>
 
 namespace hx
 {
@@ -166,12 +168,6 @@ enum class Instruction
     ZERO_DX,
     CALL,
     
-    SAVE_CALLER,
-    LOAD_CALLER,
-
-    SAVE_CALLEE,
-    LOAD_CALLEE,
-
     ALIGN,
     PUSH,
     POP,
@@ -233,7 +229,7 @@ enum class ItemType
 struct Item
 {
     Item(ItemType item_type, int64_t value)
-        : item_type(item_type), value(value)  {}
+        : item_type(item_type), value(value) {}
     
     std::string get_string() const
     {
@@ -303,12 +299,20 @@ inline RegisterSize get_register_size(uint32_t byte_size)
     }
     
 }
-
+struct ReservedRegister
+{
+    union {
+    Register reg;
+    int32_t stack_position;
+    };
+    bool on_stack = false;
+    std::vector<Register> reserved_without_vr;
+};
 struct InstructionTriplet
 {
-    InstructionTriplet(Instruction instruction, virtual_register dst, std::vector<Item> items,
-            RegisterSize reg_size)
-        : instruction(instruction), dst(dst), items(items), reg_size(reg_size) {}
+    InstructionTriplet(Instruction instruction, virtual_register dst, std::vector<Item> items, RegisterSize reg_size)
+        : instruction(instruction), dst(dst), items(items), reg_size(reg_size)
+    {}
     Instruction instruction;
     uint32_t instruc_count;
     virtual_register dst;
@@ -316,15 +320,16 @@ struct InstructionTriplet
     RegisterSize reg_size; 
 };
 
-
-
 struct LiveRange
 {
-    virtual_register reg;
-    RegisterSize reg_size;
     uint32_t first_use;
     uint32_t last_use;
 };
+
+using ReservedRegisters = std::unordered_map<virtual_register, ReservedRegister>;
+using LiveRanges = std::map<virtual_register, LiveRange>;
+using InstructionTriplets = std::vector<InstructionTriplet>;
+using VirtualRegisterRegSizes = std::unordered_map<virtual_register, RegisterSize>;
 
 struct InstructionFunction
 {
@@ -332,8 +337,10 @@ struct InstructionFunction
         : name(name), is_extern(is_extern) {}
     std::string name;
     bool is_extern;
-    std::vector<InstructionTriplet> instruction_triplets;
-    std::vector<LiveRange> live_ranges;
+    InstructionTriplets instruction_triplets;
+    LiveRanges live_ranges;
+    ReservedRegisters reserved_registers;
+    VirtualRegisterRegSizes vr_reg_sizes;
 };
 
 struct InstructionData
@@ -467,23 +474,6 @@ inline void print_instruction(const InstructionTriplet& triplet)
             std::println("{} ZERO  r{}", prefix,
                     triplet.dst);  
             break;
-            
-        case Instruction::SAVE_CALLER:
-            std::println("{} SAVE_CALLER", prefix);  
-            break;
-
-        case Instruction::LOAD_CALLER:
-            std::println("{} LOAD_CALLER", prefix);  
-            break;
-            
-        case Instruction::SAVE_CALLEE:
-            std::println("{} SAVE_CALLEE", prefix);  
-            break;
-
-        case Instruction::LOAD_CALLEE:
-            std::println("{} LOAD_CALLEE", prefix);  
-            break;
-
         case Instruction::IF:
             std::println("{} IF    r{} {}", prefix, triplet.items[1].value, triplet.items[0].value);  
             break;
