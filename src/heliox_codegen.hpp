@@ -32,6 +32,8 @@ namespace hx
         std::string save_callee();
         std::string load_callee();
 
+        std::string gen_instruc_safe(const std::string inst, virtual_register dst, Item arg);
+
     private:
         std::string externs;
         std::string data_section;
@@ -42,7 +44,7 @@ namespace hx
         sptr<FunctionLocationData> function_location_data;
         VirtualRegisterLocationMap current_func_vr_locations;
         
-
+        Register scratch_register = Register::R11;
         RegisterBitSet callee_saved_registers;
         RegisterBitSet caller_saved_registers;
 

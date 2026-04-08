@@ -3,29 +3,29 @@
 namespace hx
 {
 
-LinearScanRegisterAllocation::LinearScanRegisterAllocation(InstructionData instruction_data, sptr<SymbolTable> global_table)
+LinearScanRegisterAllocation::LinearScanRegisterAllocation(InstructionData& instruction_data, sptr<SymbolTable> global_table)
     :  instruction_data(instruction_data), global_table(global_table)
 {
     function_location_data = std::make_shared<FunctionLocationData>();
-    //register_set.set(Register::A);
-    //register_set.set(Register::B);
-    //register_set.set(Register::C);
-    //register_set.set(Register::D);
-    //register_set.set(Register::DI);
-    //register_set.set(Register::SI);
-    //register_set.set(Register::R8);
-    //register_set.set(Register::R9);
-    //register_set.set(Register::R10);
-    //register_set.set(Register::R11);
-    //register_set.set(Register::R12);
-    //register_set.set(Register::R13);
+    register_set.set(Register::A);
+    register_set.set(Register::B);
+    register_set.set(Register::C);
+    register_set.set(Register::D);
+    register_set.set(Register::DI);
+    register_set.set(Register::SI);
+    register_set.set(Register::R8);
+    register_set.set(Register::R9);
+    register_set.set(Register::R10);
+    //register_set.set(Register::R11); SCRATCH REGISTER
+    register_set.set(Register::R12);
+    register_set.set(Register::R13);
     register_set.set(Register::R14);
     register_set.set(Register::R15);
 }
 
 void LinearScanRegisterAllocation::scan()
 {
-    for (const auto& instruction_function : instruction_data.instruction_functions)
+    for (auto& instruction_function : instruction_data.instruction_functions)
     {
         reserved_active.clear();
         active.clear();
@@ -38,8 +38,6 @@ void LinearScanRegisterAllocation::scan()
         {
                 VirtualRegisterLocation location; 
                 location.live_range = instruction_function.live_ranges.at(vr);
-                std::println("vr: {} -> {}, [{} - {}]", vr, register_to_string(reserved_reg.reg, RegisterSize::BIT64),
-                        location.live_range.first_use, location.live_range.last_use);
                 if (reserved_reg.on_stack)
                 {
                     location.stack_position = reserved_reg.stack_position;
@@ -56,8 +54,6 @@ void LinearScanRegisterAllocation::scan()
                     VirtualRegisterLocation loc;
                     loc.live_range = location.live_range;
                     loc.allocated_register = reg;
-                    std::println("vr: {} -> {}, [{} - {}]", vr, register_to_string(reserved_reg.reg, RegisterSize::BIT64),
-                        loc.live_range.first_use, loc.live_range.last_use);
                     reserved_active.push_back({-1, loc});
                 }
         }
@@ -99,6 +95,8 @@ void LinearScanRegisterAllocation::scan()
                 active.push_back({vr, location});
             }
         }
+        local_stack_offset = -((-local_stack_offset + 15) & ~15);
+        instruction_function.allocated_stack = local_stack_offset; 
     }
 }
 

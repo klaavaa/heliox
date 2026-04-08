@@ -341,6 +341,7 @@ struct InstructionFunction
     LiveRanges live_ranges;
     ReservedRegisters reserved_registers;
     VirtualRegisterRegSizes vr_reg_sizes;
+    int32_t allocated_stack;
 };
 
 struct InstructionData

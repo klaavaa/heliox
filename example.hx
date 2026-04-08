@@ -1,36 +1,36 @@
 extern fun printf(u8* str) void;
 extern fun malloc(u32 size) void*;
+extern fun fopen(u8* path, u8* mode) u32*;
+extern fun fgets(u8* buf, u32 a, u32* b) u32*;
+extern fun fclose(u32* f) void;
+extern fun srand(u32 seed) void;
+extern fun rand() i64;
+extern fun time(u32* n) u64;
+extern fun scanf(u8* format) void;
 
-fun main(i32 argc, u8** argv) i32
+fun main(i64 argc, u8** argv) i32
 {
-    1;
-    i64 a = 14; 
-    i64 b = 3;
-    return add(a, sub(mul(div(a, b), b), b));
-
-}
-//fun asd(i64 a,i64 b,i64 c,i64 d,i64 e,i64 f,i64 g,i64 h,i64 i) i64
-//{
-//    return 0;
-//}
-fun add(i32 a, i32 b) i64
-{
-    printf("add: %d + %d = %d\n", a, b, a+b);
-    return a + b;
-}
-fun sub(i32 a, i32 b) i64
-{
-    printf("sub: %d - %d = %d\n", a, b, a-b);
-    return a - b;
-}
-fun mul(i64 a, i64 b) i64
-{
-    printf("mul: %d * %d = %d\n", a, b, a*b);
-    return a * b;    
-}
-fun div(i64 a, i64 b) i64
-{
-    printf("div: %d / %d = %d\n", a, b, a*b);
-    return a / b;
+    srand(time(0));
+    i64* input = malloc(8);
+    printf("If you guess the number right from 1 to 3,\nI will print this file!\n");
+    i64 random = rand() % 3 + 1;
+    while (*input != random)
+    {
+        random = rand() % 3 + 1;
+        scanf("%d", input);
+        printf("entered: %d\n", *input);
+        printf("random: %d\n", random);
+    }
+    if (*input == random)
+    { 
+        u32* fptr = fopen("example.hx", "r");
+        u8* buf = malloc(8);
+        while (fgets(buf, 8, fptr) != 0)
+        {
+            printf("%s", buf);
+        }
+        fclose(fptr);
+    }
+    return 0;
 }
 

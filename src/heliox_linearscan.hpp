@@ -74,7 +74,7 @@ class LinearScanRegisterAllocation
 
 public:
 
-    LinearScanRegisterAllocation(InstructionData instruction_data, sptr<SymbolTable> global_table);
+    LinearScanRegisterAllocation(InstructionData& instruction_data, sptr<SymbolTable> global_table);
 
     void scan();
 
@@ -91,7 +91,7 @@ private:
 private:
     const std::array<Register, 6> integer_arguments_registers = {Register::DI, Register::SI, Register::D, Register::C, Register::R8, Register::R9};
 
-    InstructionData instruction_data;
+    InstructionData& instruction_data;
 
     std::vector<VRLocationPair> active;
     std::vector<VRLocationPair> reserved_active;
@@ -103,8 +103,9 @@ private:
 
     RegisterBitSet register_set;
 
-    int local_stack_offset = 0;
     sptr<SymbolTable> global_table;
+    int32_t local_stack_offset = 0;
+
 };
 
 }

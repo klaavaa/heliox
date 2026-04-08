@@ -295,7 +295,13 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
             instruc = Instruction::SUB;
             break;
         case TokenType::MULEQUALS: 
+            {
             instruc = Instruction::MUL;
+            ReservedRegister reserved_register;
+            // it can actually be any register but might implement later
+            reserved_register.reg = Register::A;
+            reserve_register(left, reserved_register);
+            }
             break;
         case TokenType::DIVEQUALS:
             {
@@ -341,7 +347,13 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
             instruc = Instruction::SUB;
             break;
         case TokenType::MULTIPLY:
+            {
             instruc = Instruction::MUL;
+            ReservedRegister reserved_register;
+            // it can actually be any register but might implement later
+            reserved_register.reg = Register::A;
+            reserve_register(effective_register, reserved_register);
+            }
             break;
         case TokenType::DIVIDE:
             {
