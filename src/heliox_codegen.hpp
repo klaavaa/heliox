@@ -56,6 +56,6 @@ namespace hx
         
         int64_t param_stack_position = 0;
         
-        RegisterSize instruction_reg_size;
+        type_data instruction_type;
     };
 }

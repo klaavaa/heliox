@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <map>
 #include "heliox_registerdata.hpp"
+#include "heliox_types.hpp"
 
 namespace hx
 {
@@ -124,14 +125,15 @@ struct ReservedRegister
 };
 struct InstructionTriplet
 {
-    InstructionTriplet(Instruction instruction, virtual_register dst, std::vector<Item> items, RegisterSize reg_size)
-        : instruction(instruction), dst(dst), items(items), reg_size(reg_size)
+    InstructionTriplet(Instruction instruction, virtual_register dst, std::vector<Item> items, type_data type)
+        : instruction(instruction), dst(dst), items(items), type(type)
     {}
     Instruction instruction;
     uint32_t instruc_count;
     virtual_register dst;
     std::vector<Item> items;
-    RegisterSize reg_size; 
+    
+    type_data type;
 };
 
 struct LiveRange
@@ -168,7 +170,7 @@ inline void print_instruction(const InstructionTriplet& triplet)
     std::string prefix;
     prefix += std::format("{:4}\t", triplet.instruc_count);
 
-    switch (triplet.reg_size)
+    switch (get_register_size(triplet.type))
     {
     case RegisterSize::BIT64:
         prefix += std::format("{:4}", "(64)");

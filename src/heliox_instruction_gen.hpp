@@ -36,12 +36,13 @@ class InstructionGenerator : public Visitor
         void calculate_live_ranges();
         
         void reserve_register(virtual_register vr, ReservedRegister reservation);
+        void set_vr_reg_size(virtual_register vr, type_data type);
         void set_vr_reg_size(virtual_register vr, RegisterSize reg_size);
 
         InstructionData instruction_data;
         virtual_register current_virtual_register = 0;
         virtual_register effective_register = 0;
-        RegisterSize effective_register_size = RegisterSize::BIT64;
+        type_data effective_type;
         uint32_t instruction_count = 0; 
         sptr<SymbolTable> global_table;
         SymbolTable* current_table;

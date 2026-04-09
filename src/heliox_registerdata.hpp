@@ -4,6 +4,7 @@
 #include <vector>
 #include <bitset>
 #include <utility>
+#include "heliox_types.hpp"
 
 namespace hx {
 
@@ -172,6 +173,10 @@ inline RegisterSize get_register_size(uint32_t byte_size)
 
     }
     
+}
+inline RegisterSize get_register_size(type_data type)
+{
+    return get_register_size(type.byte_size);
 }
 
 struct RegisterBitSet {

@@ -78,9 +78,17 @@ struct type_data
             byte_size = get_ptr_byte_size();
         else
             byte_size = get_byte_size_from_known_type(type);
-
     }
 
+    friend bool operator!=(const type_data& left, const type_data& right)
+    {
+        return (left.type != right.type) && (left.ptr_depth != right.ptr_depth);
+    }
+
+    friend bool operator==(const type_data& left, const type_data& right)
+    {
+        return (left.type == right.type) && (left.ptr_depth == right.ptr_depth);
+    }
 
     type_data(primitive_type type)
         : type(type), ptr_depth(0)

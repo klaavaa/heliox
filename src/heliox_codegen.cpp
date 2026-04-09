@@ -5,7 +5,7 @@ namespace hx
 {
     
 CodeGeneration::CodeGeneration(sptr<SymbolTable> global_table, sptr<FunctionLocationData> function_location_data)
-    : global_table(global_table), function_location_data(function_location_data)
+    : global_table(global_table), function_location_data(function_location_data), instruction_type(primitive_type::VOID,0)
 {
     callee_saved_registers.set(Register::B);
     callee_saved_registers.set(Register::R15);
@@ -127,13 +127,13 @@ std::string CodeGeneration::emit_instruction_function(InstructionFunction& instr
 
 std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet)
 {
-    instruction_reg_size = triplet.reg_size;
+    instruction_type = triplet.type;
     switch (triplet.instruction)
     {
     case Instruction::STORE:
         return gen_instruc_safe("mov", triplet.dst, triplet.items[0]);
     case Instruction::PUSH:
-        return std::format("\tpush {}\n", get_location(triplet.dst, triplet.reg_size));
+        return std::format("\tpush {}\n", get_location(triplet.dst, RegisterSize::BIT64));
     case Instruction::ADD: 
         return gen_instruc_safe("add", triplet.dst, triplet.items[0]);
     case Instruction::SUB: 
@@ -186,8 +186,8 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
         if (current_func_vr_locations.at(triplet.dst).is_spilled)
         {
             return std::format("\tlea {}, [rel {}]\n\tmov {}, {}\n",
-                    register_to_string(scratch_register, instruction_reg_size), get_location(triplet.items[0]),
-                    get_location(triplet.dst), register_to_string(scratch_register, instruction_reg_size));
+                    register_to_string(scratch_register, RegisterSize::BIT64), get_location(triplet.items[0]),
+                    get_location(triplet.dst), register_to_string(scratch_register, RegisterSize::BIT64));
         }
         return std::format("\tlea {}, [rel {}]\n", get_location(triplet.dst), get_location(triplet.items[0]));
     case Instruction::RETURN:
@@ -285,7 +285,7 @@ std::string CodeGeneration::get_location(Item item)
 }
 std::string CodeGeneration::get_location(virtual_register vr)
 {
-    return get_location(vr, instruction_reg_size);
+    return get_location(vr, get_register_size(instruction_type));
 }
 
 std::string CodeGeneration::get_location(virtual_register vr, RegisterSize reg_size)
@@ -407,7 +407,7 @@ std::string CodeGeneration::gen_instruc_safe(const std::string inst, virtual_reg
 
     if (current_func_vr_locations.at(dst).is_spilled && current_func_vr_locations.at(arg.value).is_spilled) 
     {
-        std::string scratch = register_to_string(scratch_register, instruction_reg_size);
+        std::string scratch = register_to_string(scratch_register, get_register_size(instruction_type));
         return std::format("\t{} {}, {}\n\t{} {}, {}\n", inst, scratch, get_location(arg),
                 inst, get_location(dst), scratch);
     }
