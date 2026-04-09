@@ -348,27 +348,31 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
             }
         case TokenType::MODEQUALS:
             {
-            instruc = Instruction::MOD;
-            //ReservedRegister reserved_register; 
-            //reserve_register(left, {Register::A});
-            //reserve_register(
-            //reserved_register.reg = Register::A;
-            //reserved_register.reserved_without_vr.push_back(Register::D);
-            //reserve_register(left, reserved_register);
-            break;
+            InstructionTriplet store(Instruction::STORE,
+                    current_virtual_register,
+                    {Item{ItemType::VIRTUAL_REGISTER, left}},
+                    left_size);
 
+            reserve_register(current_virtual_register, {Register::A});
+            effective_register = current_virtual_register;
+            emit_instruction(store);
 
-            //instruc = Instruction::MOD;
-            //reserve_register(effective_register, {Register::A});
-            //reserve_register(current_virtual_register, {Register::D});
-            //InstructionTriplet triplet = 
-            //    InstructionTriplet(instruc, 
-            //            current_virtual_register,
-            //            {Item{ItemType::VIRTUAL_REGISTER, effective_register},
-            //            Item{ItemType::VIRTUAL_REGISTER, right}},
-            //            left_size);
-            //effective_register = current_virtual_register;
-            //emit_instruction(triplet);
+            InstructionTriplet triplet = InstructionTriplet(
+                Instruction::MOD,
+                current_virtual_register,
+                {Item{ItemType::VIRTUAL_REGISTER, effective_register},
+                 Item{ItemType::VIRTUAL_REGISTER, right}},
+                left_size);
+            reserve_register(current_virtual_register, {Register::D});
+            effective_register = current_virtual_register;
+            emit_instruction(triplet);
+            InstructionTriplet store_back(Instruction::STORE,
+                    left,
+                    {Item{ItemType::VIRTUAL_REGISTER, effective_register}},
+                    left_size);
+            emit_instruction(store_back, 0);
+            effective_register = left;
+            return;
             }
         default:
             is_equals_op = false;
