@@ -2,12 +2,10 @@
 #include "heliox_instructions.hpp"
 #include "heliox_pointer.hpp"
 #include "heliox_symbol_table.hpp"
+#include "heliox_registerdata.hpp"
 #include <unordered_map>
 #include <array>
-#include <optional>
 #include <vector>
-#include <algorithm>
-#include <bitset>
 #include <utility>
 
 namespace hx
@@ -33,41 +31,6 @@ struct VRLocationPair
 using VirtualRegisterLocationMap = std::unordered_map<virtual_register, VirtualRegisterLocation>;
 using FunctionLocationData = std::unordered_map<std::string, VirtualRegisterLocationMap>;
 
-struct RegisterBitSet {
-    static const size_t register_count = 16;
-    RegisterBitSet() = default; 
-    RegisterBitSet(std::bitset<register_count> other_bits) 
-    {
-        bits = other_bits;   
-    }
-    std::bitset<register_count> bits;
-    void set(Register b) { bits.set(std::to_underlying(b)); }
-    void reset(Register b) { bits.reset(std::to_underlying(b)); }
-    bool test(Register b) const { return bits.test(std::to_underlying(b)); }
-    void flip() { bits.flip(); }
-    RegisterBitSet get_bits_not_in_other(const RegisterBitSet& other) { return {bits & ~other.bits};}
-    RegisterBitSet get_bits_in_other(const RegisterBitSet& other) { return {bits & other.bits};}
-    
-
-    size_t count() const { return bits.count(); }
-    Register get_first_available() const 
-    { 
-        for (size_t i = 0; i < register_count; i++) 
-        {
-            if (bits.test(i)) return static_cast<Register>(i);
-        } 
-        return Register::NOREG; 
-    }
-    std::vector<Register> get_available_registers()
-    {
-        std::vector<Register> available_registers; 
-        for (int i = 0; i < register_count; i++) 
-        {
-            if (bits.test(i)) available_registers.push_back(static_cast<Register>(i));
-        } 
-        return available_registers;
-    }
-};
 
 class LinearScanRegisterAllocation
 {
@@ -95,13 +58,6 @@ private:
 
     std::vector<VRLocationPair> active;
     std::vector<VRLocationPair> reserved_active;
-    
-    std::vector<virtual_register> vr_must_be_a_register;
-    std::vector<virtual_register> vr_must_go_to_stack_aligned;
-    
-    std::vector<std::pair<virtual_register, virtual_register>> one_vr_must_be_a_register;
-
-    RegisterBitSet register_set;
 
     sptr<SymbolTable> global_table;
     int32_t local_stack_offset = 0;

@@ -126,7 +126,7 @@ void InstructionGenerator::visit_function(uptr<function>& func)
         ReservedRegister reg_pair;
         if (parameter_position < 6)
         {
-           reg_pair.reg = register_passed_arguments[parameter_position]; 
+           reg_pair.reg = g_register_data.register_passed_arguments[parameter_position]; 
         }
         else
         {
@@ -567,7 +567,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
             {item},
             param_sizes[i]);
         ReservedRegister res;
-        res.reg = register_passed_arguments[i-1];
+        res.reg = g_register_data.register_passed_arguments[i-1];
         reserve_register(current_virtual_register, res);
         effective_register = current_virtual_register;
         emit_instruction(triplet);

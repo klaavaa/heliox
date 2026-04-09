@@ -7,20 +7,6 @@ LinearScanRegisterAllocation::LinearScanRegisterAllocation(InstructionData& inst
     :  instruction_data(instruction_data), global_table(global_table)
 {
     function_location_data = std::make_shared<FunctionLocationData>();
-    register_set.set(Register::A);
-    register_set.set(Register::B);
-    register_set.set(Register::C);
-    register_set.set(Register::D);
-    register_set.set(Register::DI);
-    register_set.set(Register::SI);
-    register_set.set(Register::R8);
-    register_set.set(Register::R9);
-    register_set.set(Register::R10);
-    //register_set.set(Register::R11); SCRATCH REGISTER
-    register_set.set(Register::R12);
-    register_set.set(Register::R13);
-    register_set.set(Register::R14);
-    register_set.set(Register::R15);
 }
 
 void LinearScanRegisterAllocation::scan()
@@ -67,7 +53,7 @@ void LinearScanRegisterAllocation::scan()
             std::sort(active.begin(), active.end(), [](const VRLocationPair& a, const VRLocationPair& b) { return a.location.live_range.last_use < b.location.live_range.last_use; });
             
             expire_old_intervals(live_range);
-            RegisterBitSet free_registers = register_set;
+            RegisterBitSet free_registers = g_register_data.available_registers;
             for (auto& [vr1, loc1] : active)
             {
                 if (loc1.is_spilled) continue;

@@ -29,7 +29,6 @@ inline void compile(const std::string& file_path, const std::string& output_path
         exit(1);
     }
 
-
     // get last part of absolute path (example home/dir1/dir2/file.hx -> file.hx)
     std::string file_path_stripped = file_path.substr(file_path.find_last_of("/") + 1, file_path.size());
 

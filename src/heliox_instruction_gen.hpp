@@ -39,8 +39,6 @@ class InstructionGenerator : public Visitor
         void reserve_register(virtual_register vr, ReservedRegister reservation);
         void set_vr_reg_size(virtual_register vr, RegisterSize reg_size);
 
-
-        std::array<Register, 6> register_passed_arguments = {Register::DI, Register::SI, Register::D, Register::C, Register::R8, Register::R9};
         InstructionData instruction_data;
         virtual_register current_virtual_register = 0;
         virtual_register effective_register = 0;
