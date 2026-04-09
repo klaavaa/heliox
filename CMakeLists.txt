@@ -3,7 +3,7 @@ project(heliox)
 
 
 set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDRAD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include_directories(${PROJECT_SOURCE_DIR}/src)
 
