@@ -85,6 +85,7 @@ enum class TokenType
     MINUSEQUALS,
     MULEQUALS,
     DIVEQUALS,
+    MODEQUALS,
 
 	L_PAREN,
 	R_PAREN,

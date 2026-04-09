@@ -16,6 +16,7 @@ bool is_valid_binary_operator(TokenType token_type)
     case TokenType::MINUSEQUALS:
     case TokenType::DIVEQUALS:
     case TokenType::MULEQUALS:
+    case TokenType::MODEQUALS:
     case TokenType::EQU:
     case TokenType::DOUBLE_EQU:
     case TokenType::NEQU:
@@ -120,6 +121,7 @@ op_associativity get_binop_associativity(TokenType token_type)
     case TokenType::MINUSEQUALS:
     case TokenType::DIVEQUALS:
     case TokenType::MULEQUALS:
+    case TokenType::MODEQUALS:
         return op_associativity::RIGHT_TO_LEFT;
 		// 4
 	case TokenType::LOGICAL_OR:

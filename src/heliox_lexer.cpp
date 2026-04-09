@@ -239,6 +239,11 @@ Token Lexer::get_next()
     }
     case HX_MODULO:
     {
+        if (peek_next() == HX_EQUALS)
+        {
+            advance();
+            return Token(TokenType::MODEQUALS, "");
+        }
         return Token(TokenType::MODULO, "");
     }
     /*

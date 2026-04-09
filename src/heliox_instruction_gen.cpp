@@ -296,21 +296,79 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
             break;
         case TokenType::MULEQUALS: 
             {
-            instruc = Instruction::MUL;
-            ReservedRegister reserved_register;
+            InstructionTriplet store(Instruction::STORE,
+                    current_virtual_register,
+                    {Item{ItemType::VIRTUAL_REGISTER, left}},
+                    left_size);
             // it can actually be any register but might implement later
-            reserved_register.reg = Register::A;
-            reserve_register(left, reserved_register);
+            reserve_register(current_virtual_register, {Register::A});
+            effective_register = current_virtual_register;
+            emit_instruction(store);
+            InstructionTriplet triplet = InstructionTriplet(
+                Instruction::MUL,
+                effective_register,
+                {Item{ItemType::VIRTUAL_REGISTER, right}},
+                left_size);
+            emit_instruction(triplet, 0);
+            InstructionTriplet store_back(Instruction::STORE,
+                    left,
+                    {Item{ItemType::VIRTUAL_REGISTER, effective_register}},
+                    left_size);
+            emit_instruction(store_back, 0);
+            effective_register = left;
+            return;
             }
-            break;
         case TokenType::DIVEQUALS:
             {
-            instruc = Instruction::DIV;
+            InstructionTriplet store(Instruction::STORE,
+                    current_virtual_register,
+                    {Item{ItemType::VIRTUAL_REGISTER, left}},
+                    left_size);
+
             ReservedRegister reserved_register; 
             reserved_register.reg = Register::A;
             reserved_register.reserved_without_vr.push_back(Register::D);
-            reserve_register(left, reserved_register);
+            reserve_register(current_virtual_register, reserved_register);
+            effective_register = current_virtual_register;
+            emit_instruction(store);
+            InstructionTriplet triplet = InstructionTriplet(
+                Instruction::DIV,
+                effective_register,
+                {Item{ItemType::VIRTUAL_REGISTER, right}},
+                left_size);
+            emit_instruction(triplet, 0);
+            InstructionTriplet store_back(Instruction::STORE,
+                    left,
+                    {Item{ItemType::VIRTUAL_REGISTER, effective_register}},
+                    left_size);
+            emit_instruction(store_back, 0);
+            effective_register = left;
+
+            return;
+            }
+        case TokenType::MODEQUALS:
+            {
+            instruc = Instruction::MOD;
+            //ReservedRegister reserved_register; 
+            //reserve_register(left, {Register::A});
+            //reserve_register(
+            //reserved_register.reg = Register::A;
+            //reserved_register.reserved_without_vr.push_back(Register::D);
+            //reserve_register(left, reserved_register);
             break;
+
+
+            //instruc = Instruction::MOD;
+            //reserve_register(effective_register, {Register::A});
+            //reserve_register(current_virtual_register, {Register::D});
+            //InstructionTriplet triplet = 
+            //    InstructionTriplet(instruc, 
+            //            current_virtual_register,
+            //            {Item{ItemType::VIRTUAL_REGISTER, effective_register},
+            //            Item{ItemType::VIRTUAL_REGISTER, right}},
+            //            left_size);
+            //effective_register = current_virtual_register;
+            //emit_instruction(triplet);
             }
         default:
             is_equals_op = false;

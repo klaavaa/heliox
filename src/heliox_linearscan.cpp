@@ -77,7 +77,8 @@ void LinearScanRegisterAllocation::scan()
             for (auto& [vr2, loc2] : reserved_active)
             {
                 if (loc2.is_spilled) continue;
-                //if (loc.live_range.first_use > live_range.last_use) continue;
+                if (loc2.live_range.first_use >= live_range.last_use && 
+                        loc2.live_range.last_use <= live_range.first_use) continue;
                 free_registers.reset(loc2.allocated_register);
             }
 
@@ -146,11 +147,6 @@ void LinearScanRegisterAllocation::spill_at_interval(virtual_register vr, LiveRa
         }
 
         current_locations.at(spill.vr).stack_position = local_stack_offset;
-        //if (must_be_register)
-        //{ 
-        //    reserved_active.push_back((*function_data_info_map)[fname].location_map[i.reg]);
-        //    return;
-        //}
 
         active[active.size()-1] = {vr, location};
     }
