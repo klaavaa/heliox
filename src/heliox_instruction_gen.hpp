@@ -2,7 +2,6 @@
 #include "heliox_visitor.hpp"
 #include "heliox_instructions.hpp"
 #include "heliox_symbol_table.hpp"
-#include <queue>
 
 namespace hx
 {

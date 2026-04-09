@@ -22,7 +22,7 @@ namespace hx
         std::string get_location(virtual_register vr, RegisterSize reg_size);
         std::string get_location(Item item);
         
-        RegisterBitSet get_reserved_registers_at(int64_t position);
+        RegisterBitSet get_reserved_registers_at(uint32_t position);
         RegisterBitSet get_function_used_registers();
 
         std::string parse_string(const std::string& str);

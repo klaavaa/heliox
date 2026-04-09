@@ -305,7 +305,7 @@ std::string CodeGeneration::get_location(virtual_register vr, RegisterSize reg_s
     return register_to_string(location.allocated_register, reg_size);
 }
 
-RegisterBitSet CodeGeneration::get_reserved_registers_at(int64_t position)
+RegisterBitSet CodeGeneration::get_reserved_registers_at(uint32_t position)
 {
     RegisterBitSet reserved_registers;
     for (const auto [vr, loc]  : current_func_vr_locations)
@@ -332,6 +332,7 @@ RegisterBitSet CodeGeneration::get_function_used_registers()
 
 std::string CodeGeneration::save_caller(uint32_t instruc_count)
 {
+    std::println("INSTRUCT COUNT {}", instruc_count);
     RegisterBitSet reserved_registers = get_reserved_registers_at(instruc_count)
             .get_bits_in_other(caller_saved_registers);
     std::string base = "";

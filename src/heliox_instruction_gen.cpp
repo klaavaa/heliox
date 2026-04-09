@@ -29,19 +29,20 @@ void InstructionGenerator::calculate_live_ranges()
 
     for (auto& func : instruction_data.instruction_functions)
     {
-        bool in_loop = false;
-        uint32_t loop_start = 0;
+        int in_loop = 0;
+        std::vector<uint32_t> loop_starts;
         for (auto& triplet : func.instruction_triplets)
         {
             uint32_t instruc_count = triplet.instruc_count;
             if (triplet.instruction == Instruction::WHILE)
             {
-                in_loop = true;
-                loop_start = instruc_count;
+                in_loop++;
+                loop_starts.push_back(instruc_count);
             }
             else if (triplet.instruction == Instruction::ENDWHILE)
             {
-                in_loop = false;
+                in_loop--;
+                loop_starts.pop_back();
             }
             
 
@@ -76,9 +77,12 @@ void InstructionGenerator::calculate_live_ranges()
             {
                 for (auto& [vr, live_range] : func.live_ranges)
                 {
+                    // todo currently sets the live ranges of the inner loop to the end of the outer loop
+                    // can do this better
                     const auto var_vrs = current_table->get_all_variable_virtual_registers();
                     if (!var_vrs.contains(vr)) continue;
                     if (!func.live_ranges.contains(vr)) continue;
+                    if (func.live_ranges.at(vr).last_use < loop_starts[0]) continue;
                     uint32_t& last_use = func.live_ranges.at(vr).last_use;
                     func.live_ranges.at(vr).last_use = std::max(instruc_count, last_use);
                 }
@@ -225,22 +229,25 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
     visit_expression(binop->left);
     virtual_register left = effective_register;
     RegisterSize left_size = effective_register_size;
-    
+    uint32_t effective_label; 
     if (binop->op_token == TokenType::LOGICAL_AND)
     {
-        
+        effective_label = logical_and_label_id;
         InstructionTriplet and_left(Instruction::LOGICAL_AND_TEST_LEFT,
             -1,
             {Item{ItemType::VIRTUAL_REGISTER, left}, Item{ItemType::IMMEDIATE_VALUE, logical_and_label_id}},
             left_size);
+        logical_and_label_id++;
         emit_instruction(and_left, 0);
     }
     else if (binop->op_token == TokenType::LOGICAL_OR)
     {
+        effective_label = logical_or_label_id;
         InstructionTriplet or_left(Instruction::LOGICAL_OR_TEST_LEFT,
             -1,
             {Item{ItemType::VIRTUAL_REGISTER, left}, Item{ItemType::IMMEDIATE_VALUE, logical_or_label_id}},
             left_size);
+        logical_or_label_id++;
         emit_instruction(or_left, 0);
     }
 
@@ -261,11 +268,10 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
         
         InstructionTriplet and_right(Instruction::LOGICAL_AND_TEST_RIGHT,
             current_virtual_register,
-            {Item{ItemType::VIRTUAL_REGISTER, right}, Item{ItemType::IMMEDIATE_VALUE, logical_and_label_id}},
+            {Item{ItemType::VIRTUAL_REGISTER, right}, Item{ItemType::IMMEDIATE_VALUE, effective_label}},
             right_size);
         effective_register = current_virtual_register;
         emit_instruction(and_right);
-        logical_and_label_id ++;
         return;
     }
     else if (binop->op_token == TokenType::LOGICAL_OR)
@@ -273,11 +279,10 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
         
         InstructionTriplet or_right(Instruction::LOGICAL_OR_TEST_RIGHT,
             current_virtual_register,
-            {Item{ItemType::VIRTUAL_REGISTER, right}, Item{ItemType::IMMEDIATE_VALUE, logical_or_label_id}},
+            {Item{ItemType::VIRTUAL_REGISTER, right}, Item{ItemType::IMMEDIATE_VALUE, effective_label}},
             right_size);
         effective_register = current_virtual_register;
         emit_instruction(or_right);
-        logical_or_label_id ++;
         return;
     }
     
@@ -713,6 +718,8 @@ void InstructionGenerator::visit_conditional(uptr<conditional_statement>& condit
         -1,
         {Item{ItemType::IMMEDIATE_VALUE, if_label_id}, Item{ItemType::VIRTUAL_REGISTER, effective_register}},
         effective_register_size);
+    uint32_t effective_label = if_label_id;
+    if_label_id++;
 
     emit_instruction(if_begin, 0);     
 
@@ -721,7 +728,7 @@ void InstructionGenerator::visit_conditional(uptr<conditional_statement>& condit
     InstructionTriplet else_begin(
         Instruction::ELSE,
         -1,
-        {Item{ItemType::IMMEDIATE_VALUE, if_label_id}},
+        {Item{ItemType::IMMEDIATE_VALUE, effective_label}},
         RegisterSize::BIT0);
 
     emit_instruction(else_begin, 0);     
@@ -731,7 +738,7 @@ void InstructionGenerator::visit_conditional(uptr<conditional_statement>& condit
     InstructionTriplet end_if(
         Instruction::ENDIF,
         -1,
-        {Item{ItemType::IMMEDIATE_VALUE, if_label_id}},
+        {Item{ItemType::IMMEDIATE_VALUE, effective_label}},
         RegisterSize::BIT0);
 
     emit_instruction(end_if, 0);     
@@ -743,11 +750,13 @@ void InstructionGenerator::visit_while(uptr<while_statement>& while_s)
             -1,
             {Item{ItemType::IMMEDIATE_VALUE, while_label_id}},
             RegisterSize::BIT0);
+    uint32_t effective_label_id = while_label_id;
+    while_label_id++;
     emit_instruction(while_begin, 0);
     visit_expression(while_s->condition);
     InstructionTriplet jump(Instruction::WHILE_JUMPEND,
             -1,
-            {Item{ItemType::IMMEDIATE_VALUE, while_label_id},
+            {Item{ItemType::IMMEDIATE_VALUE, effective_label_id},
              Item{ItemType::VIRTUAL_REGISTER, effective_register}},
             effective_register_size);
     emit_instruction(jump, 0);
@@ -755,10 +764,9 @@ void InstructionGenerator::visit_while(uptr<while_statement>& while_s)
     visit_statement(while_s->loop);
     InstructionTriplet while_end(Instruction::ENDWHILE,
             -1,
-            {Item{ItemType::IMMEDIATE_VALUE, while_label_id}},
+            {Item{ItemType::IMMEDIATE_VALUE, effective_label_id}},
             RegisterSize::BIT0);
     emit_instruction(while_end, 0);
-    while_label_id++;
 }
 void InstructionGenerator::visit_expression_s(uptr<expression_statement>& expr) 
 {
