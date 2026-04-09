@@ -1,6 +1,7 @@
 import os
 import subprocess
 from timeit import default_timer as timer
+import sys
 
 class bcolors:
     HEADER = '\033[95m'
@@ -13,16 +14,25 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+class CompileData:
+    nasm_format = ""
+
 def compile_test(test: str) -> bool:
     if subprocess.run(["../build/heliox",  f"{test}.hx"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
         return False
-    if subprocess.run(["nasm", "-felf64", f"{test}.asm", "-o", f"{test}.o"]).returncode != 0: 
+    if subprocess.run(["nasm", CompileData.nasm_format, f"{test}.asm", "-o", f"{test}.o"]).returncode != 0: 
         return False
     if subprocess.run(["gcc", "-no-pie", f"{test}.o", "-o", f"{test}"]).returncode != 0:
         return False
     return True
 
 def main():
+    if sys.platform == "win32":
+        CompileData.nasm_format = "-fwin64"
+    elif sys.platform in ["linux", "linux2"]:
+        CompileData.nasm_format = "-felf64"
+    else:
+        raise RuntimeError(f"Unsupported operating system: {sys.platform}")
     os.chdir("tests/")
     tests = os.listdir(".")
 
