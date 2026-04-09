@@ -231,7 +231,22 @@ struct RegisterData
 
     std::array<Register, 6> register_passed_arguments = {Register::DI, Register::SI, Register::D, Register::C, Register::R8, Register::R9};
 
-
+    RegisterBitSet callee_saved_registers = RegisterBitSet({
+        Register::B,
+        Register::R15,
+        Register::R14,
+        Register::R13,
+        Register::R12});
+    RegisterBitSet caller_saved_registers = RegisterBitSet({
+        Register::A,  
+        Register::C,
+        Register::D,
+        Register::SI,
+        Register::DI,
+        Register::R8,
+        Register::R9,
+        Register::R10,
+        Register::R11});
 };
 
 extern RegisterData g_register_data;

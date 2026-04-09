@@ -7,21 +7,6 @@ namespace hx
 CodeGeneration::CodeGeneration(sptr<SymbolTable> global_table, sptr<FunctionLocationData> function_location_data)
     : global_table(global_table), function_location_data(function_location_data), instruction_type(primitive_type::VOID,0)
 {
-    callee_saved_registers.set(Register::B);
-    callee_saved_registers.set(Register::R15);
-    callee_saved_registers.set(Register::R14);
-    callee_saved_registers.set(Register::R13);
-    callee_saved_registers.set(Register::R12);
-
-    caller_saved_registers.set(Register::A);
-    caller_saved_registers.set(Register::C);
-    caller_saved_registers.set(Register::D);
-    caller_saved_registers.set(Register::SI);
-    caller_saved_registers.set(Register::DI);
-    caller_saved_registers.set(Register::R8);
-    caller_saved_registers.set(Register::R9);
-    caller_saved_registers.set(Register::R10);
-    caller_saved_registers.set(Register::R11);
 }
 
 std::string CodeGeneration::generate(InstructionData& instruction_data)
@@ -216,25 +201,37 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
     case Instruction::GREATER_THAN:
         {
         std::string cmp = gen_instruc_safe("cmp", triplet.dst, triplet.items[0]);
-        return std::format("{}\tsetg {}\n", cmp, 
+        std::string inst = "setg";
+        if (is_unsigned(triplet.type))
+            inst = "seta";
+        return std::format("{}\t{} {}\n", cmp, inst,
                 get_location(triplet.dst, RegisterSize::BIT8));
         }
     case Instruction::GREATER_OR_EQUAL_THAN:
         {
         std::string cmp = gen_instruc_safe("cmp", triplet.dst, triplet.items[0]);
-        return std::format("{}\tsetge {}\n", cmp, 
+        std::string inst = "setge";
+        if (is_unsigned(triplet.type))
+            inst = "setae";
+        return std::format("{}\t{} {}\n", cmp, inst,
                 get_location(triplet.dst, RegisterSize::BIT8));
         }
     case Instruction::LESS_THAN:
         {
         std::string cmp = gen_instruc_safe("cmp", triplet.dst, triplet.items[0]);
-        return std::format("{}\tsetl {}\n", cmp, 
+        std::string inst = "setl";
+        if (is_unsigned(triplet.type))
+            inst = "setb";
+        return std::format("{}\t{} {}\n", cmp, inst,
                 get_location(triplet.dst, RegisterSize::BIT8));
         }
     case Instruction::LESS_OR_EQUAL_THAN:
         {
         std::string cmp = gen_instruc_safe("cmp", triplet.dst, triplet.items[0]);
-        return std::format("{}\tsetle {}\n", cmp, 
+        std::string inst = "setle";
+        if (is_unsigned(triplet.type))
+            inst = "setbe";
+        return std::format("{}\t{} {}\n", cmp, inst,
                 get_location(triplet.dst, RegisterSize::BIT8));
         }
     case Instruction::IF:
@@ -334,7 +331,7 @@ std::string CodeGeneration::save_caller(uint32_t instruc_count)
 {
     std::println("INSTRUCT COUNT {}", instruc_count);
     RegisterBitSet reserved_registers = get_reserved_registers_at(instruc_count)
-            .get_bits_in_other(caller_saved_registers);
+            .get_bits_in_other(g_register_data.caller_saved_registers);
     std::string base = "";
     for (const auto reg : reserved_registers.get_available_registers())
     {
@@ -370,7 +367,7 @@ std::string CodeGeneration::save_callee()
 {
     std::string base = "";
     RegisterBitSet used_registers = get_function_used_registers();
-    RegisterBitSet to_preserve = used_registers.get_bits_in_other(callee_saved_registers);
+    RegisterBitSet to_preserve = used_registers.get_bits_in_other(g_register_data.callee_saved_registers);
     
     for (const auto reg : to_preserve.get_available_registers())
     {
@@ -402,16 +399,21 @@ std::string CodeGeneration::load_callee()
 
 std::string CodeGeneration::gen_instruc_safe(const std::string inst, virtual_register dst, Item arg)
 {
+    std::string base = "";
+    if (get_register_size(instruction_type) == RegisterSize::BIT8)
+    {
+        base += std::format("\tand {}, {}\n", get_location(dst, RegisterSize::BIT64), "0xFF");
+    }
     if (arg.item_type != ItemType::VIRTUAL_REGISTER)
-        return std::format("\t{} {}, {}\n", inst, get_location(dst), get_location(arg));
+        return base + std::format("\t{} {}, {}\n", inst, get_location(dst), get_location(arg));
 
     if (current_func_vr_locations.at(dst).is_spilled && current_func_vr_locations.at(arg.value).is_spilled) 
     {
         std::string scratch = register_to_string(scratch_register, get_register_size(instruction_type));
-        return std::format("\t{} {}, {}\n\t{} {}, {}\n", inst, scratch, get_location(arg),
+        return base + std::format("\t{} {}, {}\n\t{} {}, {}\n", inst, scratch, get_location(arg),
                 inst, get_location(dst), scratch);
     }
-    return std::format("\t{} {}, {}\n", inst, get_location(dst), get_location(arg));
+    return base + std::format("\t{} {}, {}\n", inst, get_location(dst), get_location(arg));
 }
 
 }

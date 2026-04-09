@@ -67,6 +67,7 @@ inline std::optional<primitive_type> get_primitive_type_from_string(const std::s
     return {primitive_type_map.at(type_name)}; 
 }
 
+
 struct type_data
 {
     type_data(primitive_type type, uint32_t ptr_depth)
@@ -100,4 +101,29 @@ struct type_data
    uint32_t ptr_depth;
     
 };
+
+
+inline bool is_unsigned(const type_data td)
+{
+    if (td.ptr_depth != 0) return true;
+    switch (td.type)
+    {
+        case primitive_type::I8:
+        case primitive_type::I16:
+        case primitive_type::I32:
+        case primitive_type::I64:
+            return false;
+
+        case primitive_type::U8:
+        case primitive_type::U16:
+        case primitive_type::U32:
+        case primitive_type::U64:
+            return true;
+    default:
+        std::println("ERROR: unknown type at function: is_unsigned");
+        exit(-1);
+
+    }
+}
+
 }
