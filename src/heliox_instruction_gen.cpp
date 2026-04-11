@@ -125,7 +125,7 @@ void InstructionGenerator::visit_function(uptr<function>& func)
     instruction_data.instruction_functions.push_back({func->identifier->name});
 
 
-    int parameter_position = 0;
+    int32_t parameter_position = 0;
     for (auto& param : func->params)
     {
         ReservedRegister reg_pair;
@@ -136,7 +136,7 @@ void InstructionGenerator::visit_function(uptr<function>& func)
         else
         {
             reg_pair.on_stack = true;
-            reg_pair.stack_position = 16 + (parameter_position-g_register_data.register_passed_arguments.size()) * 8;
+            reg_pair.stack_position = 16 + (parameter_position-(int32_t)g_register_data.register_passed_arguments.size()) * 8;
         }
         RegisterSize reg_size = get_register_size(param->var_type.byte_size);
         InstructionTriplet triplet = 
@@ -608,7 +608,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
 
     // align stack
     bool did_allignment = false;
-    int pushed_param_count = function_call->parameters.size() - 6;
+    int32_t pushed_param_count = (int32_t)function_call->parameters.size() - 6;
     if (function_call->parameters.size() > 6) 
     {
         if (pushed_param_count % 2 == 0)
@@ -623,7 +623,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         }
     }
     // push in reverse order
-    for (int i = push_param_triplets.size()-1; i >= 0; i--) 
+    for (int32_t i = (int32_t)push_param_triplets.size()-1; i >= 0; i--) 
     {
         InstructionTriplet& triplet = push_param_triplets[i];
         InstructionTriplet store(Instruction::STORE,

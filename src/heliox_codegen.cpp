@@ -182,7 +182,7 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
     case Instruction::CALL:
         {
         std::string base = save_caller(triplet.instruc_count);
-        base += std::format("\tcall {}\n", global_table->get_function_name_from_id(triplet.items[0].value));
+        base += std::format("\tcall {}\n", global_table->get_function_name_from_id((uint32_t)triplet.items[0].value));
         base += load_caller();
         return base;
         }
@@ -276,7 +276,10 @@ std::string CodeGeneration::get_location(Item item)
             std::println("ITEMTYPE FUNCTION_TABLE INDEX, EXITING");
             exit(-1);
         case ItemType::PARAMETER_INDEX:
-            std::println("ITEMTYPE FUNCTION_TABLE INDEX, EXITING");
+            std::println("ITEMTYPE PARAMETER_TABLE INDEX, EXITING");
+            exit(-1);
+        case ItemType::FLOATTABLE_INDEX:
+            std::println("ITEMTYPE FLOAT_TABLE INDEX, EXITING");
             exit(-1);
     }
 }
@@ -354,7 +357,7 @@ std::string CodeGeneration::load_caller()
         base += std::format("\tadd rsp, 8\n");
         added_padding_from_caller_save = false;
     }
-    for (int i = caller_preserved_registers.size()-1; i >= 0; i--)
+    for (int i = (int)caller_preserved_registers.size()-1; i >= 0; i--)
     {
         const auto reg = caller_preserved_registers[i];
         base += std::format("\tpop {}\n", register_to_string(reg, RegisterSize::BIT64)); 
@@ -389,7 +392,7 @@ std::string CodeGeneration::load_callee()
         base += std::format("\tadd rsp, 8\n");
     }
 
-    for (int i = callee_preserved_registers.size()-1; i >= 0; i--)
+    for (int i = (int)callee_preserved_registers.size()-1; i >= 0; i--)
     {
         const auto reg = callee_preserved_registers[i];
         base += std::format("\tpop {}\n", register_to_string(reg, RegisterSize::BIT64)); 

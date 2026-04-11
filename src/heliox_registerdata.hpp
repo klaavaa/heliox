@@ -38,6 +38,7 @@ inline std::string register_size_to_prefix(RegisterSize reg_size)
         case RegisterSize::BIT0:
             std::println("ERROR: TRIED TO GET REGISTER SIZE 0 PREFIX");
             exit(-1);
+            return "";
     }
 }
 
@@ -133,6 +134,7 @@ inline std::string register_to_string(Register reg, RegisterSize reg_size)
         case RegisterSize::BIT0:
             std::println("ERROR: TRIED TO GET REGISTER SIZE REGISTER PREFIX");
             exit(-1);
+            return "";
     }
 }
 
@@ -148,8 +150,9 @@ inline uint32_t get_byte_size_from_register_size(RegisterSize reg_size)
             return 2; 
         case RegisterSize::BIT8:
             return 1; 
+        case RegisterSize::BIT0:
+            return 0;
     }
-
 }
 
 inline RegisterSize get_register_size(uint32_t byte_size)
