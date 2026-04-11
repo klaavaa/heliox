@@ -129,14 +129,14 @@ void InstructionGenerator::visit_function(uptr<function>& func)
     for (auto& param : func->params)
     {
         ReservedRegister reg_pair;
-        if (parameter_position < 6)
+        if (parameter_position < g_register_data.register_passed_arguments.size())
         {
            reg_pair.reg = g_register_data.register_passed_arguments[parameter_position]; 
         }
         else
         {
             reg_pair.on_stack = true;
-            reg_pair.stack_position = 16 + (parameter_position-6) * 8;
+            reg_pair.stack_position = 16 + (parameter_position-g_register_data.register_passed_arguments.size()) * 8;
         }
         RegisterSize reg_size = get_register_size(param->var_type.byte_size);
         InstructionTriplet triplet = 
@@ -552,7 +552,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         auto& param = function_call->parameters[i];
         visit_expression(param);
         
-        if (i > 5)
+        if (i > g_register_data.register_passed_arguments.size() - 1)
         {
             InstructionTriplet triplet = 
                 InstructionTriplet(Instruction::PUSH, 
@@ -577,7 +577,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     // register passed args
     for (int i = 1; i < param_types.size(); i++)
     {
-        if (i == 7) break;
+        if (i == g_register_data.register_passed_arguments.size() + 1) break;
         auto& item = parameter_virtual_registers[i];
         InstructionTriplet triplet(Instruction::STORE,
             current_virtual_register,

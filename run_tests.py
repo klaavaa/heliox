@@ -27,12 +27,6 @@ def compile_test(test: str) -> bool:
     return True
 
 def main():
-    if sys.platform == "win32":
-        CompileData.nasm_format = "-fwin64"
-    elif sys.platform in ["linux", "linux2"]:
-        CompileData.nasm_format = "-felf64"
-    else:
-        raise RuntimeError(f"Unsupported operating system: {sys.platform}")
     os.chdir("tests/")
     tests = os.listdir(".")
 
@@ -55,6 +49,7 @@ def main():
         "logical": 0,
         "multiple_operations": 30,
         }
+
     
     expected_outputs = {
         "print": "argc: 1\n\tthis is the number 10 -> 10",
@@ -68,6 +63,16 @@ def main():
         "bitwise": "1\n7\n6\n-6\n",
         "logical": "1: exec\n2: exec\n"
     }
+    if sys.platform == "win32":
+        CompileData.nasm_format = "-fwin64"
+        # replace newline with win style newline
+        for key, value in expected_outputs.items():
+            expected_outputs[key] = value.replace("\n", "\r\n")
+
+    elif sys.platform in ["linux", "linux2"]:
+        CompileData.nasm_format = "-felf64"
+    else:
+        raise RuntimeError(f"Unsupported operating system: {sys.platform}")
 
     command_line_args = {
         "command_line_args": ["first", "second", "third", "fourth"]

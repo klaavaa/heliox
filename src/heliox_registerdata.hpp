@@ -229,6 +229,16 @@ struct RegisterData
             Register::D, Register::DI, Register::SI, Register::R8, Register::R9, Register::R10,
             Register::R12, Register::R13, Register::R14, Register::R15});     
 
+#ifdef _WIN32
+
+    std::array<Register, 4> register_passed_arguments = {Register::C, Register::D, Register::R8, Register::R9};
+
+    RegisterBitSet callee_saved_registers = RegisterBitSet({Register::B, Register::DI, Register::SI, Register::R12, Register::R13, Register::R14, Register::R15});
+    RegisterBitSet caller_saved_registers = RegisterBitSet({Register::A, Register::C, Register::D, Register::R8, Register::R9, Register::R10});
+
+#endif
+
+#ifdef __linux__
     std::array<Register, 6> register_passed_arguments = {Register::DI, Register::SI, Register::D, Register::C, Register::R8, Register::R9};
 
     RegisterBitSet callee_saved_registers = RegisterBitSet({
@@ -247,6 +257,7 @@ struct RegisterData
         Register::R9,
         Register::R10,
         Register::R11});
+#endif __linux__
 };
 
 extern RegisterData g_register_data;
