@@ -77,6 +77,13 @@ uint32_t SymbolTable::add_string(std::string value)
     string_id++;
     return string_id - 1;
 }
+uint32_t SymbolTable::add_float(std::string value)
+{
+    float_table[float_id] = value;
+    float_id++;
+    return float_id - 1;
+}
+
 uint32_t SymbolTable::add_function(std::string function_name)
 {
     function_table[function_id] = function_name;

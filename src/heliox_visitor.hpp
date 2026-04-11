@@ -15,8 +15,8 @@ namespace hx
         virtual void visit_statement(statement& stat);
         
         virtual void visit_function(uptr<function>& func) = 0;
-
         virtual void visit_int_literal(uptr<int_literal_expr>& int_literal) = 0;
+        virtual void visit_float_literal(uptr<float_literal_expr>& float_literal) = 0;
         virtual void visit_string_literal(uptr<string_literal_expr>& string_literal) = 0;
         virtual void visit_identifier_literal(uptr<identifier_literal_expr>& identifier_literal) = 0; 
         virtual void visit_binop(uptr<binop_expr>& binop) = 0;

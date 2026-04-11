@@ -46,6 +46,7 @@ namespace hx
         SymbolTable* get_parent();
 
         uint32_t add_string(std::string value);
+        uint32_t add_float(std::string value);
         uint32_t add_function(std::string function_name);
 
         std::string get_string_from_id(uint32_t id);
@@ -54,6 +55,7 @@ namespace hx
         FunctionSymbol get_function_symbol_from_id(uint32_t id);
         
         const std::unordered_map<uint32_t, std::string>& get_string_table() const { return string_table; }
+        const std::unordered_map<uint32_t, std::string>& get_float_table() const { return float_table; }
         const std::unordered_map<uint32_t, std::string>& get_function_table() const { return function_table; }
 
         std::unordered_set<virtual_register> get_all_variable_virtual_registers() const
@@ -78,10 +80,12 @@ namespace hx
         SymbolTable* parent = nullptr;
 
         std::unordered_map<uint32_t, std::string> string_table;
+        std::unordered_map<uint32_t, std::string> float_table;
         std::unordered_map<uint32_t, std::string> function_table;
 
         uint32_t string_id = 0;
         uint32_t function_id = 0;
+        uint32_t float_id = 0;
     };
 
 }

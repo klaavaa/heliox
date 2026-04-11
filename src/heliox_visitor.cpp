@@ -23,6 +23,8 @@ namespace hx
         std::visit(overloads{
             [this](uptr<int_literal_expr>& int_literal)
             {visit_int_literal(int_literal);},
+            [this](uptr<float_literal_expr>& float_literal)
+            {visit_float_literal(float_literal);},
             [this](uptr<string_literal_expr>& string_literal)
             {visit_string_literal(string_literal);},
             [this](uptr<identifier_literal_expr>& identifier_literal)

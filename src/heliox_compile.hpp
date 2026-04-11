@@ -19,22 +19,22 @@ namespace hx
 inline void compile(const std::string& file_path, const std::string& output_path)
 {
     
-    if (file_path.substr(file_path.size() - 3) != ".hx")
+    if (file_path.substr(file_path.size() - 4) != ".hlx")
     {
         hx::Error error;
         error.error_type = HX_NOT_HELIOX_FILE;
         error.line = 0;
-        error.info = "Not a heliox file (.hx)";
+        error.info = "Not a heliox file (.hlx)";
         hx::Logger::log_error(error);
         exit(1);
     }
 
-    // get last part of absolute path (example home/dir1/dir2/file.hx -> file.hx)
+    // get last part of absolute path (example home/dir1/dir2/file.hlx -> file.hlx)
     std::string file_path_stripped = file_path.substr(file_path.find_last_of("/") + 1, file_path.size());
 
 
-    // strip file extension (example file.hx -> file)
-    file_path_stripped = file_path_stripped.substr(0, file_path_stripped.size() - 3);
+    // strip file extension (example file.hlx -> file)
+    file_path_stripped = file_path_stripped.substr(0, file_path_stripped.size() - 4);
 
     std::string text = load_hx_file(file_path);
 

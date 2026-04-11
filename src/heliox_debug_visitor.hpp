@@ -27,6 +27,10 @@ public:
        {
             std::println("visit::int_literal({})", int_literal->value); 
        }
+       void visit_float_literal(uptr<float_literal_expr>& float_literal) override
+       {
+            std::println("visit::float_literal({})", float_literal->value); 
+       }
        void visit_string_literal(uptr<string_literal_expr>& string_literal) override 
        {
             std::println("visit::string_literal({})", string_literal->value); 
