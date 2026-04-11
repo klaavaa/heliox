@@ -3,6 +3,7 @@
 **Heliox** is a work-in-progress programming language created with the intention of learning how compilers work.  
 > ⚠️ Note: The project is still very much in the early stages of development
 
+Whilst Windows works, its calling convention is not yet supported.
 ---
 
 ## Usage
