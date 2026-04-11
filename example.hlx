@@ -1,0 +1,9 @@
+extern fun printf(u8* str) void;
+
+fun main(i64 argc, u8** argv) i32
+{
+    printf("Hello, World\n");
+    return 0;
+}
+
+
