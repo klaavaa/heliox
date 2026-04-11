@@ -20,7 +20,7 @@ After building, the compiled binary will be found in the `build` folder.
 ./build.sh
 
 # Generate a binary from a heliox file
-./heliox [file].hx
+./heliox [file].hlx
 nasm -felf64 [file].asm -o [file].o
 gcc -no-pie [file].o -o [file]
 
@@ -34,7 +34,7 @@ gcc -no-pie [file].o -o [file]
 ./build.bat
 
 # Generate a binary from a heliox file
-./heliox.exe [file].hx
+./heliox.exe [file].hlx
 nasm -fwin64 [file].asm -o [file].o
 gcc -no-pie [file].o -o [file].exe
 

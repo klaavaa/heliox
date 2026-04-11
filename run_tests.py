@@ -18,7 +18,7 @@ class CompileData:
     nasm_format = ""
 
 def compile_test(test: str) -> bool:
-    if subprocess.run(["../build/heliox",  f"{test}.hx"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
+    if subprocess.run(["../build/heliox",  f"{test}.hlx"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
         return False
     if subprocess.run(["nasm", CompileData.nasm_format, f"{test}.asm", "-o", f"{test}.o"]).returncode != 0: 
         return False
@@ -83,7 +83,7 @@ def main():
 
     for test_path in tests:
         test, ext = os.path.splitext(test_path)
-        if ext != ".hx": continue
+        if ext != ".hlx": continue
         compile_time_start = timer()
         if not compile_test(test):
             failed_tests.append(f"{bcolors.FAIL}TEST \"{test}\" FAILED{bcolors.ENDC} -- FAILED TO COMPILE TEST")
@@ -125,7 +125,7 @@ def main():
     
     for file in os.listdir("."):
         ext = os.path.splitext(file)[1]
-        if ext != ".hx":
+        if ext != ".hlx":
             os.remove(file)
     
     for passed in passed_tests:
