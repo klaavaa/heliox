@@ -183,6 +183,19 @@ void InstructionGenerator::visit_int_literal(uptr<int_literal_expr>& int_literal
     emit_instruction(triplet);
 
 }
+void InstructionGenerator::visit_float_literal(uptr<float_literal_expr>& float_literal) 
+{
+    uint32_t label = global_table->add_float(float_literal->value);
+    InstructionTriplet triplet = 
+        InstructionTriplet(Instruction::LOAD_FLOAT, 
+                current_virtual_register,
+                {Item{ItemType::FLOATTABLE_INDEX, label}},
+                type_data{primitive_type::F64, 0});
+    effective_register = current_virtual_register;
+    effective_type = triplet.type;
+    emit_instruction(triplet);
+}
+
 void InstructionGenerator::visit_string_literal(uptr<string_literal_expr>& string_literal)  
 {
     uint32_t label = global_table->add_string(string_literal->value);

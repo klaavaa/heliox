@@ -22,6 +22,7 @@ private:
     uptr<identifier_literal_expr> parse_identifier_literal();
     uptr<string_literal_expr> parse_string_literal();
     uptr<int_literal_expr> parse_int_literal();
+    uptr<float_literal_expr> parse_float_literal();
 
     expression parse_expression();
     expression parse_expression_from_primary(expression primary, uint32_t min_precedence);

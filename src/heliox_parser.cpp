@@ -152,6 +152,13 @@ uptr<int_literal_expr> Parser::parse_int_literal()
     return std::make_unique<int_literal_expr>(value);
 }
 
+uptr<float_literal_expr> Parser::parse_float_literal()
+{
+    std::string value = m_current_token.value;
+    eat(TokenType::FLOAT);
+    return std::make_unique<float_literal_expr>(value);
+}
+
 expression Parser::parse_unary()
 {
     if (is_valid_unary_operator(m_current_token.type))
@@ -177,6 +184,8 @@ expression Parser::parse_primary()
         return parse_string_literal();
     case TokenType::INTEGER:
         return parse_int_literal();
+    case TokenType::FLOAT:
+        return parse_float_literal();
     case TokenType::L_PAREN:
         {
         eat(TokenType::L_PAREN);

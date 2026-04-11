@@ -9,6 +9,7 @@ namespace hx
 {
 
 struct int_literal_expr;
+struct float_literal_expr;
 struct string_literal_expr;
 struct identifier_literal_expr;
 struct function_call_expr;
@@ -17,6 +18,7 @@ struct unary_expr;
 
 using expression = std::variant<
     uptr<int_literal_expr>,
+    uptr<float_literal_expr>,
     uptr<string_literal_expr>,
     uptr<identifier_literal_expr>,
     uptr<function_call_expr>,
@@ -27,6 +29,13 @@ using expression = std::variant<
 struct int_literal_expr
 {
     int_literal_expr(std::string value)
+        : value(value) {}
+    std::string value;
+};
+
+struct float_literal_expr
+{
+    float_literal_expr(std::string value)
         : value(value) {}
     std::string value;
 };

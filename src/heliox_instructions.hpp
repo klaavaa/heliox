@@ -13,6 +13,7 @@ namespace hx
 enum class Instruction 
 {
     LOAD_INT,
+    LOAD_FLOAT,
     LOAD_VAR,
     LOAD_STRING,
     LOAD_PARAM,
@@ -74,6 +75,7 @@ enum class ItemType
     IMMEDIATE_VALUE,
     RELATIVE_ADDRESS,
     STRINGTABLE_INDEX,
+    FLOATTABLE_INDEX,
     FUNCTIONTABLE_INDEX,
     PARAMETER_INDEX
 };
@@ -98,6 +100,8 @@ struct Item
                 return std::format("STRING_TABLE({})", value);
             case ItemType::FUNCTIONTABLE_INDEX:
                 return std::format("FUNCTION_TABLE({})", value);
+            case ItemType::FLOATTABLE_INDEX:
+                return std::format("FLOAT_TABLE({})", value);
             case ItemType::PARAMETER_INDEX:
                 return std::format("p{}", value);
             default:
@@ -198,6 +202,9 @@ inline void print_instruction(const InstructionTriplet& triplet)
     {
         case Instruction::LOAD_INT:
             std::println("{} LOADI r{} {}", prefix, triplet.dst, triplet.items[0].get_string());
+            break;
+        case Instruction::LOAD_FLOAT:
+            std::println("{} LOADF r{} {}", prefix, triplet.dst, triplet.items[0].get_string());
             break;
         case Instruction::LOAD_STRING:
             std::println("{} LOADS r{} {}", prefix, triplet.dst, triplet.items[0].get_string());

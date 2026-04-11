@@ -18,6 +18,8 @@ enum class primitive_type
     I16,
     I32,
     I64,
+    F32,
+    F64
     
 };
 
@@ -31,6 +33,8 @@ inline std::unordered_map<std::string, primitive_type> primitive_type_map =
     {"i16",  primitive_type::I16},
     {"i32",  primitive_type::I32},
     {"i64",  primitive_type::I64},
+    {"f32",  primitive_type::F32},
+    {"f64",  primitive_type::F64},
     {"void", primitive_type::VOID}
  
 };
@@ -49,6 +53,9 @@ constexpr uint32_t get_byte_size_from_known_type(primitive_type type)
         case primitive_type::I32: return 4;
         case primitive_type::I64: return 8;
         
+        case primitive_type::F32: return 4;
+        case primitive_type::F64: return 8;
+
         case primitive_type::VOID: return 0;
         default:
             // TODO ERROR
