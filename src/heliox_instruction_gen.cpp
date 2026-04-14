@@ -559,7 +559,6 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
 
     std::vector<InstructionTriplet> push_param_triplets;
     // todo redo this whole bit
-    std::println("CALL START");
     for (int i = 0; i < function_call->parameters.size(); i++)
     {
         auto& param = function_call->parameters[i];
@@ -586,7 +585,6 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
                 Item{ItemType::VIRTUAL_REGISTER, effective_register}); 
     }
 
-    std::println("CALL PT 22222");
     // register passed args
     for (int i = 1; i < param_types.size(); i++)
     {
@@ -604,7 +602,6 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         item.value = effective_register;
     }
 
-    std::println("CALL PT 33333");
 
     // align stack
     bool did_allignment = false;
@@ -637,7 +634,6 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         emit_instruction(triplet);
     }
 
-    std::println("CALL PT 44444");
     std::vector<ReservedRegister> reserved_registers;
     if (s.return_type.byte_size != 0)
     {

@@ -181,8 +181,15 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
         return std::format("\tadd rsp, {}\n", get_location(triplet.items[0]));
     case Instruction::CALL:
         {
+        // TODO FIX THIS SHIIIIIIIITTTT
         std::string base = save_caller(triplet.instruc_count);
+#ifdef _WIN32
+        base += "\tsub rsp, 32\n";
+#endif
         base += std::format("\tcall {}\n", global_table->get_function_name_from_id((uint32_t)triplet.items[0].value));
+#ifdef _WIN32
+        base += "\tadd rsp, 32\n";
+#endif
         base += load_caller();
         return base;
         }
