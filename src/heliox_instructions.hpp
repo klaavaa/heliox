@@ -19,8 +19,10 @@ enum class Instruction
     LOAD_PARAM,
      
     STORE, 
-    ZERO_DX,
+
+    CALL_BEGIN,
     CALL,
+    CALL_END,
     
     ALIGN,
     PUSH,
@@ -223,6 +225,12 @@ inline void print_instruction(const InstructionTriplet& triplet)
             }
             std::println("");
             break;
+        case Instruction::CALL_BEGIN:
+            std::println("{} CALL_BEGIN", prefix);
+            break;
+        case Instruction::CALL_END:
+            std::println("{} CALL_END", prefix);
+            break;
         case Instruction::RETURN:
             std::println("{} RET   r{}", prefix, triplet.dst);
             break;
@@ -293,10 +301,6 @@ inline void print_instruction(const InstructionTriplet& triplet)
         case Instruction::ALIGN:
             std::println("{} ALIGN {}", prefix,
                     triplet.items[0].get_string());  
-            break;
-        case Instruction::ZERO_DX:
-            std::println("{} ZERO  r{}", prefix,
-                    triplet.dst);  
             break;
         case Instruction::IF:
             std::println("{} IF    r{} {}", prefix, triplet.items[1].value, triplet.items[0].value);  

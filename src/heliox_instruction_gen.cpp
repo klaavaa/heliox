@@ -136,7 +136,12 @@ void InstructionGenerator::visit_function(uptr<function>& func)
         else
         {
             reg_pair.on_stack = true;
+            #ifdef _WIN32
+            // windows "shadow space"
+            reg_pair.stack_position = 32 + 16 + (parameter_position-(int32_t)g_register_data.register_passed_arguments.size()) * 8;
+            #else
             reg_pair.stack_position = 16 + (parameter_position-(int32_t)g_register_data.register_passed_arguments.size()) * 8;
+            #endif
         }
         RegisterSize reg_size = get_register_size(param->var_type.byte_size);
         InstructionTriplet triplet = 
@@ -602,12 +607,20 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         item.value = effective_register;
     }
 
+    // save caller
+    InstructionTriplet save_caller(Instruction::CALL_BEGIN,
+            -1,
+            {},
+            {primitive_type::VOID, 0});
+    emit_instruction(save_caller, 0);
 
     // align stack
     bool did_allignment = false;
-    int32_t pushed_param_count = (int32_t)function_call->parameters.size() - 6;
-    if (function_call->parameters.size() > 6) 
+    uint32_t pushed_param_count = 0;
+
+    if (function_call->parameters.size() > g_register_data.register_passed_arguments.size()) 
     {
+        pushed_param_count = function_call->parameters.size() - g_register_data.register_passed_arguments.size();
         if (pushed_param_count % 2 == 0)
         {
             InstructionTriplet align_triplet(
@@ -620,13 +633,13 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         }
     }
     // push in reverse order
-    for (int32_t i = (int32_t)push_param_triplets.size()-1; i >= 0; i--) 
+    for (uint32_t i = 0; i < push_param_triplets.size(); i++) 
     {
-        InstructionTriplet& triplet = push_param_triplets[i];
+        InstructionTriplet& triplet = push_param_triplets[push_param_triplets.size() - 1 - i];
         InstructionTriplet store(Instruction::STORE,
                 current_virtual_register,
                 {Item{ItemType::VIRTUAL_REGISTER, triplet.dst}},
-                param_types[i+1]);
+                param_types[push_param_triplets.size() - i]);
         effective_register = current_virtual_register;
         emit_instruction(store);
         
@@ -656,6 +669,13 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         emit_instruction(align_triplet, 0);
     }
     
+    // load caller
+    InstructionTriplet load_caller(Instruction::CALL_END,
+            -1,
+            {},
+            {primitive_type::VOID, 0});
+    emit_instruction(load_caller, 0);
+
     if (s.return_type.byte_size != 0)
     {
         InstructionTriplet store(Instruction::STORE,
@@ -666,6 +686,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         effective_register = current_virtual_register;
         emit_instruction(store);
     }
+
 }
 
 void InstructionGenerator::visit_compound(uptr<compound_statement>& compound) 
