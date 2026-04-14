@@ -260,7 +260,7 @@ struct RegisterData
         Register::R9,
         Register::R10,
         Register::R11});
-#endif __linux__
+#endif
 };
 
 extern RegisterData g_register_data;

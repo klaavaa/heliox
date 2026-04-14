@@ -189,11 +189,12 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
 
     case Instruction::CALL:
         {
+        std::string base;
     // windows calling convention shadow space
 #ifdef _WIN32
-        std::string base = "\tsub rsp, 32\n";
+        base += "\tsub rsp, 32\n";
 #endif
-
+        
         base += std::format("\tcall {}\n", global_table->get_function_name_from_id((uint32_t)triplet.items[0].value));
 
 #ifdef _WIN32
