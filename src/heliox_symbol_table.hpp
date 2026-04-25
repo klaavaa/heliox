@@ -23,10 +23,11 @@ namespace hx
 
     struct FunctionSymbol
     {
-        FunctionSymbol(type_data return_type, const std::vector<type_data>& parameter_types, uint32_t id) 
-        : parameter_types(parameter_types), return_type(return_type), id(id) {}
+        FunctionSymbol(type_data return_type, const std::vector<type_data>& parameter_types, bool has_varargs, uint32_t id) 
+        : parameter_types(parameter_types), return_type(return_type), has_varargs(has_varargs), id(id) {}
         type_data return_type;
         std::vector<type_data> parameter_types;
+        bool has_varargs;
         uint32_t id;
     };
     
@@ -38,7 +39,7 @@ namespace hx
         SymbolTable();
         sptr<SymbolTable> add_table();
         void add_variable_symbol(std::string name, type_data type_info, virtual_register vr, bool is_parameter = false);
-        void add_function_symbol(std::string name, type_data return_type, const std::vector<type_data>& parameter_types);
+        void add_function_symbol(std::string name, type_data return_type, const std::vector<type_data>& parameter_types, bool has_varargs);
 
         VariableSymbol& find_variable_symbol(const std::string& name);
         FunctionSymbol& find_function_symbol(const std::string& name);

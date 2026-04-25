@@ -69,9 +69,12 @@ enum class TokenType
 	IDENTIFIER,
 
 	COMMA,
-	DOT,
+	DOT, // :D
+    DOTDOT,
+    DOTDOTDOT,
 	QUOT_MARK,
-
+    
+    
 	SEMICOLON,
 	COLON,
 
@@ -133,6 +136,8 @@ static const std::unordered_map<TokenType, std::string>  token_to_string_map =
 
 { TokenType::COMMA,							"COMMA" },
 { TokenType::DOT,								"DOT" },
+{ TokenType::DOT,								"DOTDOT" },
+{ TokenType::DOTDOTDOT,								"DOTDOTDOT" },
 { TokenType::QUOT_MARK,                       "QUOT_MARK"},
 { TokenType::SEMICOLON,						"SEMICOLON" },
 { TokenType::COLON,							"COLON" },

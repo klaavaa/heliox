@@ -27,10 +27,10 @@ void SymbolTable::add_variable_symbol(std::string name, type_data type_info, vir
     }
     variable_symbols.emplace(name, VariableSymbol{type_info, vr, is_parameter});
 }
-void SymbolTable::add_function_symbol(std::string name, type_data return_type, const std::vector<type_data>& param_types)
+void SymbolTable::add_function_symbol(std::string name, type_data return_type, const std::vector<type_data>& param_types, bool has_varargs)
 {
     uint32_t id = add_function(name);
-    function_symbols.emplace(name, FunctionSymbol{return_type, param_types, id});
+    function_symbols.emplace(name, FunctionSymbol{return_type, param_types, has_varargs, id});
 }
 
 VariableSymbol& SymbolTable::find_variable_symbol(const std::string& name) 

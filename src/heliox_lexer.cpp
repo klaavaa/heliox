@@ -56,6 +56,16 @@ Token Lexer::get_next()
     }
     case HX_DOT:
     {
+        if (peek_next() == HX_DOT)
+        {
+            advance();
+            if (peek_next() == HX_DOT)
+            {
+                advance();
+                return Token(TokenType::DOTDOTDOT, "");
+            }
+            return Token(TokenType::DOTDOT, "");
+        }
         return Token(TokenType::DOT, "");
     }
     case HX_QUOT_MARK:

@@ -62,14 +62,29 @@ uptr<function> Parser::parse_function()
     }
     eat(TokenType::KEYWORD);
     
+
     uptr<identifier_literal_expr> identifier = parse_identifier_literal();
     
+    bool varargs = false;
+
     eat(TokenType::L_PAREN);
     std::vector<uptr<variable_declaration_statement>> parameters;
     if (m_current_token.type != TokenType::R_PAREN) 
     {
         while (true)
         {
+            if (m_current_token.type == TokenType::DOTDOTDOT)
+            {
+                varargs = true;
+                eat(TokenType::DOTDOTDOT);
+                if (m_current_token.type != TokenType::R_PAREN)
+                {
+                    // TODO ERROR
+                    std::println("Error: varargs not the last arg of function '{}'", identifier->name);
+                    exit(-1);
+                }
+                break;
+            }
             uptr<variable_declaration_statement> parameter = parse_variable_declaration();
             parameters.push_back(std::move(parameter));
             if (m_current_token.type == TokenType::R_PAREN)
@@ -88,7 +103,7 @@ uptr<function> Parser::parse_function()
         eat(TokenType::SEMICOLON);
 
         return std::make_unique<function>(std::move(identifier), std::move(parameters),
-                std::move(std::vector<statement>{}), td, is_extern);
+                std::move(std::vector<statement>{}), td, is_extern, varargs);
     }
     if (is_extern)
     {
@@ -105,7 +120,7 @@ uptr<function> Parser::parse_function()
     eat(TokenType::R_BRACE);
 
     return std::make_unique<function>(std::move(identifier), std::move(parameters),
-           std::move(statements), td, is_extern);
+           std::move(statements), td, is_extern, varargs);
 }
 
 uptr<identifier_literal_expr> Parser::parse_identifier_literal()

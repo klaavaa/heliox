@@ -10,7 +10,7 @@ void InstructionGenerator::visit_program(uptr<Program>& prog)
     for (auto& func : prog->functions)
     {
         global_table->add_function_symbol(
-                func->identifier->name, func->type, func->get_parameter_type_data());
+                func->identifier->name, func->type, func->get_parameter_type_data(), func->has_varargs);
     }
     for (auto& func : prog->functions)
     {
@@ -691,6 +691,17 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         triplet.dst = effective_register;
         emit_instruction(triplet);
     }
+    
+    if (s.has_varargs)
+    {
+        uint32_t vararg_count = function_call->parameters.size() - s.parameter_types.size();
+        InstructionTriplet triplet(Instruction::LOAD_INT,
+                current_virtual_register,
+                {Item{ItemType::IMMEDIATE_VALUE, vararg_count}},
+                {primitive_type::I64, 0});
+        reserve_register(current_virtual_register, {Register::A}); 
+        emit_instruction(triplet);
+    }
 
     std::vector<ReservedRegister> reserved_registers;
     ReservedRegister reservation;
@@ -702,9 +713,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         else
             reservation.reg = Register::A;
     }
-    
     reservation.reserved_without_vr = g_register_data.caller_saved_registers.get_available_registers();
-
     InstructionTriplet triplet(Instruction::CALL, 
                 current_virtual_register,
                 parameter_virtual_registers,
@@ -733,7 +742,6 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
 
     if (s.return_type.byte_size != 0)
     {
-        std::println("RETURN {}", (int)s.return_type.type);
         InstructionTriplet store(Instruction::STORE,
                 current_virtual_register,
                 {Item{ItemType::VIRTUAL_REGISTER, effective_register}}, 

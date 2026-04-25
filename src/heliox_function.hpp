@@ -11,12 +11,14 @@ struct function
 {
     function(uptr<identifier_literal_expr> identifier, 
             std::vector<uptr<variable_declaration_statement>> params,
-            std::vector<statement> statements, type_data type, bool is_extern)
+            std::vector<statement> statements, type_data type,
+            bool is_extern, bool has_varargs)
         : identifier(std::move(identifier)),
           params(std::move(params)),
           statements(std::move(statements)), 
           type(type),
-          is_extern(is_extern) {}
+          is_extern(is_extern),
+          has_varargs(has_varargs) {}
 
 
     std::vector<type_data> get_parameter_type_data() const 
@@ -33,6 +35,7 @@ struct function
     std::vector<statement> statements;
     type_data type;
     bool is_extern;
+    bool has_varargs;
 
 
 };
