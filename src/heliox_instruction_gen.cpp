@@ -108,7 +108,7 @@ void InstructionGenerator::emit_instruction(InstructionTriplet triplet, uint32_t
     instruction_count ++;
     print_instruction(triplet);
     if (triplet.dst != -1)
-        set_vr_reg_size(triplet.dst, triplet.type);
+        set_vr_type(triplet.dst, triplet.type);
     current_virtual_register += increment;
     instruction_data.instruction_functions.back().instruction_triplets.push_back(triplet);
 }
@@ -126,22 +126,40 @@ void InstructionGenerator::visit_function(uptr<function>& func)
 
 
     int32_t parameter_position = 0;
+    uint32_t int_arg_count = 0;
+    uint32_t float_arg_count = 0;
+    uint32_t spilled_arg_count = 0;
     for (auto& param : func->params)
     {
         ReservedRegister reg_pair;
-        if (parameter_position < g_register_data.register_passed_arguments.size())
+        if (uses_xmm_register(param->var_type))
         {
-           reg_pair.reg = g_register_data.register_passed_arguments[parameter_position]; 
+            if (float_arg_count < g_register_data.register_passed_float_args.size())
+            {
+               reg_pair.reg = g_register_data.register_passed_float_args[float_arg_count++]; 
+            }
+            else
+            {
+                reg_pair.on_stack = true;
+                reg_pair.stack_position = 16 + (spilled_arg_count++) * 8;
+            }
         }
         else
         {
-            reg_pair.on_stack = true;
-            #ifdef _WIN32
-            // windows "shadow space"
-            reg_pair.stack_position = 32 + 16 + (parameter_position-(int32_t)g_register_data.register_passed_arguments.size()) * 8;
-            #else
-            reg_pair.stack_position = 16 + (parameter_position-(int32_t)g_register_data.register_passed_arguments.size()) * 8;
-            #endif
+            if (int_arg_count < g_register_data.register_passed_int_args.size())
+            {
+               reg_pair.reg = g_register_data.register_passed_int_args[int_arg_count++]; 
+            }
+            else
+            {
+                reg_pair.on_stack = true;
+                #ifdef _WIN32
+                // windows "shadow space"
+                reg_pair.stack_position = 32 + 16 + (parameter_position-(int32_t)g_register_data.register_passed_arguments.size()) * 8;
+                #else
+                reg_pair.stack_position = 16 + (spilled_arg_count++) * 8;
+                #endif
+            }
         }
         RegisterSize reg_size = get_register_size(param->var_type.byte_size);
         InstructionTriplet triplet = 
@@ -422,7 +440,7 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
         current_virtual_register,
         {Item{ItemType::VIRTUAL_REGISTER, left}},
         left_type);
-
+    
     effective_register = current_virtual_register;
     emit_instruction(left_side_triplet);
 
@@ -563,21 +581,35 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     std::vector<type_data> param_types = {{primitive_type::VOID, 0}};
 
     std::vector<InstructionTriplet> push_param_triplets;
+    uint32_t int_param_count = 0;
+    uint32_t float_param_count = 0;
     // todo redo this whole bit
     for (int i = 0; i < function_call->parameters.size(); i++)
     {
         auto& param = function_call->parameters[i];
         visit_expression(param);
-        
-        if (i > g_register_data.register_passed_arguments.size() - 1)
+        bool pushed_to_stack = false; 
+        if (uses_xmm_register(effective_type))
         {
-            InstructionTriplet triplet = 
-                InstructionTriplet(Instruction::PUSH, 
-                        effective_register,
-                        {},
-                        {primitive_type::I64, 0});
-            push_param_triplets.push_back(triplet);
+            pushed_to_stack = float_param_count > g_register_data.register_passed_float_args.size() - 1;
+            float_param_count++;
         }
+        else
+        {
+            pushed_to_stack = int_param_count > g_register_data.register_passed_int_args.size() - 1;
+            int_param_count++;
+        }
+
+        if (pushed_to_stack)
+        {
+                InstructionTriplet triplet = 
+                    InstructionTriplet(Instruction::PUSH, 
+                            effective_register,
+                            {},
+                            {primitive_type::I64, 0});
+                push_param_triplets.push_back(triplet);
+        }
+
         // todo maybe change this
         if (i < s.parameter_types.size() && effective_type != s.parameter_types[i])
         {
@@ -591,16 +623,31 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     }
 
     // register passed args
+    int_param_count = 0;
+    float_param_count = 0;
     for (int i = 1; i < param_types.size(); i++)
     {
-        if (i == g_register_data.register_passed_arguments.size() + 1) break;
+        if (uses_xmm_register(param_types[i])) 
+        {
+            if (float_param_count == g_register_data.register_passed_float_args.size()) continue;
+        }
+        {
+            if (int_param_count == g_register_data.register_passed_int_args.size()) continue;
+        }
         auto& item = parameter_virtual_registers[i];
         InstructionTriplet triplet(Instruction::STORE,
             current_virtual_register,
             {item},
             param_types[i]);
         ReservedRegister res;
-        res.reg = g_register_data.register_passed_arguments[i-1];
+        if (uses_xmm_register(param_types[i])) 
+        {
+            res.reg = g_register_data.register_passed_float_args[float_param_count++];
+        }
+        else
+        {
+            res.reg = g_register_data.register_passed_int_args[int_param_count++];
+        }
         reserve_register(current_virtual_register, res);
         effective_register = current_virtual_register;
         emit_instruction(triplet);
@@ -616,22 +663,18 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
 
     // align stack
     bool did_allignment = false;
-    uint32_t pushed_param_count = 0;
-
-    if (function_call->parameters.size() > g_register_data.register_passed_arguments.size()) 
+    uint32_t pushed_param_count = push_param_triplets.size();
+    if (pushed_param_count && pushed_param_count % 2 == 0)
     {
-        pushed_param_count = function_call->parameters.size() - g_register_data.register_passed_arguments.size();
-        if (pushed_param_count % 2 == 0)
-        {
-            InstructionTriplet align_triplet(
-                Instruction::ALIGN,
-                -1,
-                {Item{ItemType::IMMEDIATE_VALUE, -8}},
-                {primitive_type::VOID, 0});
-            emit_instruction(align_triplet, 0);
-            did_allignment = true;
-        }
+        InstructionTriplet align_triplet(
+            Instruction::ALIGN,
+            -1,
+            {Item{ItemType::IMMEDIATE_VALUE, -8}},
+            {primitive_type::VOID, 0});
+        emit_instruction(align_triplet, 0);
+        did_allignment = true;
     }
+
     // push in reverse order
     for (uint32_t i = 0; i < push_param_triplets.size(); i++) 
     {
@@ -650,8 +693,12 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     std::vector<ReservedRegister> reserved_registers;
     if (s.return_type.byte_size != 0)
     {
-        reserve_register(current_virtual_register, {Register::A});
+        if (uses_xmm_register(s.return_type))
+            reserve_register(current_virtual_register, {Register::XMM0});
+        else
+            reserve_register(current_virtual_register, {Register::A});
     }
+
     InstructionTriplet triplet(Instruction::CALL, 
                 current_virtual_register,
                 parameter_virtual_registers,
@@ -715,7 +762,10 @@ void InstructionGenerator::visit_return(uptr<return_statement>& return_s)
                  effective_register,
                 {},
                 effective_type);
-    reserve_register(effective_register, {Register::A});
+    if (uses_xmm_register(effective_type))
+        reserve_register(effective_register, {Register::XMM0});
+    else 
+        reserve_register(effective_register, {Register::A});
     emit_instruction(triplet, 0);
 
 }
@@ -821,13 +871,9 @@ void InstructionGenerator::reserve_register(virtual_register vr, ReservedRegiste
 {
     instruction_data.instruction_functions.back().reserved_registers.insert({vr, reservation});
 }
-void InstructionGenerator::set_vr_reg_size(virtual_register vr, type_data type)
+void InstructionGenerator::set_vr_type(virtual_register vr, type_data type)
 {
-    set_vr_reg_size(vr, get_register_size(type));
-}
-void InstructionGenerator::set_vr_reg_size(virtual_register vr, RegisterSize reg_size)
-{
-    instruction_data.instruction_functions.back().vr_reg_sizes.insert({vr, reg_size});
+    instruction_data.instruction_functions.back().vr_types.insert({vr, type});
 }
 
 }

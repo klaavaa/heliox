@@ -106,7 +106,6 @@ struct type_data
    primitive_type type; 
    uint32_t byte_size;
    uint32_t ptr_depth;
-    
 };
 
 
@@ -130,6 +129,18 @@ inline bool is_unsigned(const type_data td)
         std::println("ERROR: unknown type at function: is_unsigned");
         exit(-1);
 
+    }
+}
+inline bool uses_xmm_register(const type_data td)
+{
+    if (td.ptr_depth != 0) return false;
+    switch (td.type)
+    {
+        case primitive_type::F64:
+        case primitive_type::F32:
+            return true;
+        default:
+            return false;
     }
 }
 

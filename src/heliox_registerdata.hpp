@@ -10,7 +10,8 @@ namespace hx {
 
 enum class Register: int
 {
-    NOREG=-1, A, B, C, D, SP, BP, SI, DI, R8, R9, R10, R11, R12, R13, R14, R15
+    NOREG=-1, A, B, C, D, SP, BP, SI, DI, R8, R9, R10, R11, R12, R13, R14, R15,
+    XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7, XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, XMM15
 };
 
 enum class RegisterSize
@@ -49,43 +50,75 @@ inline std::string register_to_string(Register reg, RegisterSize reg_size)
         case RegisterSize::BIT64:
             switch (reg)
             {
-                case Register::A:   return "rax";
-                case Register::B:   return "rbx";
-                case Register::C:   return "rcx";
-                case Register::D:   return "rdx";
-                case Register::SP:  return "rsp";
-                case Register::BP:  return "rbp";
-                case Register::SI:  return "rsi";
-                case Register::DI:  return "rdi";
-                case Register::R8:  return "r8"; 
-                case Register::R9:  return "r9"; 
-                case Register::R10: return "r10";
-                case Register::R11: return "r11";
-                case Register::R12: return "r12";
-                case Register::R13: return "r13";
-                case Register::R14: return "r14";
-                case Register::R15: return "r15";
+                case Register::A:       return "rax";
+                case Register::B:       return "rbx";
+                case Register::C:       return "rcx";
+                case Register::D:       return "rdx";
+                case Register::SP:      return "rsp";
+                case Register::BP:      return "rbp";
+                case Register::SI:      return "rsi";
+                case Register::DI:      return "rdi";
+                case Register::R8:      return "r8"; 
+                case Register::R9:      return "r9"; 
+                case Register::R10:     return "r10";
+                case Register::R11:     return "r11";
+                case Register::R12:     return "r12";
+                case Register::R13:     return "r13";
+                case Register::R14:     return "r14";
+                case Register::R15:     return "r15";
+                case Register::XMM0:    return "xmm0";
+                case Register::XMM1:    return "xmm1";
+                case Register::XMM2:    return "xmm2";
+                case Register::XMM3:    return "xmm3";
+                case Register::XMM4:    return "xmm4";
+                case Register::XMM5:    return "xmm5";
+                case Register::XMM6:    return "xmm6";
+                case Register::XMM7:    return "xmm7";
+                case Register::XMM8:    return "xmm8";
+                case Register::XMM9:    return "xmm9";
+                case Register::XMM10:   return "xmm10";
+                case Register::XMM11:   return "xmm11";
+                case Register::XMM12:   return "xmm12";
+                case Register::XMM13:   return "xmm13";
+                case Register::XMM14:   return "xmm14";
+                case Register::XMM15:   return "xmm15";
                 default: return "NOT A REGISTER";
             }
         case RegisterSize::BIT32:
             switch (reg)
             {
-                case Register::A:   return "eax";
-                case Register::B:   return "ebx";
-                case Register::C:   return "ecx";
-                case Register::D:   return "edx";
-                case Register::SP:  return "esp";
-                case Register::BP:  return "ebp";
-                case Register::SI:  return "esi";
-                case Register::DI:  return "edi";
-                case Register::R8:  return "r8d"; 
-                case Register::R9:  return "r9d"; 
-                case Register::R10: return "r10d";
-                case Register::R11: return "r11d";
-                case Register::R12: return "r12d";
-                case Register::R13: return "r13d";
-                case Register::R14: return "r14d";
-                case Register::R15: return "r15d";
+                case Register::A:       return "eax";
+                case Register::B:       return "ebx";
+                case Register::C:       return "ecx";
+                case Register::D:       return "edx";
+                case Register::SP:      return "esp";
+                case Register::BP:      return "ebp";
+                case Register::SI:      return "esi";
+                case Register::DI:      return "edi";
+                case Register::R8:      return "r8d"; 
+                case Register::R9:      return "r9d"; 
+                case Register::R10:     return "r10d";
+                case Register::R11:     return "r11d";
+                case Register::R12:     return "r12d";
+                case Register::R13:     return "r13d";
+                case Register::R14:     return "r14d";
+                case Register::R15:     return "r15d";
+                case Register::XMM0:    return "xmm0";
+                case Register::XMM1:    return "xmm1";
+                case Register::XMM2:    return "xmm2";
+                case Register::XMM3:    return "xmm3";
+                case Register::XMM4:    return "xmm4";
+                case Register::XMM5:    return "xmm5";
+                case Register::XMM6:    return "xmm6";
+                case Register::XMM7:    return "xmm7";
+                case Register::XMM8:    return "xmm8";
+                case Register::XMM9:    return "xmm9";
+                case Register::XMM10:   return "xmm10";
+                case Register::XMM11:   return "xmm11";
+                case Register::XMM12:   return "xmm12";
+                case Register::XMM13:   return "xmm13";
+                case Register::XMM14:   return "xmm14";
+                case Register::XMM15:   return "xmm15";
                 default: return "NOT A REGISTER";
             }
         case RegisterSize::BIT16:
@@ -183,7 +216,7 @@ inline RegisterSize get_register_size(type_data type)
 }
 
 struct RegisterBitSet {
-    static const size_t register_count = 16;
+    static const size_t register_count = 32;
     RegisterBitSet() = default; 
     RegisterBitSet(const std::vector<Register>& bits)
     {
@@ -231,6 +264,12 @@ struct RegisterData
     RegisterBitSet available_registers = RegisterBitSet({Register::A, Register::B, Register::C,
             Register::D, Register::DI, Register::SI, Register::R8, Register::R9, Register::R10,
             Register::R12, Register::R13, Register::R14, Register::R15});     
+    
+    RegisterBitSet available_xmm_registers = RegisterBitSet(
+            {Register::XMM0, Register::XMM1, Register::XMM2, Register::XMM3, Register::XMM4, Register::XMM5,
+            Register::XMM6, Register::XMM7, Register::XMM8, Register::XMM9, Register::XMM10, Register::XMM11,
+            Register::XMM12, Register::XMM13, Register::XMM14, Register::XMM15}
+            );
 
 #ifdef _WIN32
 
@@ -242,7 +281,9 @@ struct RegisterData
 #endif
 
 #ifdef __linux__
-    std::array<Register, 6> register_passed_arguments = {Register::DI, Register::SI, Register::D, Register::C, Register::R8, Register::R9};
+    std::array<Register, 6> register_passed_int_args = {Register::DI, Register::SI, Register::D, Register::C, Register::R8, Register::R9};
+    std::array<Register, 8> register_passed_float_args = {Register::XMM0, Register::XMM1, Register::XMM2, Register::XMM3, 
+                                                        Register::XMM4, Register::XMM5, Register::XMM6, Register::XMM7};
 
     RegisterBitSet callee_saved_registers = RegisterBitSet({
         Register::B,
@@ -259,7 +300,23 @@ struct RegisterData
         Register::R8,
         Register::R9,
         Register::R10,
-        Register::R11});
+        Register::R11,
+        Register::XMM0,
+        Register::XMM1,
+        Register::XMM2,
+        Register::XMM3,
+        Register::XMM4,
+        Register::XMM5,
+        Register::XMM6,
+        Register::XMM7,
+        Register::XMM8,
+        Register::XMM9,
+        Register::XMM10,
+        Register::XMM11,
+        Register::XMM12,
+        Register::XMM13,
+        Register::XMM14,
+        Register::XMM15});
 #endif
 };
 

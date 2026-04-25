@@ -38,6 +38,13 @@ void CodeGeneration::generate_data_section()
         std::string parsed_string = parse_string(string);
         data_section += std::format("\t@str{} db {}, 0\n", index, parsed_string);
     }
+    
+    // floats
+    for (auto [index, value] :  global_table->get_float_table())
+    {
+        data_section += std::format("\t@flt{} dq {}\n", index, value);
+
+    }
 
 }
 
@@ -116,13 +123,13 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
     switch (triplet.instruction)
     {
     case Instruction::STORE:
-        return gen_instruc_safe("mov", triplet.dst, triplet.items[0]);
+        return gen_instruc_safe(instruction("mov"), triplet.dst, triplet.items[0]);
     case Instruction::PUSH:
         return std::format("\tpush {}\n", get_location(triplet.dst, RegisterSize::BIT64));
     case Instruction::ADD: 
-        return gen_instruc_safe("add", triplet.dst, triplet.items[0]);
+        return gen_instruc_safe(instruction("add"), triplet.dst, triplet.items[0]);
     case Instruction::SUB: 
-        return gen_instruc_safe("sub", triplet.dst, triplet.items[0]);
+        return gen_instruc_safe(instruction("sub"), triplet.dst, triplet.items[0]);
     case Instruction::MUL:
         return gen_instruc_safe("imul", triplet.dst, triplet.items[0]);
     case Instruction::DIV:
@@ -165,6 +172,8 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
         return std::format("\tcmp {}, 0\n\tsete {}\n", get_location(triplet.dst), get_location(triplet.dst, RegisterSize::BIT8));
     case Instruction::LOAD_INT:
         return std::format("\tmov {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0]));
+    case Instruction::LOAD_FLOAT:
+        return std::format("\tmovsd {}, [rel {}]\n", get_location(triplet.dst), get_location(triplet.items[0]));
     case Instruction::LOAD_PARAM:
         return std::format("");
     case Instruction::LOAD_STRING:
@@ -283,19 +292,18 @@ std::string CodeGeneration::get_location(Item item)
             return get_location(static_cast<virtual_register>(item.value));
         case ItemType::IMMEDIATE_VALUE:
             return std::format("{}", item.value);
+        case ItemType::STRINGTABLE_INDEX:
+            return std::format("@str{}", item.value);
+        case ItemType::FLOATTABLE_INDEX:
+            return std::format("@flt{}", item.value);
         case ItemType::RELATIVE_ADDRESS:
             std::println("ITEMTYPE RELATIVE ADDRESS, EXITING");
             exit(-1);
-        case ItemType::STRINGTABLE_INDEX:
-            return std::format("@str{}", item.value);
         case ItemType::FUNCTIONTABLE_INDEX:
             std::println("ITEMTYPE FUNCTION_TABLE INDEX, EXITING");
             exit(-1);
         case ItemType::PARAMETER_INDEX:
             std::println("ITEMTYPE PARAMETER_TABLE INDEX, EXITING");
-            exit(-1);
-        case ItemType::FLOATTABLE_INDEX:
-            std::println("ITEMTYPE FLOAT_TABLE INDEX, EXITING");
             exit(-1);
     }
 }
@@ -416,7 +424,7 @@ std::string CodeGeneration::load_callee()
     return base;
 }
 
-std::string CodeGeneration::gen_instruc_safe(const std::string inst, virtual_register dst, Item arg)
+std::string CodeGeneration::gen_instruc_safe(const std::string& inst, virtual_register dst, Item arg)
 {
     std::string base = "";
     if (get_register_size(instruction_type) == RegisterSize::BIT8)
@@ -433,6 +441,17 @@ std::string CodeGeneration::gen_instruc_safe(const std::string inst, virtual_reg
                 inst, get_location(dst), scratch);
     }
     return base + std::format("\t{} {}, {}\n", inst, get_location(dst), get_location(arg));
+}
+
+std::string CodeGeneration::instruction(const std::string& inst)
+{
+    if (uses_xmm_register(instruction_type))
+    {
+        if (instruction_type.byte_size == 8)
+            return inst + "sd";
+        return inst + "ss";
+    }
+    return inst;
 }
 
 }

@@ -34,7 +34,14 @@ void LinearScanRegisterAllocation::scan()
                     location.allocated_register = reserved_reg.reg;
                 }
                 current_locations.insert({vr, location});
-                reserved_active.push_back({vr, location});
+                if (uses_xmm_register(instruction_function.vr_types.at(vr).type))
+                {
+                    xmm_reserved_active.push_back({vr, location});
+                }
+                else
+                {
+                    reserved_active.push_back({vr, location});
+                }
                 for (auto reg : reserved_reg.reserved_without_vr)
                 {
                     VirtualRegisterLocation loc;
@@ -47,39 +54,77 @@ void LinearScanRegisterAllocation::scan()
         {
             if (current_locations.contains(vr)) continue;
 
+            std::sort(active.begin(), active.end(), 
+                    [](const VRLocationPair& a, const VRLocationPair& b) { return a.location.live_range.last_use < b.location.live_range.last_use; });
             std::sort(reserved_active.begin(), reserved_active.end(),
                     [](const VRLocationPair& a, const VRLocationPair& b) { return a.location.live_range.last_use < b.location.live_range.last_use; });
 
-            std::sort(active.begin(), active.end(), [](const VRLocationPair& a, const VRLocationPair& b) { return a.location.live_range.last_use < b.location.live_range.last_use; });
+            std::sort(xmm_active.begin(), xmm_active.end(), 
+                    [](const VRLocationPair& a, const VRLocationPair& b) { return a.location.live_range.last_use < b.location.live_range.last_use; });
+            std::sort(xmm_reserved_active.begin(), xmm_reserved_active.end(),
+                    [](const VRLocationPair& a, const VRLocationPair& b) { return a.location.live_range.last_use < b.location.live_range.last_use; });
             
             expire_old_intervals(live_range);
             RegisterBitSet free_registers = g_register_data.available_registers;
-            for (auto& [vr1, loc1] : active)
+            RegisterBitSet xmm_free_registers = g_register_data.available_xmm_registers;
+            for (auto& [vr, loc] : active)
             {
-                if (loc1.is_spilled) continue;
-                free_registers.reset(loc1.allocated_register);
+                if (loc.is_spilled) continue;
+                free_registers.reset(loc.allocated_register);
             }
 
-            for (auto& [vr2, loc2] : reserved_active)
+            for (auto& [vr, loc] : reserved_active)
             {
-                if (loc2.is_spilled) continue;
-                if (loc2.live_range.first_use >= live_range.last_use && 
-                        loc2.live_range.last_use <= live_range.first_use) continue;
-                free_registers.reset(loc2.allocated_register);
+                if (loc.is_spilled) continue;
+                if (loc.live_range.first_use >= live_range.last_use && 
+                        loc.live_range.last_use <= live_range.first_use) continue;
+                free_registers.reset(loc.allocated_register);
             }
 
-            if (free_registers.count() == 0)
+            for (auto& [vr, loc] : xmm_active)
             {
-                spill_at_interval(vr, live_range, fname, instruction_function.vr_reg_sizes);
+                if (loc.is_spilled) continue;
+                xmm_free_registers.reset(loc.allocated_register);
+            }
+
+            for (auto& [vr, loc] : xmm_reserved_active)
+            {
+                if (loc.is_spilled) continue;
+                if (loc.live_range.first_use >= live_range.last_use && 
+                        loc.live_range.last_use <= live_range.first_use) continue;
+                xmm_free_registers.reset(loc.allocated_register);
+            }
+            if (uses_xmm_register(instruction_function.vr_types.at(vr).type))
+            {
+                if (xmm_free_registers.count() == 0)
+                {
+                    spill_at_interval(vr, live_range, fname, instruction_function.vr_types, xmm_active);
+                }
+                else
+                {
+                    Register allocated_register = xmm_free_registers.get_first_available();
+                    VirtualRegisterLocation location; 
+                    location.live_range = live_range;
+                    location.allocated_register = allocated_register;
+                    current_locations.insert({vr, location});
+                    xmm_active.push_back({vr, location});
+                }
             }
             else
             {
-                Register allocated_register = free_registers.get_first_available();
-                VirtualRegisterLocation location; 
-                location.live_range = live_range;
-                location.allocated_register = allocated_register;
-                current_locations.insert({vr, location});
-                active.push_back({vr, location});
+                if (free_registers.count() == 0)
+                {
+                    spill_at_interval(vr, live_range, fname, instruction_function.vr_types, active);
+                }
+                else
+                {
+                    Register allocated_register = free_registers.get_first_available();
+                    VirtualRegisterLocation location; 
+                    location.live_range = live_range;
+                    location.allocated_register = allocated_register;
+                    current_locations.insert({vr, location});
+                    active.push_back({vr, location});
+                }
             }
         }
         local_stack_offset = -((-local_stack_offset + 15) & ~15);
@@ -108,11 +153,29 @@ void LinearScanRegisterAllocation::expire_old_intervals(LiveRange i)
         it = reserved_active.erase(it);
     }
 
+    for (auto it = xmm_active.begin(); it != xmm_active.end(); )
+    {
+        VRLocationPair& pair = *it;
+        if (pair.location.live_range.last_use > i.first_use)
+        {
+            break;
+        }
+        it = xmm_active.erase(it);
+    }
+    for (auto it = xmm_reserved_active.begin(); it != xmm_reserved_active.end();)
+    {
+        VRLocationPair& pair = *it;
+        if (pair.location.live_range.last_use > i.first_use)
+        {
+            break;
+        }
+        it = xmm_reserved_active.erase(it);
+    }
 }
 
-void LinearScanRegisterAllocation::spill_at_interval(virtual_register vr, LiveRange lr, const std::string& fname, const VirtualRegisterRegSizes& vr_sizes)
+void LinearScanRegisterAllocation::spill_at_interval(virtual_register vr, LiveRange lr, const std::string& fname, const VirtualRegisterTypes& vr_types, std::vector<VRLocationPair>& cur_active)
 {
-    VRLocationPair& spill = active.back();
+    VRLocationPair& spill = cur_active.back();
     auto& current_locations = function_location_data->at(fname);
 
     if (spill.location.live_range.last_use > lr.last_use)
@@ -123,7 +186,7 @@ void LinearScanRegisterAllocation::spill_at_interval(virtual_register vr, LiveRa
         current_locations.insert({vr, location});
             
         current_locations.at(spill.vr).is_spilled = true;
-        uint32_t byte_size = get_byte_size_from_register_size(vr_sizes.at(spill.vr));
+        uint32_t byte_size = vr_types.at(spill.vr).byte_size;
         local_stack_offset -= byte_size;
         
         int not_aligned = abs(local_stack_offset) % byte_size;
@@ -134,14 +197,14 @@ void LinearScanRegisterAllocation::spill_at_interval(virtual_register vr, LiveRa
 
         current_locations.at(spill.vr).stack_position = local_stack_offset;
 
-        active[active.size()-1] = {vr, location};
+        cur_active[cur_active.size()-1] = {vr, location};
     }
     else
     {
         VirtualRegisterLocation location;
         location.live_range = lr;
         location.is_spilled = true;
-        local_stack_offset -= get_byte_size_from_register_size(vr_sizes.at(vr));
+        local_stack_offset -= vr_types.at(vr).byte_size;
         location.stack_position = local_stack_offset;
         current_locations.insert({vr, location});
 

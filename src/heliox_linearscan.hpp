@@ -47,7 +47,7 @@ public:
 
 private:
     void expire_old_intervals(LiveRange i);
-    void spill_at_interval(virtual_register vr, LiveRange lr, const std::string& fname, const VirtualRegisterRegSizes& vr_sizes);
+    void spill_at_interval(virtual_register vr, LiveRange lr, const std::string& fname, const VirtualRegisterTypes& vr_types, std::vector<VRLocationPair>& cur_active);
     
     VirtualRegisterLocationMap& get_locations() const;
     
@@ -59,6 +59,9 @@ private:
 
     std::vector<VRLocationPair> active;
     std::vector<VRLocationPair> reserved_active;
+
+    std::vector<VRLocationPair> xmm_active;
+    std::vector<VRLocationPair> xmm_reserved_active;
 
     sptr<SymbolTable> global_table;
     int32_t local_stack_offset = 0;

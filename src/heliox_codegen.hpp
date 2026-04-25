@@ -32,7 +32,8 @@ namespace hx
         std::string save_callee();
         std::string load_callee();
 
-        std::string gen_instruc_safe(const std::string inst, virtual_register dst, Item arg);
+        std::string gen_instruc_safe(const std::string& inst, virtual_register dst, Item arg);
+        std::string instruction(const std::string& inst);
 
     private:
         std::string externs;

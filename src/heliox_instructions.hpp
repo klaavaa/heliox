@@ -151,7 +151,7 @@ struct LiveRange
 using ReservedRegisters = std::unordered_map<virtual_register, ReservedRegister>;
 using LiveRanges = std::map<virtual_register, LiveRange>;
 using InstructionTriplets = std::vector<InstructionTriplet>;
-using VirtualRegisterRegSizes = std::unordered_map<virtual_register, RegisterSize>;
+using VirtualRegisterTypes = std::unordered_map<virtual_register, type_data>;
 
 struct InstructionFunction
 {
@@ -162,7 +162,7 @@ struct InstructionFunction
     InstructionTriplets instruction_triplets;
     LiveRanges live_ranges;
     ReservedRegisters reserved_registers;
-    VirtualRegisterRegSizes vr_reg_sizes;
+    VirtualRegisterTypes vr_types;
     int32_t allocated_stack;
 };
 
