@@ -56,5 +56,6 @@ namespace hx
         int64_t param_stack_position = 0;
         
         type_data instruction_type;
+        InstructionTriplet *cur_triplet;
     };
 }

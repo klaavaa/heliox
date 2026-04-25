@@ -655,11 +655,13 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     }
 
     // save caller
+    /*
     InstructionTriplet save_caller(Instruction::CALL_BEGIN,
             -1,
             {},
             {primitive_type::VOID, 0});
     emit_instruction(save_caller, 0);
+    */
 
     // align stack
     bool did_allignment = false;
@@ -691,19 +693,23 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     }
 
     std::vector<ReservedRegister> reserved_registers;
+    ReservedRegister reservation;
+    reservation.reg = Register::A;
     if (s.return_type.byte_size != 0)
     {
         if (uses_xmm_register(s.return_type))
-            reserve_register(current_virtual_register, {Register::XMM0});
+            reservation.reg = Register::XMM0;
         else
-            reserve_register(current_virtual_register, {Register::A});
+            reservation.reg = Register::A;
     }
+    
+    reservation.reserved_without_vr = g_register_data.caller_saved_registers.get_available_registers();
 
     InstructionTriplet triplet(Instruction::CALL, 
                 current_virtual_register,
                 parameter_virtual_registers,
                 s.return_type);
-
+    reserve_register(triplet.dst, reservation);
     effective_register = current_virtual_register;
     emit_instruction(triplet);
     if (did_allignment)
@@ -717,14 +723,17 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     }
     
     // load caller
+    /*
     InstructionTriplet load_caller(Instruction::CALL_END,
             -1,
             {},
             {primitive_type::VOID, 0});
     emit_instruction(load_caller, 0);
+    */
 
     if (s.return_type.byte_size != 0)
     {
+        std::println("RETURN {}", (int)s.return_type.type);
         InstructionTriplet store(Instruction::STORE,
                 current_virtual_register,
                 {Item{ItemType::VIRTUAL_REGISTER, effective_register}}, 

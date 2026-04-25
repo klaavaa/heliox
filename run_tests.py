@@ -89,6 +89,7 @@ def main():
     for test_path in tests:
         test, ext = os.path.splitext(test_path)
         if ext != ".hlx": continue
+        print(f"running: {test}")
         compile_time_start = timer()
         if not compile_test(test):
             failed_tests.append(f"{bcolors.FAIL}TEST \"{test}\" FAILED{bcolors.ENDC} -- FAILED TO COMPILE TEST")
@@ -104,8 +105,12 @@ def main():
         command = [f"./{test}"]
         if test in command_line_args:
             command.extend(command_line_args[test])
-
-        output = subprocess.run(command, stdout=subprocess.PIPE)
+        
+        try:
+            output = subprocess.run(command, stdout=subprocess.PIPE, timeout=1)
+        except subprocess.TimeoutExpired:
+            failed_tests.append(f"{bcolors.FAIL}TEST \"{test}\" FAILED{bcolors.ENDC} -- test timed out (infinite loop?)")
+            continue
         execution_time_end = timer()
         execution_time = execution_time_end - execution_time_start
 

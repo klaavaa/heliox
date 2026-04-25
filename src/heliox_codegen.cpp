@@ -120,10 +120,11 @@ std::string CodeGeneration::emit_instruction_function(InstructionFunction& instr
 std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet)
 {
     instruction_type = triplet.type;
+    cur_triplet = &triplet;
     switch (triplet.instruction)
     {
     case Instruction::STORE:
-        return gen_instruc_safe(instruction("mov"), triplet.dst, triplet.items[0]);
+        return gen_instruc_safe("mov", triplet.dst, triplet.items[0]);
     case Instruction::PUSH:
         return std::format("\tpush {}\n", get_location(triplet.dst, RegisterSize::BIT64));
     case Instruction::ADD: 
@@ -173,6 +174,13 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
     case Instruction::LOAD_INT:
         return std::format("\tmov {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0]));
     case Instruction::LOAD_FLOAT:
+        if (current_func_vr_locations.at(triplet.dst).is_spilled)
+        {
+            return std::format("\tmov {}, [rel {}]\n\tmov {}, {}\n",
+                    register_to_string(scratch_register, get_register_size(instruction_type)),
+                    get_location(triplet.items[0]),
+                    get_location(triplet.dst), register_to_string(scratch_register, RegisterSize::BIT64));
+        }
         return std::format("\tmovsd {}, [rel {}]\n", get_location(triplet.dst), get_location(triplet.items[0]));
     case Instruction::LOAD_PARAM:
         return std::format("");
@@ -314,7 +322,7 @@ std::string CodeGeneration::get_location(virtual_register vr)
 
 std::string CodeGeneration::get_location(virtual_register vr, RegisterSize reg_size)
 {
-    const VirtualRegisterLocation& location = current_func_vr_locations[vr];
+    const VirtualRegisterLocation& location = current_func_vr_locations.at(vr);
     if (location.is_spilled)
     {
         if (location.stack_position < 0)
@@ -440,12 +448,21 @@ std::string CodeGeneration::gen_instruc_safe(const std::string& inst, virtual_re
         return base + std::format("\t{} {}, {}\n\t{} {}, {}\n", inst, scratch, get_location(arg),
                 inst, get_location(dst), scratch);
     }
-    return base + std::format("\t{} {}, {}\n", inst, get_location(dst), get_location(arg));
+    return base + std::format("\t{} {}, {}\n", instruction(inst), get_location(dst), get_location(arg));
 }
 
 std::string CodeGeneration::instruction(const std::string& inst)
 {
-    if (uses_xmm_register(instruction_type))
+    if (current_func_vr_locations.at(cur_triplet->dst).is_spilled)
+    {
+        if (uses_xmm_register(instruction_type))
+        {
+            if (instruction_type.byte_size == 8)
+                return inst + "sd";
+            return inst + "ss";
+        }
+    }
+    else if (current_func_vr_locations.at(cur_triplet->dst).allocated_register >= Register::XMM0)
     {
         if (instruction_type.byte_size == 8)
             return inst + "sd";

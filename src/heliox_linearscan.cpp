@@ -47,7 +47,10 @@ void LinearScanRegisterAllocation::scan()
                     VirtualRegisterLocation loc;
                     loc.live_range = location.live_range;
                     loc.allocated_register = reg;
-                    reserved_active.push_back({-1, loc});
+                    if (reg >= Register::XMM0)
+                        xmm_reserved_active.push_back({-1, loc});
+                    else
+                        reserved_active.push_back({-1, loc});
                 }
         }
         for (const auto& [vr, live_range] : instruction_function.live_ranges)
@@ -65,6 +68,7 @@ void LinearScanRegisterAllocation::scan()
                     [](const VRLocationPair& a, const VRLocationPair& b) { return a.location.live_range.last_use < b.location.live_range.last_use; });
             
             expire_old_intervals(live_range);
+
             RegisterBitSet free_registers = g_register_data.available_registers;
             RegisterBitSet xmm_free_registers = g_register_data.available_xmm_registers;
             for (auto& [vr, loc] : active)
@@ -175,40 +179,42 @@ void LinearScanRegisterAllocation::expire_old_intervals(LiveRange i)
 
 void LinearScanRegisterAllocation::spill_at_interval(virtual_register vr, LiveRange lr, const std::string& fname, const VirtualRegisterTypes& vr_types, std::vector<VRLocationPair>& cur_active)
 {
-    VRLocationPair& spill = cur_active.back();
     auto& current_locations = function_location_data->at(fname);
-
-    if (spill.location.live_range.last_use > lr.last_use)
+    if (cur_active.size() > 0)
     {
-        VirtualRegisterLocation location;
-        location.live_range = lr;
-        location.allocated_register = spill.location.allocated_register;
-        current_locations.insert({vr, location});
-            
-        current_locations.at(spill.vr).is_spilled = true;
-        uint32_t byte_size = vr_types.at(spill.vr).byte_size;
-        local_stack_offset -= byte_size;
-        
-        int not_aligned = abs(local_stack_offset) % byte_size;
-        if (not_aligned != 0)
+        VRLocationPair& spill = cur_active.back();
+
+        if (spill.location.live_range.last_use > lr.last_use)
         {
-            local_stack_offset -= not_aligned;
+            VirtualRegisterLocation location;
+            location.live_range = lr;
+            location.allocated_register = spill.location.allocated_register;
+            current_locations.insert({vr, location});
+                
+            current_locations.at(spill.vr).is_spilled = true;
+            uint32_t byte_size = vr_types.at(spill.vr).byte_size;
+            local_stack_offset -= byte_size;
+            
+            int not_aligned = abs(local_stack_offset) % byte_size;
+            if (not_aligned != 0)
+            {
+                local_stack_offset -= not_aligned;
+            }
+
+            current_locations.at(spill.vr).stack_position = local_stack_offset;
+
+            cur_active[cur_active.size()-1] = {vr, location};
+            return;
         }
-
-        current_locations.at(spill.vr).stack_position = local_stack_offset;
-
-        cur_active[cur_active.size()-1] = {vr, location};
     }
-    else
-    {
-        VirtualRegisterLocation location;
-        location.live_range = lr;
-        location.is_spilled = true;
-        local_stack_offset -= vr_types.at(vr).byte_size;
-        location.stack_position = local_stack_offset;
-        current_locations.insert({vr, location});
+    
+    VirtualRegisterLocation location;
+    location.live_range = lr;
+    location.is_spilled = true;
+    local_stack_offset -= vr_types.at(vr).byte_size;
+    location.stack_position = local_stack_offset;
+    current_locations.insert({vr, location});
 
-    }
 }
 
 }

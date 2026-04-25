@@ -316,7 +316,8 @@ struct RegisterData
         Register::XMM12,
         Register::XMM13,
         Register::XMM14,
-        Register::XMM15});
+        Register::XMM15
+        });
 #endif
 };
 
