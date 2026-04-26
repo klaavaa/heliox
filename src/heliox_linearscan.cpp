@@ -80,7 +80,7 @@ void LinearScanRegisterAllocation::scan()
             for (auto& [vr, loc] : reserved_active)
             {
                 if (loc.is_spilled) continue;
-                if (loc.live_range.first_use >= live_range.last_use && 
+                if (loc.live_range.first_use >= live_range.last_use || 
                         loc.live_range.last_use <= live_range.first_use) continue;
                 free_registers.reset(loc.allocated_register);
             }
@@ -94,7 +94,7 @@ void LinearScanRegisterAllocation::scan()
             for (auto& [vr, loc] : xmm_reserved_active)
             {
                 if (loc.is_spilled) continue;
-                if (loc.live_range.first_use >= live_range.last_use && 
+                if (loc.live_range.first_use >= live_range.last_use || 
                         loc.live_range.last_use <= live_range.first_use) continue;
                 xmm_free_registers.reset(loc.allocated_register);
             }
