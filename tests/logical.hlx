@@ -1,4 +1,4 @@
-extern fun printf() void;
+extern fun printf(u8* str, ...) void;
 
 fun exec(i32 x) i32
 {

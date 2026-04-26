@@ -88,6 +88,16 @@ struct type_data
             byte_size = get_byte_size_from_known_type(type);
     }
 
+    type_data(const type_data& other)
+        : type(other.type), ptr_depth(other.ptr_depth), byte_size(other.byte_size)
+    { }
+
+    //type_data(primitive_type type)
+    //    : type(type), ptr_depth(0)
+    //{
+    //    byte_size = get_byte_size_from_known_type(type);
+    //}
+
     friend bool operator!=(const type_data& left, const type_data& right)
     {
         return (left.type != right.type) && (left.ptr_depth != right.ptr_depth);
@@ -98,16 +108,42 @@ struct type_data
         return (left.type == right.type) && (left.ptr_depth == right.ptr_depth);
     }
 
-    type_data(primitive_type type)
-        : type(type), ptr_depth(0)
-    {
-        byte_size = get_byte_size_from_known_type(type);
-    }
    primitive_type type; 
    uint32_t byte_size;
    uint32_t ptr_depth;
 };
 
+inline bool is_integer_type(const type_data td) 
+{
+    if (td.ptr_depth != 0) return true;
+    switch (td.type)
+    {
+        case primitive_type::I8:
+        case primitive_type::I16:
+        case primitive_type::I32:
+        case primitive_type::I64:
+        case primitive_type::U8:
+        case primitive_type::U16:
+        case primitive_type::U32:
+        case primitive_type::U64:
+            return true;
+        default:
+            return false;
+    }
+}
+
+inline bool is_float_type(const type_data td) 
+{
+    if (td.ptr_depth != 0) return false;
+    switch (td.type)
+    {
+        case primitive_type::F32:
+        case primitive_type::F64:
+            return true;
+        default:
+            return false;
+    }
+}
 
 inline bool is_unsigned(const type_data td)
 {
@@ -129,18 +165,6 @@ inline bool is_unsigned(const type_data td)
         std::println("ERROR: unknown type at function: is_unsigned");
         exit(-1);
 
-    }
-}
-inline bool uses_xmm_register(const type_data td)
-{
-    if (td.ptr_depth != 0) return false;
-    switch (td.type)
-    {
-        case primitive_type::F64:
-        case primitive_type::F32:
-            return true;
-        default:
-            return false;
     }
 }
 

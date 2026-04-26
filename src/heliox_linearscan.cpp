@@ -34,7 +34,7 @@ void LinearScanRegisterAllocation::scan()
                     location.allocated_register = reserved_reg.reg;
                 }
                 current_locations.insert({vr, location});
-                if (uses_xmm_register(instruction_function.vr_types.at(vr).type))
+                if (is_float_type(instruction_function.vr_types.at(vr)))
                 {
                     xmm_reserved_active.push_back({vr, location});
                 }
@@ -98,7 +98,8 @@ void LinearScanRegisterAllocation::scan()
                         loc.live_range.last_use <= live_range.first_use) continue;
                 xmm_free_registers.reset(loc.allocated_register);
             }
-            if (uses_xmm_register(instruction_function.vr_types.at(vr).type))
+
+            if (is_float_type(instruction_function.vr_types.at(vr)))
             {
                 if (xmm_free_registers.count() == 0)
                 {

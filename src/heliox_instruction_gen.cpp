@@ -132,7 +132,7 @@ void InstructionGenerator::visit_function(uptr<function>& func)
     for (auto& param : func->params)
     {
         ReservedRegister reg_pair;
-        if (uses_xmm_register(param->var_type))
+        if (is_float_type(param->var_type))
         {
             if (float_arg_count < g_register_data.register_passed_float_args.size())
             {
@@ -291,12 +291,13 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
     virtual_register right = effective_register;
     type_data right_type = effective_type;
     
+    bool is_float = is_float_type(left_type);
 
     if (left_type.type != right_type.type && left_type.ptr_depth != right_type.ptr_depth)
     {
         std::println("WARNING: Trying to do operations with 2 different operation sizes");
         // todo change this
-        if (get_register_size(left_type.type) < get_register_size(right_type.type))
+        if (get_register_size(left_type) < get_register_size(right_type))
             right_type = left_type;
         else
             left_type = right_type;
@@ -340,6 +341,11 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
             break;
         case TokenType::MULEQUALS: 
             {
+            if (is_float)
+            {
+                instruc = Instruction::MUL;
+                break;
+            }
             InstructionTriplet store(Instruction::STORE,
                     current_virtual_register,
                     {Item{ItemType::VIRTUAL_REGISTER, left}},
@@ -364,6 +370,11 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
             }
         case TokenType::DIVEQUALS:
             {
+            if (is_float)
+            {
+                instruc = Instruction::DIV;
+                break;
+            }
             InstructionTriplet store(Instruction::STORE,
                     current_virtual_register,
                     {Item{ItemType::VIRTUAL_REGISTER, left}},
@@ -443,6 +454,8 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
     
     effective_register = current_virtual_register;
     emit_instruction(left_side_triplet);
+    
+    
 
     switch (binop->op_token)
     {
@@ -455,6 +468,7 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
         case TokenType::MULTIPLY:
             {
             instruc = Instruction::MUL;
+            if (is_float) break;
             ReservedRegister reserved_register;
             // it can actually be any register but might implement later
             reserved_register.reg = Register::A;
@@ -464,6 +478,7 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
         case TokenType::DIVIDE:
             {
             instruc = Instruction::DIV;
+            if (is_float) break;
             ReservedRegister reserved_register; 
             reserved_register.reg = Register::A;
             reserved_register.reserved_without_vr.push_back(Register::D);
@@ -544,12 +559,14 @@ void InstructionGenerator::visit_unary(uptr<unary_expr>& unary)
         case TokenType::MULTIPLY:
             {
             visit_expression(unary->expr);
-             
+            type_data deref_type = effective_type;
+            deref_type.ptr_depth--;
             InstructionTriplet triplet(Instruction::DEREF,
                     current_virtual_register,
                     {Item{ItemType::VIRTUAL_REGISTER, effective_register}},
-                    effective_type);
+                    deref_type);
             effective_register = current_virtual_register;
+            effective_type = deref_type;
             emit_instruction(triplet);
             return;
             }
@@ -589,7 +606,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         auto& param = function_call->parameters[i];
         visit_expression(param);
         bool pushed_to_stack = false; 
-        if (uses_xmm_register(effective_type))
+        if (is_float_type(effective_type))
         {
             pushed_to_stack = float_param_count > g_register_data.register_passed_float_args.size() - 1;
             float_param_count++;
@@ -627,7 +644,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     float_param_count = 0;
     for (int i = 1; i < param_types.size(); i++)
     {
-        if (uses_xmm_register(param_types[i])) 
+        if (is_float_type(param_types[i])) 
         {
             if (float_param_count == g_register_data.register_passed_float_args.size()) continue;
         }
@@ -640,7 +657,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
             {item},
             param_types[i]);
         ReservedRegister res;
-        if (uses_xmm_register(param_types[i])) 
+        if (is_float_type(param_types[i])) 
         {
             res.reg = g_register_data.register_passed_float_args[float_param_count++];
         }
@@ -708,7 +725,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     reservation.reg = Register::A;
     if (s.return_type.byte_size != 0)
     {
-        if (uses_xmm_register(s.return_type))
+        if (is_float_type(s.return_type))
             reservation.reg = Register::XMM0;
         else
             reservation.reg = Register::A;
@@ -779,7 +796,7 @@ void InstructionGenerator::visit_return(uptr<return_statement>& return_s)
                  effective_register,
                 {},
                 effective_type);
-    if (uses_xmm_register(effective_type))
+    if (is_float_type(effective_type))
         reserve_register(effective_register, {Register::XMM0});
     else 
         reserve_register(effective_register, {Register::A});
@@ -813,6 +830,7 @@ void InstructionGenerator::visit_variable_definition(uptr<variable_definition_st
                            {Item{ItemType::VIRTUAL_REGISTER, effective_register}},
                            sym.type_info);
     
+
     effective_register = current_virtual_register;
     effective_type = sym.type_info;
     emit_instruction(triplet);
