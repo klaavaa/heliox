@@ -134,7 +134,12 @@ void InstructionGenerator::visit_function(uptr<function>& func)
         ReservedRegister reg_pair;
         if (is_float_type(param->var_type))
         {
+        #ifdef _WIN32
+            if (parameter_position < g_register_data.register_passed_float_args.size())
+        #endif
+        #ifdef __linux__
             if (float_arg_count < g_register_data.register_passed_float_args.size())
+        #endif
             {
                reg_pair.reg = g_register_data.register_passed_float_args[float_arg_count++]; 
             }
@@ -146,7 +151,12 @@ void InstructionGenerator::visit_function(uptr<function>& func)
         }
         else
         {
+        #ifdef _WIN32
+            if (parameter_position < g_register_data.register_passed_int_args.size())
+        #endif
+        #ifdef __linux__
             if (int_arg_count < g_register_data.register_passed_int_args.size())
+        #endif
             {
                reg_pair.reg = g_register_data.register_passed_int_args[int_arg_count++]; 
             }
@@ -155,7 +165,7 @@ void InstructionGenerator::visit_function(uptr<function>& func)
                 reg_pair.on_stack = true;
                 #ifdef _WIN32
                 // windows "shadow space"
-                reg_pair.stack_position = 32 + 16 + (parameter_position-(int32_t)g_register_data.register_passed_arguments.size()) * 8;
+                reg_pair.stack_position = 32 + 16 + (parameter_position-4) * 8;
                 #else
                 reg_pair.stack_position = 16 + (spilled_arg_count++) * 8;
                 #endif
@@ -607,12 +617,23 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         bool pushed_to_stack = false; 
         if (is_float_type(effective_type))
         {
+            // the windows x64 calling convention works differently than system V, so nth arg is always the nth register
+        #ifdef _WIN32
+            pushed_to_stack = i > g_register_data.register_passed_float_args.size() - 1;
+        #endif
+        #ifdef __linux__
             pushed_to_stack = float_param_count > g_register_data.register_passed_float_args.size() - 1;
+        #endif
             float_param_count++;
         }
         else
         {
+        #ifdef _WIN32
+            pushed_to_stack = i > g_register_data.register_passed_int_args.size() - 1;
+        #endif
+        #ifdef __linux__
             pushed_to_stack = int_param_count > g_register_data.register_passed_int_args.size() - 1;
+        #endif 
             int_param_count++;
         }
 
@@ -662,6 +683,12 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     float_param_count = 0;
     for (int i = 1; i < param_types.size(); i++)
     {
+        #ifdef _WIN32
+        // basically check if the arg count is > 4
+        if (i > g_register_data.register_passed_int_args.size()) continue;
+        #endif
+
+        #ifdef __linux__
         if (is_float_type(param_types[i])) 
         {
             if (float_param_count == g_register_data.register_passed_float_args.size()) continue;
@@ -669,6 +696,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         {
             if (int_param_count == g_register_data.register_passed_int_args.size()) continue;
         }
+        #endif
         auto& item = parameter_virtual_registers[i];
         InstructionTriplet triplet(Instruction::STORE,
             current_virtual_register,
@@ -677,11 +705,21 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         ReservedRegister res;
         if (is_float_type(param_types[i])) 
         {
+            #ifdef _WIN32
+            res.reg = g_register_data.register_passed_float_args[i - 1];
+            #endif
+            #ifdef __linux__
             res.reg = g_register_data.register_passed_float_args[float_param_count++];
+            #endif
         }
         else
         {
+            #ifdef _WIN32
+            res.reg = g_register_data.register_passed_int_args[i - 1];
+            #endif
+            #ifdef __linux__
             res.reg = g_register_data.register_passed_int_args[int_param_count++];
+            #endif
         }
         reserve_register(current_virtual_register, res);
         effective_register = current_virtual_register;

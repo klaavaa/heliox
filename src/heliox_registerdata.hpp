@@ -273,7 +273,8 @@ struct RegisterData
 
 #ifdef _WIN32
 
-    std::array<Register, 4> register_passed_arguments = {Register::C, Register::D, Register::R8, Register::R9};
+    std::array<Register, 4> register_passed_int_args = {Register::C, Register::D, Register::R8, Register::R9};
+    std::array<Register, 4> register_passed_float_args = {Register::XMM0, Register::XMM1, Register::XMM2, Register::XMM3}; 
 
     RegisterBitSet callee_saved_registers = RegisterBitSet({Register::B, Register::DI, Register::SI, Register::R12, Register::R13, Register::R14, Register::R15});
     RegisterBitSet caller_saved_registers = RegisterBitSet({Register::A, Register::C, Register::D, Register::R8, Register::R9, Register::R10});
