@@ -22,6 +22,7 @@ namespace hx
         virtual void visit_binop(uptr<binop_expr>& binop) = 0;
         virtual void visit_unary(uptr<unary_expr>& unary) = 0;
         virtual void visit_function_call(uptr<function_call_expr>& function_call) = 0; 
+        virtual void visit_explicit_conversion(uptr<explicit_conversion_expr>& explicit_conversion) = 0;
 
         virtual void visit_compound(uptr<compound_statement>& compound) = 0; 
         virtual void visit_return(uptr<return_statement>& return_s) = 0;

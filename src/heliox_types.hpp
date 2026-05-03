@@ -100,7 +100,7 @@ struct type_data
 
     friend bool operator!=(const type_data& left, const type_data& right)
     {
-        return (left.type != right.type) && (left.ptr_depth != right.ptr_depth);
+        return !(left == right);
     }
 
     friend bool operator==(const type_data& left, const type_data& right)

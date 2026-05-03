@@ -34,7 +34,9 @@ namespace hx
             [this](uptr<binop_expr>& binop)
             {visit_binop(binop);},
             [this](uptr<unary_expr>& unary)
-            {visit_unary(unary);}
+            {visit_unary(unary);},
+            [this](uptr<explicit_conversion_expr>& explicit_conversion)
+            {visit_explicit_conversion(explicit_conversion);}
             }, expr);
     }
 

@@ -4,6 +4,7 @@
 #include <variant>
 #include <vector>
 #include "heliox_pointer.hpp"
+#include "heliox_types.hpp"
 #include "heliox_token.hpp"
 namespace hx
 {
@@ -15,6 +16,7 @@ struct identifier_literal_expr;
 struct function_call_expr;
 struct binop_expr;
 struct unary_expr;
+struct explicit_conversion_expr;
 
 using expression = std::variant<
     uptr<int_literal_expr>,
@@ -23,7 +25,8 @@ using expression = std::variant<
     uptr<identifier_literal_expr>,
     uptr<function_call_expr>,
     uptr<binop_expr>,
-    uptr<unary_expr>
+    uptr<unary_expr>,
+    uptr<explicit_conversion_expr>
     >;
 
 struct int_literal_expr
@@ -76,5 +79,15 @@ struct function_call_expr
     uptr<identifier_literal_expr> identifier;
     std::vector<expression> parameters;
 };
+
+struct explicit_conversion_expr
+{
+    explicit_conversion_expr(type_data type_info, expression expr)
+        : type_info(type_info), expr(std::move(expr)) {}
+
+    type_data type_info;
+    expression expr;
+};
+
 }
 

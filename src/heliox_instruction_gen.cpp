@@ -291,17 +291,6 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
     virtual_register right = effective_register;
     type_data right_type = effective_type;
     
-    bool is_float = is_float_type(left_type);
-
-    if (left_type.type != right_type.type && left_type.ptr_depth != right_type.ptr_depth)
-    {
-        std::println("WARNING: Trying to do operations with 2 different operation sizes");
-        // todo change this
-        if (get_register_size(left_type) < get_register_size(right_type))
-            right_type = left_type;
-        else
-            left_type = right_type;
-    }
 
     if (binop->op_token == TokenType::LOGICAL_AND)
     {
@@ -326,8 +315,18 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
         return;
     }
     
+    if (left_type != right_type)
+    {
+        std::println("WARNING: Trying to do operations with 2 different operation sizes");
+        implicit_convert(right, left_type, right_type);
+        right = effective_register; 
+        right_type = left_type;
+    }
+
     Instruction instruc;
     bool is_equals_op = true;
+    bool is_float = is_float_type(left_type);
+
     switch (binop->op_token)
     {
         case TokenType::EQU: 
@@ -628,10 +627,29 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         }
 
         // todo maybe change this
-        if (i < s.parameter_types.size() && effective_type != s.parameter_types[i])
+        if (i < s.parameter_types.size())
         {
-            std::println("WARNING: expression type is different from functions parameter in call");
+            if (effective_type != s.parameter_types[i])
+            {
+                std::println("WARNING: expression type is different from functions parameter in call");
+                implicit_convert(effective_register, s.parameter_types[i], effective_type);
+            }
         }
+        else if (!s.has_varargs)
+        {
+             
+            std::println("ERROR: too many arguments passed in function call");
+            exit(-1);
+        }
+        else
+        {
+            // it is a varg, meaning we have to convert floats up
+            if (is_float_type(effective_type) && effective_type.byte_size == 4) 
+            {
+                implicit_convert(effective_register, {primitive_type::F64, 0}, effective_type);
+            }
+        }
+
         // todo maybe change this
         param_types.push_back(effective_type);
         // save previous current_virtual_register 
@@ -770,6 +788,23 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
 
 }
 
+
+void InstructionGenerator::visit_explicit_conversion(uptr<explicit_conversion_expr>& explicit_conversion)
+{
+    visit_expression(explicit_conversion->expr);
+    
+    if (is_float_type(explicit_conversion->type_info))
+    {
+        // cvtsi2ss
+        // cvtsi2sd
+        // vcvtusi2sd
+        // vcvtusi2ss
+    }
+
+    std::println("EXPLICIT CONVERSION NOT DEFINED YET");   
+    exit(-1);
+}
+
 void InstructionGenerator::visit_compound(uptr<compound_statement>& compound) 
 {
     current_table = current_table->add_table().get();
@@ -817,13 +852,13 @@ void InstructionGenerator::visit_variable_definition(uptr<variable_definition_st
             variable_definition->declaration->var_identifier->name);
     
     visit_expression(variable_definition->definition);
-    sym.vr = current_virtual_register;
-    
     if (sym.type_info != effective_type)
     {
         std::println("Warning: type doesnt match the expected type for variable: {}",
                 variable_definition->declaration->var_identifier->name);
+        implicit_convert(effective_register, sym.type_info, effective_type);
     }
+    sym.vr = current_virtual_register;
     InstructionTriplet triplet = 
         InstructionTriplet(Instruction::STORE, 
                            current_virtual_register,
@@ -909,6 +944,49 @@ void InstructionGenerator::reserve_register(virtual_register vr, ReservedRegiste
 void InstructionGenerator::set_vr_type(virtual_register vr, type_data type)
 {
     instruction_data.instruction_functions.back().vr_types.insert({vr, type});
+}
+
+void InstructionGenerator::implicit_convert(virtual_register vr, type_data wanted, type_data from)
+{
+    if (is_integer_type(from) && !is_integer_type(wanted) || 
+        is_float_type(from) && !is_float_type(wanted))
+    {
+        std::println("Error: Implicit conversion not supported between different primitive types");    
+        exit(-1);
+    }
+
+
+    if (is_integer_type(wanted)) return;
+    if (is_float_type(wanted))
+    {
+        if (wanted.byte_size == 8) 
+        {
+            InstructionTriplet triplet(Instruction::CONVERTF64,
+                    current_virtual_register,
+                    {Item{ItemType::VIRTUAL_REGISTER, vr}},
+                    {primitive_type::F64, 0}
+                    );
+            effective_register = current_virtual_register;
+            effective_type = triplet.type;
+            emit_instruction(triplet);
+            return;
+        }
+        if (wanted.byte_size == 4)
+        {
+            InstructionTriplet triplet(Instruction::CONVERTF32,
+                    current_virtual_register,
+                    {Item{ItemType::VIRTUAL_REGISTER, vr}},
+                    {primitive_type::F32, 0}
+                    );
+            effective_register = current_virtual_register;
+            effective_type = triplet.type;
+            emit_instruction(triplet);
+            return;
+        }
+    }
+    std::println("ERROR: Implicit conversion with unknown type ({})", vr);
+    exit(-1);
+
 }
 
 }

@@ -286,6 +286,12 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
     case Instruction::ENDWHILE:
         return std::format("\tjmp .WHILE{}\n.WHILEEND{}:\n", get_location(triplet.items[0]),
                 get_location(triplet.items[0]));
+    case Instruction::CONVERTF64:
+        return std::format("\tcvtss2sd {}, {}\n", get_location(triplet.dst),
+                get_location(triplet.items[0]));
+    case Instruction::CONVERTF32:
+        return std::format("\tcvtsd2ss {}, {}\n", get_location(triplet.dst),
+                get_location(triplet.items[0]));
     default:
         return "not yet implemented\n";
         //TODO ERROR

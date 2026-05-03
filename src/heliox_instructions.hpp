@@ -65,6 +65,10 @@ enum class Instruction
     WHILE,
     WHILE_JUMPEND,
     ENDWHILE,
+
+    CONVERTF64,
+    CONVERTF32,
+
     
 };
 
@@ -341,7 +345,13 @@ inline void print_instruction(const InstructionTriplet& triplet)
         case Instruction::LOGICAL_OR_TEST_RIGHT:
             std::println("{} RIOR {}", prefix, triplet.items[0].get_string());  
             break;
-
+        case Instruction::CONVERTF64:
+            std::println("{} CTF64 r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
+            break;
+        case Instruction::CONVERTF32:
+            std::println("{} CTF32 r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
+            break;
+            
 
       default:
         std::println("Instruction not implemented");

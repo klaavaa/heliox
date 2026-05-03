@@ -134,10 +134,29 @@ expression Parser::parse_identifier()
 
     uptr<identifier_literal_expr> identifier = parse_identifier_literal();
 
+    // check if identifier is a primitive type, if it is, explicit casting is in order
+    auto primitive_opt = get_primitive_type_from_string(identifier->name);
+    if (primitive_opt.has_value())
+    {
+        uint32_t ptr_depth = 0;
+        while (m_current_token.type == TokenType::MULTIPLY)
+        {
+            ptr_depth++;
+            eat(TokenType::MULTIPLY);
+        }
+        type_data conversion_type(primitive_opt.value(), ptr_depth);
+        eat(TokenType::L_PAREN); 
+        expression expr = parse_expression();
+        eat(TokenType::R_PAREN);
+        return std::make_unique<explicit_conversion_expr>(conversion_type, std::move(expr));
+    }
+
     // check if its a function call 
     if (m_current_token.type == TokenType::L_PAREN)
     {
         eat(TokenType::L_PAREN);
+
+        
         std::vector<expression> expressions;
         while(m_current_token.type != TokenType::R_PAREN)
         {

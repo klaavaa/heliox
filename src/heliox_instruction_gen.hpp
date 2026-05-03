@@ -23,6 +23,8 @@ class InstructionGenerator : public Visitor
         void visit_binop(uptr<binop_expr>& binop) override;
         void visit_unary(uptr<unary_expr>& unary) override;
         void visit_function_call(uptr<function_call_expr>& function_call) override;
+        void visit_explicit_conversion(uptr<explicit_conversion_expr>& explicit_conversion) override;
+
         void visit_compound(uptr<compound_statement>& compound) override;
         void visit_return(uptr<return_statement>& return_s) override;
         void visit_variable_declaration(uptr<variable_declaration_statement>& variable_declaration) override;
@@ -37,6 +39,8 @@ class InstructionGenerator : public Visitor
         
         void reserve_register(virtual_register vr, ReservedRegister reservation);
         void set_vr_type(virtual_register vr, type_data type);
+        
+        void implicit_convert(virtual_register vr, type_data wanted, type_data from);
 
         InstructionData instruction_data;
         virtual_register current_virtual_register = 0;
