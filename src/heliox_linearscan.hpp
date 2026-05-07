@@ -53,8 +53,6 @@ private:
     
 
 private:
-    const std::array<Register, 6> integer_arguments_registers = {Register::DI, Register::SI, Register::D, Register::C, Register::R8, Register::R9};
-
     InstructionData& instruction_data;
 
     std::vector<VRLocationPair> active;
