@@ -13,7 +13,7 @@ int main(int argc, char** argv)
 
     hx_flags& flags = HX_GET_FLAGS();
 
-    std::string file_path = ""; 
+    std::vector<std::string> file_paths;
     for (int i = 1; i < argc; i++)
     {
         if (argv[i][0] == '-')
@@ -21,17 +21,17 @@ int main(int argc, char** argv)
             flags[argv[i]] = true;
             continue;
         }
-        file_path = argv[i];
+        file_paths.emplace_back(argv[i]);
     }
 
-    if (file_path.empty())
+    if (file_paths.empty())
     {
         std::cout << "Please specify the file you want to compile" << "\n";
         return 0;
     }
     
-    auto func = fn<void, const std::string&, const std::string&>(hx::compile);
-    double time = timeit<void, const std::string&, const std::string&>(func, file_path, "./");
+    auto func = fn<void, const std::vector<std::string>&, const std::string&>(hx::compile);
+    double time = timeit<void, const std::vector<std::string>&, const std::string&>(func, file_paths, "./");
     std::cout << "Compile time: " << time << "s\n";
 
 

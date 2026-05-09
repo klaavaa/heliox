@@ -17,14 +17,26 @@ sptr<SymbolTable> SymbolTable::add_table()
     return new_table;
 }
 
-bool SymbolTable::import_module(sptr<SymbolTable> from, const std::string& module_name)
+bool SymbolTable::import_module(sptr<SymbolTable> from, const std::string& module_name, uptr<Program>& program)
 {
     if (!from->modules.contains(module_name)) return false;
     for (auto&  [key, val] : from->function_symbols)
     {
         if (key.starts_with(module_name + "."))
         {
-            this->function_symbols.emplace(key, val);
+            std::println("added func {}", key);
+            add_function_symbol(key, val.return_type, val.parameter_types, val.has_varargs);
+            // add the externed function
+            uptr<identifier_literal_expr> identifier = std::make_unique<identifier_literal_expr>(key);
+            std::vector<uptr<variable_declaration_statement>> params;
+            for (const auto& type : val.parameter_types)
+            {
+                uptr<identifier_literal_expr> i = std::make_unique<identifier_literal_expr>("");
+                params.emplace_back(std::make_unique<variable_declaration_statement>(type, std::move(i)));
+            }
+            program->functions.emplace_back(std::make_unique<function>(std::move(identifier), std::move(params),
+                std::move(std::vector<statement>{}), val.return_type, true, val.has_varargs, module_name));
+
         }
     }
     return true;

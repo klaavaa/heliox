@@ -121,8 +121,18 @@ uptr<function> Parser::parse_function()
                 }
                 break;
             }
-            uptr<variable_declaration_statement> parameter = parse_variable_declaration();
-            parameters.push_back(std::move(parameter));
+            type_data td = parse_type(); 
+            
+            if (m_current_token.type == TokenType::IDENTIFIER)
+            {
+                parameters.emplace_back(std::make_unique<variable_declaration_statement>(td, parse_identifier_literal()));
+            }
+            else
+            {
+                parameters.emplace_back(std::make_unique<variable_declaration_statement>(td,
+                            std::make_unique<identifier_literal_expr>("")));
+            }
+
             if (m_current_token.type == TokenType::R_PAREN)
             {
                 break;

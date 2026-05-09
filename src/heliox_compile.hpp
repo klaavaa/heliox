@@ -16,9 +16,13 @@
 
 namespace hx  
 {
-inline void compile(const std::string& file_path, const std::string& output_path)
+inline void compile(const std::vector<std::string>& file_paths, const std::string& output_path)
 {
-    
+    std::vector<uptr<Program>> programs;
+    std::vector<sptr<SymbolTable>> tables;
+    std::vector<std::string> asm_file_paths;
+    for (const auto& file_path : file_paths)
+    {
     if (file_path.substr(file_path.size() - 4) != ".hlx")
     {
         hx::Error error;
@@ -32,9 +36,9 @@ inline void compile(const std::string& file_path, const std::string& output_path
     // get last part of absolute path (example home/dir1/dir2/file.hlx -> file.hlx)
     std::string file_path_stripped = file_path.substr(file_path.find_last_of("/") + 1, file_path.size());
 
-
     // strip file extension (example file.hlx -> file)
     file_path_stripped = file_path_stripped.substr(0, file_path_stripped.size() - 4);
+    asm_file_paths.emplace_back(file_path_stripped);
 
     std::string text = load_hx_file(file_path);
 
@@ -51,12 +55,32 @@ inline void compile(const std::string& file_path, const std::string& output_path
     uptr<Program> program = parser.parse_program();
     
     
+    
     sptr<SymbolTable> global_table = std::make_shared<SymbolTable>();
     
     SymbolVisitor sv(global_table);
     sv.visit_program(program);
-     
+    programs.push_back(std::move(program));
+    tables.push_back(global_table);
+    }  
     
+
+    for (size_t i = 0; i < programs.size(); i++)
+    {
+        for (const auto& import : programs[i]->imports)
+        {
+            for (size_t j = 0; j < tables.size(); j++)
+            {
+                if (i == j) continue;
+                tables[i]->import_module(tables[j], import, programs[i]);
+            }
+        }
+    }
+
+    for (size_t i = 0; i < programs.size(); i++)
+    {
+        auto& program = programs[i];
+        auto& global_table = tables[i];
     InstructionGenerator instruction_gen(global_table);
     instruction_gen.visit_program(program);
     
@@ -67,7 +91,8 @@ inline void compile(const std::string& file_path, const std::string& output_path
     CodeGeneration codegen(global_table, linear_scan.function_location_data);
     std::string generated_nasm = codegen.generate(instruction_gen.instruction_data);
     std::println("{}", generated_nasm);
-    create_assembly_file(file_path_stripped, generated_nasm);
+    create_assembly_file(asm_file_paths[i], generated_nasm);
+    }
     /*
     system(string_format("nasm -f elf64 %s.asm -o %s.o",
                 file_path_stripped.c_str(), file_path_stripped.c_str()).c_str());
