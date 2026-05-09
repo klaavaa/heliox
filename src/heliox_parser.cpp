@@ -20,26 +20,62 @@ Parser::Parser(uptr<Lexer> lex)
 uptr<Program> Parser::parse_program()
 {
     std::vector<uptr<function>> functions;
+    std::unordered_set<std::string> imports;
+    std::unordered_set<std::string> modules;
+
     while (m_current_token.type != TokenType::END_OF_FILE)
     {
         switch (m_current_token.type) 
         {
             case TokenType::KEYWORD:
-                functions.push_back(std::move(parse_function()));
+                {
+                KeyWord kword = get_kword_from_string(m_current_token.value);
+                if (kword == KeyWord::FUN || kword == KeyWord::EXTERN) 
+                {
+                    functions.push_back(std::move(parse_function()));
+                }
+                else if (kword == KeyWord::MODULE)
+                {
+                    eat(TokenType::KEYWORD);
+                    if (m_current_token.type == TokenType::SEMICOLON)
+                    {
+                        current_module = "";
+                        eat(TokenType::SEMICOLON);
+                        break;
+                    }
+                    current_module = m_current_token.value; 
+                    modules.insert(current_module);
+                    eat(TokenType::IDENTIFIER);
+                    eat(TokenType::SEMICOLON);
+                }
+                else if (kword == KeyWord::IMPORT)
+                {
+                    eat(TokenType::KEYWORD);
+                    uptr<identifier_literal_expr> identifier_lit = parse_identifier_literal();
+                    eat(TokenType::SEMICOLON);
+                    imports.insert(identifier_lit->name);
+                }
+                else
+                {
+                        std::println("Unexpected token '{}' at parser::parse_program", 
+                                get_string_from_token_type(m_current_token.type)); 
+                        exit(-1);
+                }
                 break;
-           
-
+                }
             default:
+                {
                 // TODO: unexpected token error
                 std::println("Unexpected token '{}' at parser::parse_program", 
                         get_string_from_token_type(m_current_token.type)); 
                 exit(-1);
+                }
         }
 
 
     }
 
-    return std::make_unique<Program>(std::move(functions));
+    return std::make_unique<Program>(std::move(functions), std::move(modules), std::move(imports));
 }
 uptr<function> Parser::parse_function()
 {
@@ -101,9 +137,11 @@ uptr<function> Parser::parse_function()
     if (m_current_token.type == TokenType::SEMICOLON)
     {
         eat(TokenType::SEMICOLON);
-
+        if (is_extern)
+            return std::make_unique<function>(std::move(identifier), std::move(parameters),
+                    std::move(std::vector<statement>{}), td, is_extern, varargs, "");
         return std::make_unique<function>(std::move(identifier), std::move(parameters),
-                std::move(std::vector<statement>{}), td, is_extern, varargs);
+                std::move(std::vector<statement>{}), td, is_extern, varargs, current_module);
     }
     if (is_extern)
     {
@@ -118,22 +156,27 @@ uptr<function> Parser::parse_function()
         statements.push_back(parse_statement());
     }
     eat(TokenType::R_BRACE);
-
     return std::make_unique<function>(std::move(identifier), std::move(parameters),
-           std::move(statements), td, is_extern, varargs);
+           std::move(statements), td, is_extern, varargs, current_module);
 }
 
 uptr<identifier_literal_expr> Parser::parse_identifier_literal()
 {
     std::string name = m_current_token.value;
     eat(TokenType::IDENTIFIER);
+    while (m_current_token.type == TokenType::COLON)
+    {
+        eat(TokenType::COLON);
+        eat(TokenType::COLON);
+        name += "." + m_current_token.value;
+        eat(TokenType::IDENTIFIER);
+    }
     return std::make_unique<identifier_literal_expr>(name);
 }
 expression Parser::parse_identifier()
 {
 
     uptr<identifier_literal_expr> identifier = parse_identifier_literal();
-
     // check if identifier is a primitive type, if it is, explicit casting is in order
     auto primitive_opt = get_primitive_type_from_string(identifier->name);
     if (primitive_opt.has_value())
@@ -169,7 +212,7 @@ expression Parser::parse_identifier()
         }
         eat(TokenType::R_PAREN);
         return std::make_unique<function_call_expr>(
-                std::move(identifier), std::move(expressions));
+                std::move(identifier), std::move(expressions), current_module);
     }
     return identifier;
 }
@@ -349,6 +392,12 @@ statement Parser::parse_keyword_statement()
 uptr<return_statement> Parser::parse_return_statement()
 {
     eat(TokenType::KEYWORD);
+    if (m_current_token.type == TokenType::SEMICOLON)
+    {
+        eat(TokenType::SEMICOLON);
+        expression expr = std::make_unique<int_literal_expr>("0");
+        return std::make_unique<return_statement>(std::move(expr));
+    }
     expression expr = parse_expression();
     eat(TokenType::SEMICOLON);
     return std::make_unique<return_statement>(std::move(expr));

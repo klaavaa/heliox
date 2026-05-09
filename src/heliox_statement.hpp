@@ -18,7 +18,8 @@ namespace hx {
     struct while_statement;
     struct expression_statement;
     struct noop_statement;
-
+    struct module_statement;
+    struct import_statement;
 
     using statement = std::variant<
         uptr<compound_statement>,
@@ -28,10 +29,24 @@ namespace hx {
         uptr<conditional_statement>,
         uptr<while_statement>,
         uptr<expression_statement>,
-        uptr<noop_statement>
-            >;
+        uptr<noop_statement>,
+        uptr<module_statement>,
+        uptr<import_statement>>;
 
-    
+    struct module_statement
+    {
+        module_statement(std::string name)
+            : name(name) {}
+        std::string name;
+    };
+
+    struct import_statement
+    {
+        import_statement(std::string name)
+            : name(name) {}
+        std::string name;
+    };
+
     struct return_statement
     {
         return_statement(expression return_expression)

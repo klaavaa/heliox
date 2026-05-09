@@ -17,6 +17,19 @@ sptr<SymbolTable> SymbolTable::add_table()
     return new_table;
 }
 
+bool SymbolTable::import_module(sptr<SymbolTable> from, const std::string& module_name)
+{
+    if (!from->modules.contains(module_name)) return false;
+    for (auto&  [key, val] : from->function_symbols)
+    {
+        if (key.starts_with(module_name + "."))
+        {
+            this->function_symbols.emplace(key, val);
+        }
+    }
+    return true;
+}
+
 void SymbolTable::add_variable_symbol(std::string name, type_data type_info, virtual_register vr, bool is_parameter)
 {
     if (variable_symbols.contains(name))            
@@ -31,6 +44,11 @@ void SymbolTable::add_function_symbol(std::string name, type_data return_type, c
 {
     uint32_t id = add_function(name);
     function_symbols.emplace(name, FunctionSymbol{return_type, param_types, has_varargs, id});
+}
+
+void SymbolTable::add_module(std::string name)
+{
+    modules.insert(name);
 }
 
 VariableSymbol& SymbolTable::find_variable_symbol(const std::string& name) 
@@ -63,7 +81,15 @@ FunctionSymbol& SymbolTable::find_function_symbol(const std::string& name)
     //TODO ERROR
     std::println("FunctionSymbol '{}' not defined in current scope", name);
     exit(-1);
+}
 
+bool SymbolTable::function_symbol_in_module(const std::string& module_name, const std::string& function_name)
+{
+    if (parent != nullptr)
+    {
+        return parent->function_symbol_in_module(module_name, function_name);
+    }
+    return function_symbols.contains(module_name + "." + function_name);
 }
 
 SymbolTable* SymbolTable::get_parent()

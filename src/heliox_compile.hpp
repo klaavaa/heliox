@@ -8,7 +8,7 @@
 #include "heliox_error.hpp"
 #include "heliox_file.hpp"
 
-#include "heliox_debug_visitor.hpp"
+#include "heliox_symbol_visitor.hpp"
 #include "heliox_instruction_gen.hpp"
 #include "heliox_codegen.hpp"
 
@@ -51,9 +51,12 @@ inline void compile(const std::string& file_path, const std::string& output_path
     uptr<Program> program = parser.parse_program();
     
     
-    /*debug_visitor d_visitor;
-    d_visitor.visit_program(program);*/
     sptr<SymbolTable> global_table = std::make_shared<SymbolTable>();
+    
+    SymbolVisitor sv(global_table);
+    sv.visit_program(program);
+     
+    
     InstructionGenerator instruction_gen(global_table);
     instruction_gen.visit_program(program);
     

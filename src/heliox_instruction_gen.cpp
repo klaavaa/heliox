@@ -7,11 +7,16 @@ InstructionGenerator::InstructionGenerator(sptr<SymbolTable> global_table)
 
 void InstructionGenerator::visit_program(uptr<Program>& prog)
 {
-    for (auto& func : prog->functions)
-    {
-        global_table->add_function_symbol(
-                func->identifier->name, func->type, func->get_parameter_type_data(), func->has_varargs);
-    }
+    //for (auto& func : prog->functions)
+    //{
+    //    std::string function_name;
+    //    if (!func->in_module.empty())
+    //        function_name = func->in_module + "." + func->identifier->name;
+    //    else 
+    //        function_name = func->identifier->name;
+    //    global_table->add_function_symbol(
+    //            function_name, func->type, func->get_parameter_type_data(), func->has_varargs);
+    //}
     for (auto& func : prog->functions)
     {
         current_virtual_register = 0;
@@ -120,9 +125,22 @@ void InstructionGenerator::visit_function(uptr<function>& func)
         instruction_data.instruction_functions.push_back({func->identifier->name, true});
         return;
     }
+    // declaration
+    if (func->statements.empty())
+    {
+
+        if (func->in_module.empty())
+            instruction_data.instruction_functions.push_back({func->identifier->name, true});
+        else 
+            instruction_data.instruction_functions.push_back({func->in_module + "." + func->identifier->name, true});
+        return; 
+    }
     current_table = global_table->add_table().get();
     
-    instruction_data.instruction_functions.push_back({func->identifier->name});
+    if (func->in_module.empty())
+        instruction_data.instruction_functions.push_back({func->identifier->name});
+    else 
+        instruction_data.instruction_functions.push_back({func->in_module + "." + func->identifier->name});
 
 
     int32_t parameter_position = 0;
@@ -599,7 +617,14 @@ void InstructionGenerator::visit_unary(uptr<unary_expr>& unary)
 }
 void InstructionGenerator::visit_function_call(uptr<function_call_expr>& function_call) 
 {
-    FunctionSymbol s = current_table->find_function_symbol(function_call->identifier->name);
+    std::string func_name = function_call->identifier->name;
+    if (!function_call->in_module.empty())
+    {
+        if (current_table->function_symbol_in_module(function_call->in_module, function_call->identifier->name))
+            func_name = function_call->in_module + "." + function_call->identifier->name;
+    }
+    FunctionSymbol s = current_table->find_function_symbol(func_name);
+
     uint32_t label = s.id;
     
     std::vector<Item> parameter_virtual_registers = 
@@ -974,6 +999,16 @@ void InstructionGenerator::visit_expression_s(uptr<expression_statement>& expr)
 void InstructionGenerator::visit_noop(uptr<noop_statement>& noop) 
 {
 } 
+
+void InstructionGenerator::visit_module(uptr<module_statement>& module_s)
+{
+    
+}
+
+void InstructionGenerator::visit_import(uptr<import_statement>& import_s) 
+{
+
+}
 
 void InstructionGenerator::reserve_register(virtual_register vr, ReservedRegister reservation)
 {

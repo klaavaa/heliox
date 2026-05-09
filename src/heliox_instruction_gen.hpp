@@ -34,6 +34,8 @@ class InstructionGenerator : public Visitor
         void visit_while(uptr<while_statement>& while_s) override;
         void visit_expression_s(uptr<expression_statement>& expr) override;
         void visit_noop(uptr<noop_statement>& noop) override;
+        void visit_module(uptr<module_statement>& module_s) override;
+        void visit_import(uptr<import_statement>& import_s) override;
         
         void calculate_live_ranges();
         

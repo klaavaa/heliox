@@ -58,7 +58,11 @@ namespace hx
            [this](uptr<expression_statement>& expression_s)
             { visit_expression_s(expression_s);},
             [this](uptr<noop_statement>& noop_s)
-            { visit_noop(noop_s); }
+            { visit_noop(noop_s); },
+            [this](uptr<module_statement>& module_s)
+            { visit_module(module_s); },
+            [this](uptr<import_statement>& import_s)
+            { visit_import(import_s); }
             }, stat);
     }
     

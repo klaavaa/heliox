@@ -73,11 +73,13 @@ struct unary_expr
 struct function_call_expr
 {
     function_call_expr(uptr<identifier_literal_expr> identifier,
-            std::vector<expression> parameters)
+            std::vector<expression> parameters, std::string in_module)
         : identifier(std::move(identifier)),
-          parameters(std::move(parameters)) {}
+          parameters(std::move(parameters)),
+          in_module(in_module) {}
     uptr<identifier_literal_expr> identifier;
     std::vector<expression> parameters;
+    std::string in_module;
 };
 
 struct explicit_conversion_expr

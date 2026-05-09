@@ -17,6 +17,8 @@ enum class KeyWord : uint32_t
 	ELSE,
 	WHILE,
     EXTERN,
+    MODULE,
+    IMPORT
 };
 
 
@@ -27,6 +29,8 @@ inline const std::unordered_map<std::string, KeyWord> keywords = {
 	{"else",		 KeyWord::ELSE},
 	{"while",		 KeyWord::WHILE},
     {"extern",       KeyWord::EXTERN},
+	{"module",		 KeyWord::MODULE},
+    {"import",       KeyWord::IMPORT},
 };
 
 inline KeyWord get_kword_from_string(const std::string& name)

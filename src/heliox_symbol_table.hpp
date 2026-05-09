@@ -38,11 +38,18 @@ namespace hx
     public:        
         SymbolTable();
         sptr<SymbolTable> add_table();
+        
+        bool import_module(sptr<SymbolTable> from, const std::string& module_name);
+
         void add_variable_symbol(std::string name, type_data type_info, virtual_register vr, bool is_parameter = false);
         void add_function_symbol(std::string name, type_data return_type, const std::vector<type_data>& parameter_types, bool has_varargs);
+        void add_module(std::string name);
 
         VariableSymbol& find_variable_symbol(const std::string& name);
         FunctionSymbol& find_function_symbol(const std::string& name);
+        
+        bool function_symbol_in_module(const std::string& module_name, const std::string& function_name);
+
          
         SymbolTable* get_parent();
 
@@ -77,6 +84,8 @@ namespace hx
     private:
         std::unordered_map<std::string, VariableSymbol> variable_symbols;
         std::unordered_map<std::string, FunctionSymbol> function_symbols;
+        std::unordered_set<std::string> modules;
+
         std::vector<sptr<SymbolTable>> child_tables;
         SymbolTable* parent = nullptr;
 
