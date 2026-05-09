@@ -24,7 +24,6 @@ bool SymbolTable::import_module(sptr<SymbolTable> from, const std::string& modul
     {
         if (key.starts_with(module_name + "."))
         {
-            std::println("added func {}", key);
             add_function_symbol(key, val.return_type, val.parameter_types, val.has_varargs);
             // add the externed function
             uptr<identifier_literal_expr> identifier = std::make_unique<identifier_literal_expr>(key);

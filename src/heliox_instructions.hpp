@@ -65,9 +65,20 @@ enum class Instruction
     WHILE,
     WHILE_JUMPEND,
     ENDWHILE,
+    
+    SIGNEXTENDTOI64,
 
-    CONVERTF64,
-    CONVERTF32,
+    CONVERTF32TOF64,
+    CONVERTF64TOF32,
+        
+    CONVERTI64TOF64,
+    CONVERTI64TOF32,
+
+    CONVERTU64TOF64,
+    CONVERTU64TOF32,
+
+    CONVERTF64TOI64,
+    CONVERTF32TOI64
 
     
 };
@@ -345,12 +356,28 @@ inline void print_instruction(const InstructionTriplet& triplet)
         case Instruction::LOGICAL_OR_TEST_RIGHT:
             std::println("{} RIOR {}", prefix, triplet.items[0].get_string());  
             break;
-        case Instruction::CONVERTF64:
-            std::println("{} CTF64 r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
+        case Instruction::CONVERTF32TOF64:
+            std::println("{} F4TF8 r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
             break;
-        case Instruction::CONVERTF32:
-            std::println("{} CTF32 r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
+        case Instruction::CONVERTF64TOF32:
+            std::println("{} F8TF4 r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
             break;
+        case Instruction::CONVERTI64TOF64:
+            std::println("{} I8TF8 r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
+            break;
+        case Instruction::CONVERTI64TOF32:
+            std::println("{} I8TF4 r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
+            break;
+        case Instruction::CONVERTF64TOI64:
+            std::println("{} F8TI8 r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
+            break;
+        case Instruction::CONVERTF32TOI64:
+            std::println("{} F4TI8 r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
+            break;
+        case Instruction::SIGNEXTENDTOI64:
+            std::println("{} MVSX8 r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
+            break;
+
             
 
       default:

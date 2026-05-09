@@ -138,7 +138,9 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
     case Instruction::DIV:
         if (is_float_type(instruction_type))
             return gen_instruc_safe("div", triplet.dst, triplet.items[0]);
-        return std::format("\txor rdx, rdx\n\tidiv {}\n", get_location(triplet.items[0]));
+        if (is_unsigned(instruction_type))
+            return std::format("\txor rdx, rdx\n\tidiv {}\n", get_location(triplet.items[0]));
+        return std::format("\txor rdx, rdx\n\tcqo\n\tidiv {}\n", get_location(triplet.items[0]));
     case Instruction::MOD:
         return std::format("\txor rdx, rdx\n\tidiv {}\n", get_location(triplet.items[1]));
     case Instruction::NEG:
@@ -286,12 +288,22 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
     case Instruction::ENDWHILE:
         return std::format("\tjmp .WHILE{}\n.WHILEEND{}:\n", get_location(triplet.items[0]),
                 get_location(triplet.items[0]));
-    case Instruction::CONVERTF64:
+    case Instruction::CONVERTF32TOF64:
         return std::format("\tcvtss2sd {}, {}\n", get_location(triplet.dst),
                 get_location(triplet.items[0]));
-    case Instruction::CONVERTF32:
+    case Instruction::CONVERTF64TOF32:
         return std::format("\tcvtsd2ss {}, {}\n", get_location(triplet.dst),
                 get_location(triplet.items[0]));
+    case Instruction::CONVERTI64TOF64:
+        return std::format("\tcvtsi2sd {}, {}\n", get_location(triplet.dst),
+                get_location(triplet.items[0]));
+    case Instruction::CONVERTI64TOF32:
+        return std::format("\tcvtsi2ss {}, {}\n", get_location(triplet.dst),
+                get_location(triplet.items[0]));
+    case Instruction::SIGNEXTENDTOI64:
+        return std::format("\tmovsx {}, {}\n", get_location(triplet.dst),
+                get_location(triplet.items[0]));
+
     default:
         return "not yet implemented\n";
         //TODO ERROR
@@ -299,6 +311,10 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
         //exit(-1);
 
     }
+        // cvtsi2ss
+        // cvtsi2sd
+        // vcvtusi2sd
+        // vcvtusi2ss
 
 }
 

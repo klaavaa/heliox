@@ -78,9 +78,9 @@ Token Lexer::get_next()
                 advance();
                 s += m_cur_char;    
             }
-            if (peek_next() == -1)
+            if (peek_next() == -1 || peek_next() == HX_NEWLINE)
             {
-                Error error;
+                Error error;                              
                 error.error_type = HX_SYNTAX_ERROR;
                 error.line = get_line();
                 error.info = "Undisclosed quotation mark";

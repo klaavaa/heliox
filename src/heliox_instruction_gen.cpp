@@ -855,17 +855,97 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
 void InstructionGenerator::visit_explicit_conversion(uptr<explicit_conversion_expr>& explicit_conversion)
 {
     visit_expression(explicit_conversion->expr);
-    
+    type_data from = effective_type;  
+
     if (is_float_type(explicit_conversion->type_info))
+    {
+        if (explicit_conversion->type_info.byte_size == 8)
+        {
+            Instruction conversion_type;
+            if (is_float_type(from))
+            {
+                if (from.byte_size == 8) return;
+                conversion_type = Instruction::CONVERTF32TOF64;
+            }
+            else if (is_unsigned(from))
+            {
+                //TODO
+                conversion_type = Instruction::CONVERTU64TOF64; 
+            }
+
+            else
+            {
+                switch (from.byte_size)
+                {
+                case 8:
+                    break;
+                case 4:
+                case 2: 
+                case 1:
+                    {
+                    InstructionTriplet triplet(Instruction::SIGNEXTENDTOI64,
+                            current_virtual_register,
+                            {Item{ItemType::VIRTUAL_REGISTER, effective_register}},
+                            {primitive_type::I64, 0}
+                            );
+                    effective_register = current_virtual_register;
+                    effective_type = triplet.type;
+                    emit_instruction(triplet);
+                    break;
+                    }
+                case 0:
+                    std::println("ERROR: UNKNOWN EXPLICIT CONVERSION");   
+                    exit(-1);
+                }
+
+                conversion_type = Instruction::CONVERTI64TOF64;
+            }
+            InstructionTriplet triplet(conversion_type,
+                    current_virtual_register,
+                    {Item{ItemType::VIRTUAL_REGISTER, effective_register}},
+                    {primitive_type::F64, 0}
+                    );
+            effective_register = current_virtual_register;
+            effective_type = triplet.type;
+            emit_instruction(triplet);
+        }
+        else if (explicit_conversion->type_info.byte_size == 4)
+        {
+            Instruction conversion_type;
+            if (is_float_type(from))
+            {
+                if (from.byte_size == 4) return;
+                conversion_type = Instruction::CONVERTF64TOF32;
+            }
+            else 
+            {
+                conversion_type = Instruction::CONVERTI64TOF32;
+            }
+
+            InstructionTriplet triplet(conversion_type,
+                    current_virtual_register,
+                    {Item{ItemType::VIRTUAL_REGISTER, effective_register}},
+                    {primitive_type::F32, 0}
+                    );
+            effective_register = current_virtual_register;
+            effective_type = triplet.type;
+            emit_instruction(triplet);
+        }
+        else 
+        {
+            std::println("ERROR: UNKNOWN EXPLICIT CONVERSION");   
+            exit(-1);
+        }
+    }
+    else 
     {
         // cvtsi2ss
         // cvtsi2sd
         // vcvtusi2sd
         // vcvtusi2ss
+        std::println("EXPLICIT CONVERSION NOT DEFINED YET");   
+        exit(-1);
     }
-
-    std::println("EXPLICIT CONVERSION NOT DEFINED YET");   
-    exit(-1);
 }
 
 void InstructionGenerator::visit_compound(uptr<compound_statement>& compound) 
@@ -1034,7 +1114,7 @@ void InstructionGenerator::implicit_convert(virtual_register vr, type_data wante
     {
         if (wanted.byte_size == 8) 
         {
-            InstructionTriplet triplet(Instruction::CONVERTF64,
+            InstructionTriplet triplet(Instruction::CONVERTF32TOF64,
                     current_virtual_register,
                     {Item{ItemType::VIRTUAL_REGISTER, vr}},
                     {primitive_type::F64, 0}
@@ -1046,7 +1126,7 @@ void InstructionGenerator::implicit_convert(virtual_register vr, type_data wante
         }
         if (wanted.byte_size == 4)
         {
-            InstructionTriplet triplet(Instruction::CONVERTF32,
+            InstructionTriplet triplet(Instruction::CONVERTF64TOF32,
                     current_virtual_register,
                     {Item{ItemType::VIRTUAL_REGISTER, vr}},
                     {primitive_type::F32, 0}
