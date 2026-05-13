@@ -555,6 +555,22 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
         case TokenType::BITWISE_XOR:
             instruc = Instruction::BITWISE_XOR;
             break;
+        case TokenType::SHIFT_LEFT:
+            {
+            instruc = Instruction::SHIFT_LEFT;
+            ReservedRegister res;
+            res.reg = Register::C;
+            reserve_register(right, res);
+            break;
+            }
+        case TokenType::SHIFT_RIGHT:
+            {
+            instruc = Instruction::SHIFT_RIGHT;
+            ReservedRegister res;
+            res.reg = Register::C;
+            reserve_register(right, res);
+            break;
+            }
 
         default:
             //TODO IMPLEMENT MORE

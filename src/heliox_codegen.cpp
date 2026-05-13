@@ -159,6 +159,10 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
         return gen_instruc_safe("xor", triplet.dst, triplet.items[0]);
     case Instruction::BITWISE_NOT:
         return std::format("\tnot {}\n", get_location(triplet.dst));
+    case Instruction::SHIFT_LEFT:
+        return std::format("\tshl {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0].value, RegisterSize::BIT8));
+    case Instruction::SHIFT_RIGHT:
+        return std::format("\tshr {}, {}\n", get_location(triplet.dst), get_location(triplet.items[0].value, RegisterSize::BIT8));
     case Instruction::LOGICAL_AND_TEST_LEFT:
         return std::format("\tcmp {}, 0\n\tjz .LOGICAL_AND_FALSE{}\n", get_location(triplet.items[0]),
                 get_location(triplet.items[1]));

@@ -29,6 +29,8 @@ bool is_valid_binary_operator(TokenType token_type)
     case TokenType::BITWISE_AND:
     case TokenType::BITWISE_OR:
     case TokenType::BITWISE_XOR:
+    case TokenType::SHIFT_LEFT:
+    case TokenType::SHIFT_RIGHT:
         return true;
 
 
@@ -82,6 +84,9 @@ uint32_t get_binop_precedence_level(TokenType token_type)
         case TokenType::LTE:
         case TokenType::GTE:
             return 10;
+        case TokenType::SHIFT_LEFT:
+        case TokenType::SHIFT_RIGHT:
+            return 11;
         case TokenType::PLUS: 
         case TokenType::MINUS:
             return 12;
@@ -129,6 +134,8 @@ op_associativity get_binop_associativity(TokenType token_type)
     case TokenType::BITWISE_OR:
     case TokenType::BITWISE_AND:
     case TokenType::DOUBLE_EQU:
+    case TokenType::SHIFT_LEFT:
+    case TokenType::SHIFT_RIGHT:
     case TokenType::NEQU:
     case TokenType::LT:
     case TokenType::LTE:

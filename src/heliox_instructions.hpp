@@ -49,7 +49,9 @@ enum class Instruction
     LOGICAL_OR_TEST_LEFT,
     LOGICAL_OR_TEST_RIGHT,
     LOGICAL_NOT,
-
+    
+    SHIFT_LEFT,
+    SHIFT_RIGHT,
 
     BITWISE_AND,
     BITWISE_OR,

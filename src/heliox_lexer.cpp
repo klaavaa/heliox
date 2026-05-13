@@ -80,7 +80,7 @@ Token Lexer::get_next()
             }
             if (peek_next() == -1 || peek_next() == HX_NEWLINE)
             {
-                Error error;                              
+                Error error;
                 error.error_type = HX_SYNTAX_ERROR;
                 error.line = get_line();
                 error.info = "Undisclosed quotation mark";
@@ -269,6 +269,11 @@ Token Lexer::get_next()
             advance();
             return Token(TokenType::LTE, "");
         }
+        if (peek_next() == HX_LEFT_ARROW)
+        {
+            advance();
+            return Token(TokenType::SHIFT_LEFT, "");
+        }
         return Token(TokenType::LT, "");
     }
     case HX_RIGHT_ARROW:
@@ -277,6 +282,11 @@ Token Lexer::get_next()
         {
             advance();
             return Token(TokenType::GTE, "");
+        }
+        if (peek_next() == HX_RIGHT_ARROW)
+        {
+            advance();
+            return Token(TokenType::SHIFT_RIGHT, "");
         }
         return Token(TokenType::GT, "");
     }

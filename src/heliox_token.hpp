@@ -104,6 +104,10 @@ enum class TokenType
 	BITWISE_OR,
 	BITWISE_XOR,
     BITWISE_NOT,
+    
+    SHIFT_LEFT,
+    SHIFT_RIGHT,
+
 	EQU,
 	NOT,
 	INTEGER,
@@ -124,7 +128,7 @@ enum class TokenType
 
 	ARROW
 
-
+    
 };
 
 static const std::unordered_map<TokenType, std::string>  token_to_string_map =
