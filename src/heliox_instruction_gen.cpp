@@ -1138,6 +1138,14 @@ void InstructionGenerator::implicit_convert(virtual_register vr, type_data wante
             effective_register = current_virtual_register;
             effective_type = triplet.type;
             emit_instruction(triplet);
+
+            InstructionTriplet store(Instruction::STORE,
+                    current_virtual_register,
+                    {Item{ItemType::VIRTUAL_REGISTER, effective_register}},
+                    {primitive_type::F64, 0}
+                    );
+            effective_register = current_virtual_register;
+            emit_instruction(triplet);
             return;
         }
         if (wanted.byte_size == 4)
@@ -1149,6 +1157,14 @@ void InstructionGenerator::implicit_convert(virtual_register vr, type_data wante
                     );
             effective_register = current_virtual_register;
             effective_type = triplet.type;
+            emit_instruction(triplet);
+
+            InstructionTriplet store(Instruction::STORE,
+                    current_virtual_register,
+                    {Item{ItemType::VIRTUAL_REGISTER, effective_register}},
+                    {primitive_type::F32, 0}
+                    );
+            effective_register = current_virtual_register;
             emit_instruction(triplet);
             return;
         }
