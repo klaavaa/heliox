@@ -271,6 +271,10 @@ struct RegisterData
             Register::XMM12, Register::XMM13, Register::XMM14, Register::XMM15}
             );
 
+
+    Register gp_scratch_register = Register::R11;
+    Register xmm_scratch_register = Register::XMM11;
+    
 #ifdef _WIN32
 
     std::array<Register, 4> register_passed_int_args = {Register::C, Register::D, Register::R8, Register::R9};

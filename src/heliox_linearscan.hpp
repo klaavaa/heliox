@@ -20,6 +20,7 @@ struct VirtualRegisterLocation
         Register allocated_register;
         int32_t stack_position;
     };
+
     bool is_spilled = false;
 };
 

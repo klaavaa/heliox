@@ -111,7 +111,9 @@ std::string CodeGeneration::emit_instruction_function(InstructionFunction& instr
     body += save_callee();
     for (auto& triplet : instruc_func.instruction_triplets)
     {
+        std::println("pre {}", triplet.dst);
         body += emit_instruction_triplet(triplet);
+        std::println("post {}", triplet.dst);
     }
 
     return body;
@@ -124,20 +126,20 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
     switch (triplet.instruction)
     {
     case Instruction::STORE:
-        return gen_instruc_safe("mov", triplet.dst, triplet.items[0]);
+        return instruction("mov", triplet.dst, triplet.items[0]);
     case Instruction::PUSH:
-        return std::format("\tpush {}\n", get_location(triplet.dst, RegisterSize::BIT64));
+        return std::format("\tpush {}\n", get_location(triplet.dst));
     case Instruction::ADD: 
-        return gen_instruc_safe("add", triplet.dst, triplet.items[0]);
+        return instruction("add", triplet.dst, triplet.items[0]);
     case Instruction::SUB: 
-        return gen_instruc_safe("sub", triplet.dst, triplet.items[0]);
+        return instruction("sub", triplet.dst, triplet.items[0]);
     case Instruction::MUL:
         if (is_float_type(instruction_type))
-            return gen_instruc_safe("mul", triplet.dst, triplet.items[0]);
-        return gen_instruc_safe("imul", triplet.dst, triplet.items[0]);
+            return instruction("mul", triplet.dst, triplet.items[0]);
+        return instruction("imul", triplet.dst, triplet.items[0]);
     case Instruction::DIV:
         if (is_float_type(instruction_type))
-            return gen_instruc_safe("div", triplet.dst, triplet.items[0]);
+            return instruction("div", triplet.dst, triplet.items[0]);
         if (is_unsigned(instruction_type))
             return std::format("\txor rdx, rdx\n\tidiv {}\n", get_location(triplet.items[0]));
         return std::format("\txor rdx, rdx\n\tcqo\n\tidiv {}\n", get_location(triplet.items[0]));
@@ -152,11 +154,11 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
                     get_location(triplet.dst), get_location(triplet.dst));
         return std::format("\tmov {}, [{}]\n", get_location(triplet.dst), get_location(triplet.items[0]));
     case Instruction::BITWISE_AND:
-        return gen_instruc_safe("and", triplet.dst, triplet.items[0]);
+        return instruction("and", triplet.dst, triplet.items[0]);
     case Instruction::BITWISE_OR:
-        return gen_instruc_safe("or", triplet.dst, triplet.items[0]);
+        return instruction("or", triplet.dst, triplet.items[0]);
     case Instruction::BITWISE_XOR:
-        return gen_instruc_safe("xor", triplet.dst, triplet.items[0]);
+        return instruction("xor", triplet.dst, triplet.items[0]);
     case Instruction::BITWISE_NOT:
         return std::format("\tnot {}\n", get_location(triplet.dst));
     case Instruction::SHIFT_LEFT:
@@ -187,9 +189,9 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
         if (current_func_vr_locations.at(triplet.dst).is_spilled)
         {
             return std::format("\tmov {}, [rel {}]\n\tmov {}, {}\n",
-                    register_to_string(scratch_register, get_register_size(instruction_type)),
+                    register_to_string(g_register_data.gp_scratch_register, get_register_size(instruction_type)),
                     get_location(triplet.items[0]),
-                    get_location(triplet.dst), register_to_string(scratch_register, RegisterSize::BIT64));
+                    get_location(triplet.dst), register_to_string(g_register_data.gp_scratch_register, RegisterSize::BIT64));
         }
         return std::format("\tmovsd {}, [rel {}]\n", get_location(triplet.dst), get_location(triplet.items[0]));
     case Instruction::LOAD_PARAM:
@@ -198,8 +200,8 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
         if (current_func_vr_locations.at(triplet.dst).is_spilled)
         {
             return std::format("\tlea {}, [rel {}]\n\tmov {}, {}\n",
-                    register_to_string(scratch_register, RegisterSize::BIT64), get_location(triplet.items[0]),
-                    get_location(triplet.dst), register_to_string(scratch_register, RegisterSize::BIT64));
+                    register_to_string(g_register_data.gp_scratch_register, RegisterSize::BIT64), get_location(triplet.items[0]),
+                    get_location(triplet.dst), register_to_string(g_register_data.gp_scratch_register, RegisterSize::BIT64));
         }
         return std::format("\tlea {}, [rel {}]\n", get_location(triplet.dst), get_location(triplet.items[0]));
     case Instruction::RETURN:
@@ -231,19 +233,19 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
         }
     case Instruction::IS_EQUAL:
         {
-        std::string cmp = gen_instruc_safe("cmp", triplet.dst, triplet.items[0]);
+        std::string cmp = instruction("cmp", triplet.dst, triplet.items[0]);
         return std::format("{}\tsete {}\n", cmp, 
                 get_location(triplet.dst, RegisterSize::BIT8));
         }
     case Instruction::NOT_EQUAL:
         {
-        std::string cmp = gen_instruc_safe("cmp", triplet.dst, triplet.items[0]);
+        std::string cmp = instruction("cmp", triplet.dst, triplet.items[0]);
         return std::format("{}\tsetne {}\n", cmp, 
                 get_location(triplet.dst, RegisterSize::BIT8));
         }
     case Instruction::GREATER_THAN:
         {
-        std::string cmp = gen_instruc_safe("cmp", triplet.dst, triplet.items[0]);
+        std::string cmp = instruction("cmp", triplet.dst, triplet.items[0]);
         std::string inst = "setg";
         if (is_unsigned(triplet.type))
             inst = "seta";
@@ -252,7 +254,7 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
         }
     case Instruction::GREATER_OR_EQUAL_THAN:
         {
-        std::string cmp = gen_instruc_safe("cmp", triplet.dst, triplet.items[0]);
+        std::string cmp = instruction("cmp", triplet.dst, triplet.items[0]);
         std::string inst = "setge";
         if (is_unsigned(triplet.type))
             inst = "setae";
@@ -261,7 +263,7 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
         }
     case Instruction::LESS_THAN:
         {
-        std::string cmp = gen_instruc_safe("cmp", triplet.dst, triplet.items[0]);
+        std::string cmp = instruction("cmp", triplet.dst, triplet.items[0]);
         std::string inst = "setl";
         if (is_unsigned(triplet.type))
             inst = "setb";
@@ -270,7 +272,7 @@ std::string CodeGeneration::emit_instruction_triplet(InstructionTriplet& triplet
         }
     case Instruction::LESS_OR_EQUAL_THAN:
         {
-        std::string cmp = gen_instruc_safe("cmp", triplet.dst, triplet.items[0]);
+        std::string cmp = instruction("cmp", triplet.dst, triplet.items[0]);
         std::string inst = "setle";
         if (is_unsigned(triplet.type))
             inst = "setbe";
@@ -461,7 +463,7 @@ std::string CodeGeneration::load_callee()
     }
     return base;
 }
-
+/*
 std::string CodeGeneration::gen_instruc_safe(const std::string& inst, virtual_register dst, Item arg)
 {
     std::string base = "";
@@ -492,25 +494,56 @@ std::string CodeGeneration::gen_instruc_safe(const std::string& inst, virtual_re
     }
     return base + std::format("\t{} {}, {}\n", instruction(inst), get_location(dst), get_location(arg));
 }
+    */
 
-std::string CodeGeneration::instruction(const std::string& inst)
+std::string CodeGeneration::instruction(const std::string& inst, virtual_register dst, Item arg)
 {
-    if (current_func_vr_locations.at(cur_triplet->dst).is_spilled)
+    std::string parsed_inst;
+    if (is_float_type(instruction_type))
+    {
+        if (instruction_type.byte_size == 8)
+            parsed_inst = inst + "sd";
+        else
+            parsed_inst = inst + "ss";  
+    }
+    else
+    {
+        parsed_inst = inst;
+    }
+    const auto& dst_loc = current_func_vr_locations.at(dst);
+
+    if (dst_loc.is_spilled)
     {
         if (is_float_type(instruction_type))
         {
+            std::string mov = "mov";
             if (instruction_type.byte_size == 8)
-                return inst + "sd";
-            return inst + "ss";
+                mov = mov + "sd";
+            else
+                mov = mov + "ss";  
+
+            std::string scratch = register_to_string(g_register_data.xmm_scratch_register, get_register_size(instruction_type));
+            return std::format("\t{} {}, {}\n\t{} {}, {}\n\t{} {}, {}", mov, scratch, get_location(dst),
+                    parsed_inst, scratch, get_location(arg), mov, get_location(dst), scratch);
         }
+
+        std::string base{};
+        std::string scratch = register_to_string(g_register_data.gp_scratch_register, get_register_size(instruction_type));
+        if (get_register_size(instruction_type) == RegisterSize::BIT8)
+        {
+            base += std::format("\tand {}, {}\n", scratch, "0xFF");
+        }
+        return base + std::format("\tmov {}, {}\n\t{} {}, {}\n\t{} {}, {}", scratch, get_location(dst),
+                parsed_inst, scratch, get_location(arg), "mov", get_location(dst), scratch);
     }
-    else if (current_func_vr_locations.at(cur_triplet->dst).allocated_register >= Register::XMM0)
+    std::string base{};
+    if (get_register_size(instruction_type) == RegisterSize::BIT8)
     {
-        if (instruction_type.byte_size == 8)
-            return inst + "sd";
-        return inst + "ss";
+        base += std::format("\tand {}, {}\n", get_location(dst, RegisterSize::BIT64), "0xFF");
     }
-    return inst;
+
+    return base + std::format("\t{} {}, {}\n", parsed_inst, get_location(dst), get_location(arg));
+
 }
 
 }

@@ -32,8 +32,7 @@ namespace hx
         std::string save_callee();
         std::string load_callee();
 
-        std::string gen_instruc_safe(const std::string& inst, virtual_register dst, Item arg);
-        std::string instruction(const std::string& inst);
+        std::string instruction(const std::string& inst, virtual_register dst, Item arg);
 
     private:
         std::string externs;
@@ -45,8 +44,6 @@ namespace hx
         sptr<FunctionLocationData> function_location_data;
         VirtualRegisterLocationMap current_func_vr_locations;
         
-        Register scratch_register = Register::R11;
-        Register xmm_scratch_register = Register::XMM11;
 
         bool added_padding_from_caller_save = false;
         bool added_padding_from_callee_save = false;

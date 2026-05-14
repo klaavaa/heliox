@@ -55,7 +55,6 @@ inline void compile(const std::vector<std::string>& file_paths, const std::strin
     uptr<Program> program = parser.parse_program();
     
     
-    
     sptr<SymbolTable> global_table = std::make_shared<SymbolTable>();
     
     SymbolVisitor sv(global_table);
@@ -89,7 +88,10 @@ inline void compile(const std::vector<std::string>& file_paths, const std::strin
 
 
     CodeGeneration codegen(global_table, linear_scan.function_location_data);
+
+    std::println("CODEGEN STARTED");
     std::string generated_nasm = codegen.generate(instruction_gen.instruction_data);
+    std::println("CODEGEN COMPLETED");
     std::println("{}", generated_nasm);
     create_assembly_file(asm_file_paths[i], generated_nasm);
     }
