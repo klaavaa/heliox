@@ -30,7 +30,6 @@ void InstructionGenerator::visit_program(uptr<Program>& prog)
 
 void InstructionGenerator::calculate_live_ranges()
 {
-    
 
     for (auto& func : instruction_data.instruction_functions)
     {
@@ -50,8 +49,6 @@ void InstructionGenerator::calculate_live_ranges()
                 loop_starts.pop_back();
             }
             
-
-
             if (triplet.dst != -1)                 
             {
                 if (!func.live_ranges.contains(triplet.dst))
@@ -798,7 +795,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         InstructionTriplet store(Instruction::STORE,
                 current_virtual_register,
                 {Item{ItemType::VIRTUAL_REGISTER, triplet.dst}},
-                param_types[push_param_triplets.size() - i]);
+                param_types[param_types.size() - 1 - i]);
         effective_register = current_virtual_register;
         emit_instruction(store);
         
@@ -1173,5 +1170,4 @@ void InstructionGenerator::implicit_convert(virtual_register vr, type_data wante
     exit(-1);
 
 }
-
 }
