@@ -46,6 +46,7 @@ namespace hx
         VirtualRegisterLocationMap current_func_vr_locations;
         
         Register scratch_register = Register::R11;
+        Register xmm_scratch_register = Register::XMM11;
 
         bool added_padding_from_caller_save = false;
         bool added_padding_from_callee_save = false;

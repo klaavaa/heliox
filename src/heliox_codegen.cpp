@@ -481,6 +481,15 @@ std::string CodeGeneration::gen_instruc_safe(const std::string& inst, virtual_re
         return base + std::format("\tmov {}, {}\n\t{} {}, {}\n", scratch, get_location(arg),
                 parsed_inst, get_location(dst), scratch);
     }
+    if (is_float_type(instruction_type) && current_func_vr_locations.at(dst).is_spilled)
+    {
+        std::string scratch = register_to_string(xmm_scratch_register, get_register_size(instruction_type));
+        std::string parsed_inst;
+        if (inst == "mov") parsed_inst = "mov";
+        else parsed_inst = instruction(inst);
+        return base + std::format("\tmov {}, {}\n\t{} {}, {}\n", scratch, get_location(arg),
+                parsed_inst, get_location(dst), scratch);
+    }
     return base + std::format("\t{} {}, {}\n", instruction(inst), get_location(dst), get_location(arg));
 }
 
