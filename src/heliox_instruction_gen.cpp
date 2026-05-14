@@ -837,7 +837,16 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         InstructionTriplet align_triplet(
             Instruction::ALIGN,
             -1,
-            {Item{ItemType::IMMEDIATE_VALUE, 8 + 8*pushed_param_count}},
+            {Item{ItemType::IMMEDIATE_VALUE, 8}},
+            {primitive_type::VOID, 0});
+        emit_instruction(align_triplet, 0);
+    }
+    if (pushed_param_count)
+    {
+        InstructionTriplet align_triplet(
+            Instruction::ALIGN,
+            -1,
+            {Item{ItemType::IMMEDIATE_VALUE, 8*pushed_param_count}},
             {primitive_type::VOID, 0});
         emit_instruction(align_triplet, 0);
     }
