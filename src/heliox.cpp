@@ -5,6 +5,11 @@
 #include "heliox_flags.hpp"
 #include "heliox_compile.hpp"
 #include "heliox_symbol_table.hpp"
+
+#if !defined(_WIN32) && !defined(__linux__)
+#error "Unsupported platform"
+#endif
+
 int main(int argc, char** argv)
 {
      
