@@ -12,9 +12,9 @@ namespace hx
 {
 Parser::Parser(uptr<Lexer> lex)
 	:
-	m_lexer(std::move(lex))
+	m_lexer(std::move(lex)),
+    m_current_token(m_lexer->get_next())
 {
-	m_current_token = m_lexer->get_next();
 }
 
 uptr<Program> Parser::parse_program()
@@ -57,18 +57,13 @@ uptr<Program> Parser::parse_program()
                 }
                 else
                 {
-                        std::println("Unexpected token '{}' at parser::parse_program", 
-                                get_string_from_token_type(m_current_token.type)); 
-                        exit(-1);
+                    Logger::error(m_current_token, HX_UNEXPECTED_KEYWORD, "Unexpected keyword");
                 }
                 break;
                 }
             default:
                 {
-                // TODO: unexpected token error
-                std::println("Unexpected token '{}' at parser::parse_program", 
-                        get_string_from_token_type(m_current_token.type)); 
-                exit(-1);
+                    Logger::error(m_current_token, HX_UNEXPECTED_TOKEN, "Unexpected token");
                 }
         }
 
@@ -91,10 +86,7 @@ uptr<function> Parser::parse_function()
     }
     if (kword != KeyWord::FUN)
     {
-        // TODO: unexpected token error (expected fun)
-        std::println("Unexpected token '{}' at parser::parse_function", 
-                get_string_from_token_type(m_current_token.type)); 
-        exit(-1);
+        Logger::error(m_current_token, HX_UNEXPECTED_KEYWORD, "Expected 'fun' keyword at start of function definition");
     }
     eat(TokenType::KEYWORD);
     
@@ -115,9 +107,7 @@ uptr<function> Parser::parse_function()
                 eat(TokenType::DOTDOTDOT);
                 if (m_current_token.type != TokenType::R_PAREN)
                 {
-                    // TODO ERROR
-                    std::println("Error: varargs not the last arg of function '{}'", identifier->name);
-                    exit(-1);
+                    hx::Logger::error(m_current_token, HX_VARARGS_NOT_LAST_ARG, "Varargs must be the last parameter of a function");
                 }
                 break;
             }
@@ -155,9 +145,7 @@ uptr<function> Parser::parse_function()
     }
     if (is_extern)
     {
-        //TODO ERROR
-        std::println("Extern function cannot have a definition");
-        exit(-1);
+        Logger::error(m_current_token, HX_EXTERN_FUNC_WITH_BODY, "Extern function defined with a body"); 
     }
     eat(TokenType::L_BRACE);
     std::vector<statement> statements;
@@ -172,13 +160,14 @@ uptr<function> Parser::parse_function()
 
 uptr<identifier_literal_expr> Parser::parse_identifier_literal()
 {
-    std::string name = m_current_token.value;
+    std::string name{m_current_token.value};
     eat(TokenType::IDENTIFIER);
     while (m_current_token.type == TokenType::COLON)
     {
         eat(TokenType::COLON);
         eat(TokenType::COLON);
-        name += "." + m_current_token.value;
+        
+        name += "." + std::string(m_current_token.value);
         eat(TokenType::IDENTIFIER);
     }
     return std::make_unique<identifier_literal_expr>(name);
@@ -228,20 +217,20 @@ expression Parser::parse_identifier()
 }
 uptr<string_literal_expr> Parser::parse_string_literal()
 {
-    std::string value = m_current_token.value;
+    std::string value{m_current_token.value};
     eat(TokenType::STRING);
     return std::make_unique<string_literal_expr>(value);
 }
 uptr<int_literal_expr> Parser::parse_int_literal()
 {
-    std::string value = m_current_token.value;
+    std::string value{m_current_token.value};
     eat(TokenType::INTEGER);
     return std::make_unique<int_literal_expr>(value);
 }
 
 uptr<float_literal_expr> Parser::parse_float_literal()
 {
-    std::string value = m_current_token.value;
+    std::string value{m_current_token.value};
     eat(TokenType::FLOAT);
     return std::make_unique<float_literal_expr>(value);
 }
@@ -282,10 +271,7 @@ expression Parser::parse_primary()
         }
 
     default:
-        std::println("Unexpected token '{}' at parser::parse_primary", 
-                get_string_from_token_type(m_current_token.type)); 
-        exit(-1);
-
+        Logger::error(m_current_token, HX_UNEXPECTED_TOKEN, "Unexpected token, expected primary expression");
     }
 
 }
@@ -330,10 +316,7 @@ type_data Parser::parse_type()
     if (!pt.has_value())
     {
         // TODO OWN TYPES 
-        // TODO error
-        std::println("{} is not a primitive type in parser::parse_type",
-                m_current_token.value);
-        exit(-1); 
+        Logger::error(m_current_token, HX_NOT_PRIMITIVE_TYPE, "Expected a primitive type");
     }
      
     uint32_t ptr_depth = 0;
@@ -393,9 +376,7 @@ statement Parser::parse_keyword_statement()
         case KeyWord::WHILE:
             return parse_while_statement();
     default:
-        println("Unexpected keyword '{}' at parser::parse_keyword_statement",
-                get_string_from_kword(kw));
-        exit(-1);
+        Logger::error(m_current_token, HX_UNEXPECTED_KEYWORD, "Unexpected keyword in statement");
     }
 } 
 
@@ -486,11 +467,7 @@ void Parser::eat(TokenType token_type)
     if (m_current_token.type != token_type)
     {
         // TODO: unexpected token error
-        std::println("Unexpected token '{}', expected '{}' at parser::eat", 
-                        get_string_from_token_type(m_current_token.type), 
-                        get_string_from_token_type(token_type)); 
-
-        exit(-1); 
+        Logger::error(m_current_token, HX_UNEXPECTED_TOKEN, "Unexpected token");
     }
     
     m_current_token = m_lexer->get_next();

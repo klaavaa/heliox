@@ -463,38 +463,7 @@ std::string CodeGeneration::load_callee()
     }
     return base;
 }
-/*
-std::string CodeGeneration::gen_instruc_safe(const std::string& inst, virtual_register dst, Item arg)
-{
-    std::string base = "";
-    if (get_register_size(instruction_type) == RegisterSize::BIT8)
-    {
-        base += std::format("\tand {}, {}\n", get_location(dst, RegisterSize::BIT64), "0xFF");
-    }
-    if (arg.item_type != ItemType::VIRTUAL_REGISTER)
-        return base + std::format("\t{} {}, {}\n", inst, get_location(dst), get_location(arg));
 
-    if (current_func_vr_locations.at(dst).is_spilled && current_func_vr_locations.at(arg.value).is_spilled) 
-    {
-        std::string scratch = register_to_string(scratch_register, get_register_size(instruction_type));
-        std::string parsed_inst;
-        if (inst == "mov") parsed_inst = "mov";
-        else parsed_inst = instruction(inst);
-        return base + std::format("\tmov {}, {}\n\t{} {}, {}\n", scratch, get_location(arg),
-                parsed_inst, get_location(dst), scratch);
-    }
-    if (is_float_type(instruction_type) && current_func_vr_locations.at(dst).is_spilled)
-    {
-        std::string scratch = register_to_string(xmm_scratch_register, get_register_size(instruction_type));
-        std::string parsed_inst;
-        if (inst == "mov") parsed_inst = "mov";
-        else parsed_inst = instruction(inst);
-        return base + std::format("\tmov {}, {}\n\t{} {}, {}\n", scratch, get_location(arg),
-                parsed_inst, get_location(dst), scratch);
-    }
-    return base + std::format("\t{} {}, {}\n", instruction(inst), get_location(dst), get_location(arg));
-}
-    */
 
 std::string CodeGeneration::instruction(const std::string& inst, virtual_register dst, Item arg)
 {

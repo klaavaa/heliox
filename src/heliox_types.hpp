@@ -23,7 +23,7 @@ enum class primitive_type
     
 };
 
-inline std::unordered_map<std::string, primitive_type> primitive_type_map = 
+inline std::unordered_map<std::string_view, primitive_type> primitive_type_map = 
 {
     {"u8",   primitive_type::U8},
     {"u16",  primitive_type::U16},
@@ -68,7 +68,7 @@ constexpr uint32_t get_ptr_byte_size()
     return 8;
 }
 
-inline std::optional<primitive_type> get_primitive_type_from_string(const std::string& type_name)
+inline std::optional<primitive_type> get_primitive_type_from_string(std::string_view type_name)
 {
     if (!primitive_type_map.count(type_name)) return std::nullopt;
     return {primitive_type_map.at(type_name)}; 

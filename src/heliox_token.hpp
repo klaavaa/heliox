@@ -63,8 +63,6 @@ enum class TokenType
 
 	END_OF_FILE = 0,
 
-	NOT_A_TOKEN,
-
 	KEYWORD,
 	IDENTIFIER,
 
@@ -188,20 +186,20 @@ inline const std::string get_string_from_token_type(TokenType type)
 
 struct Token
 {
-    Token() : type(TokenType::NOT_A_TOKEN), value()
-    {
-    }
-	Token(TokenType tok_type, std::string tok_value)
+	Token(TokenType tok_type, std::string tok_value, std::string_view filename, uint32_t line, uint32_t position)
 		:
 		type(tok_type),
-		value(tok_value)
+		value(tok_value),
+		filename(filename),
+		line(line),
+		position(position)
 	{}
-
-
 
 	TokenType type;
 	std::string value;
-
+	std::string_view filename;
+	uint32_t line;
+	uint32_t position;
 };
 }
 

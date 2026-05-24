@@ -8,8 +8,8 @@
 int main(int argc, char** argv)
 {
      
-    if (argc <= 1)
-        return 0;
+    //if (argc <= 1)
+    //    return 0;
 
     hx_flags& flags = HX_GET_FLAGS();
 
@@ -26,13 +26,13 @@ int main(int argc, char** argv)
 
     if (file_paths.empty())
     {
-        std::cout << "Please specify the file you want to compile" << "\n";
+        std::println("Please specify the files you want to compile");
         return 0;
     }
     
     auto func = fn<void, const std::vector<std::string>&, const std::string&>(hx::compile);
     double time = timeit<void, const std::vector<std::string>&, const std::string&>(func, file_paths, "./");
-    std::cout << "Compile time: " << time << "s\n";
+    std::println("Compile time: {}s", time);
 
 
     return 0;

@@ -11,7 +11,7 @@ namespace hx
 class Lexer
 {
 public:
-	Lexer(std::string text);
+	Lexer(std::string_view text, std::string_view filename);
 
 	uint32_t get_line();
 	bool is_finished();
@@ -25,12 +25,16 @@ private:
 	Token make_number();
 	Token make_identifier();
 
+	Token make_token(TokenType type, std::string value);
+
 	char peek_next(uint32_t offset=0);
 	bool advance();
 
 private:
 
-	std::string m_text;
+	std::string_view m_text;
+	std::string_view m_filename;
+
 	char m_cur_char;
 
 
@@ -38,6 +42,7 @@ private:
 	uint32_t m_index=0;
 
 	uint32_t m_line_number = 1;
+	uint32_t m_line_position = 0;
 
 };
 }		

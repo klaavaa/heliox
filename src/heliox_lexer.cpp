@@ -2,12 +2,16 @@
 #include "heliox_error.hpp"
 #include "heliox_keywords.hpp"
 
+#include <print>
+
 
 namespace hx {
 
-Lexer::Lexer(std::string text)
+Lexer::Lexer(std::string_view text, std::string_view filename)
+    :
+    m_text(text),
+    m_filename(filename)
 {
-    this->m_text = text;
     this->m_len_text = (uint32_t)text.size();
     reset();
 }
@@ -42,7 +46,7 @@ Token Lexer::get_next()
 
     do
     {
-        if (!advance()) return Token(TokenType::END_OF_FILE, "");
+        if (!advance()) return make_token(TokenType::END_OF_FILE, "");
 
     } while (m_cur_char == HX_SPACE || m_cur_char == HX_TAB || m_cur_char == HX_NEWLINE || m_cur_char == '\r');
 
@@ -52,7 +56,7 @@ Token Lexer::get_next()
 
     case HX_COMMA:
     {
-        return Token(TokenType::COMMA, "");
+        return make_token(TokenType::COMMA, "");
     }
     case HX_DOT:
     {
@@ -62,11 +66,11 @@ Token Lexer::get_next()
             if (peek_next() == HX_DOT)
             {
                 advance();
-                return Token(TokenType::DOTDOTDOT, "");
+                return make_token(TokenType::DOTDOTDOT, "");
             }
-            return Token(TokenType::DOTDOT, "");
+            return make_token(TokenType::DOTDOT, "");
         }
-        return Token(TokenType::DOT, "");
+        return make_token(TokenType::DOT, "");
     }
     case HX_QUOT_MARK:
     {
@@ -80,43 +84,39 @@ Token Lexer::get_next()
             }
             if (peek_next() == -1 || peek_next() == HX_NEWLINE)
             {
-                Error error;
-                error.error_type = HX_SYNTAX_ERROR;
-                error.line = get_line();
-                error.info = "Undisclosed quotation mark";
-                Logger::log_and_exit(error);
+                Logger::error(m_filename, m_line_number, m_line_position, HX_UNTERMINATED_STRING_LITERAL, "Unterminated string literal");
             }
             advance();
             s += m_cur_char;
         }
         advance();
-        return Token(TokenType::STRING, s);
+        return make_token(TokenType::STRING, s);
 
     }
     /*
     case DOLLAR:
     {
-        return Token(TokenType::DOLLAR, "");
+        return make_token(TokenType::DOLLAR, "");
     } */
     case HX_AMPERSAND:
     {
         if (peek_next() == HX_AMPERSAND)
         {
             advance();
-            return Token(TokenType::LOGICAL_AND, "");
+            return make_token(TokenType::LOGICAL_AND, "");
         }
 
-        return Token(TokenType::BITWISE_AND, "");
+        return make_token(TokenType::BITWISE_AND, "");
 
     }
     case HX_TILDE:
     {
-        return Token(TokenType::BITWISE_NOT, "");
+        return make_token(TokenType::BITWISE_NOT, "");
     }
 
     case HX_CIRCUMFLEX:
     {
-        return Token(TokenType::BITWISE_XOR, "");
+        return make_token(TokenType::BITWISE_XOR, "");
     }
 
     case HX_PIPE:
@@ -124,9 +124,9 @@ Token Lexer::get_next()
         if (peek_next() == HX_PIPE)
         {
             advance();
-            return Token(TokenType::LOGICAL_OR, "");
+            return make_token(TokenType::LOGICAL_OR, "");
         }
-        return Token(TokenType::BITWISE_OR, "");
+        return make_token(TokenType::BITWISE_OR, "");
     }
 
     case HX_PLUS:
@@ -134,9 +134,9 @@ Token Lexer::get_next()
         if (peek_next() == HX_EQUALS)
         {
             advance();
-            return Token(TokenType::PLUSEQUALS, "");
+            return make_token(TokenType::PLUSEQUALS, "");
         }
-        return Token(TokenType::PLUS, "");
+        return make_token(TokenType::PLUS, "");
     }
     case HX_MINUS:
     {
@@ -144,15 +144,15 @@ Token Lexer::get_next()
         if (peek_next() == HX_RIGHT_ARROW)
         {
             advance();
-            return Token(TokenType::ARROW, "");
+            return make_token(TokenType::ARROW, "");
         }
         if (peek_next() == HX_EQUALS)
         {
             advance();
-            return Token(TokenType::MINUSEQUALS, "");
+            return make_token(TokenType::MINUSEQUALS, "");
         }
         
-        return Token(TokenType::MINUS, "");
+        return make_token(TokenType::MINUS, "");
     }
     case HX_DIVIDE:
     {
@@ -160,6 +160,9 @@ Token Lexer::get_next()
         // IGNORE IF COMMENT RETURN NEXT INSTEAD
         if (peek_next() == HX_STAR)
         {
+            uint32_t start_line = m_line_number;
+            uint32_t start_position = m_line_position;
+
             if (!advance())
                 goto error_label;
             do
@@ -185,12 +188,7 @@ Token Lexer::get_next()
             return get_next();
 
         error_label:
-            hx::Error error;
-            error.error_type = HX_SYNTAX_ERROR;
-            error.info = "No matching '*/' found";
-            error.line = get_line();
-            
-            hx::Logger::log_and_exit(error);
+            Logger::error(m_filename, start_line, start_position, HX_UNTERMINATED_MULTILINE_COMMENT, "Unterminated multiline comment, no matching '*/' found");
 
         }
         
@@ -209,57 +207,57 @@ Token Lexer::get_next()
         if (peek_next() == HX_EQUALS)
         {
             advance();
-            return Token(TokenType::DIVEQUALS, "");
+            return make_token(TokenType::DIVEQUALS, "");
         }
 
-        return Token(TokenType::DIVIDE, "");
+        return make_token(TokenType::DIVIDE, "");
     }
     case HX_STAR:
     {
         if (peek_next() == HX_EQUALS)
         {
             advance();
-            return Token(TokenType::MULEQUALS, "");
+            return make_token(TokenType::MULEQUALS, "");
         }
-        return Token(TokenType::MULTIPLY, "");
+        return make_token(TokenType::MULTIPLY, "");
     }
     case HX_LEFT_BRACE:
     {
-        return Token(TokenType::L_BRACE, "");
+        return make_token(TokenType::L_BRACE, "");
     }
     case HX_RIGHT_BRACE:
     {
-        return Token(TokenType::R_BRACE, "");
+        return make_token(TokenType::R_BRACE, "");
     }
     case HX_LEFT_PAREN:
     {
-        return Token(TokenType::L_PAREN, "");
+        return make_token(TokenType::L_PAREN, "");
     }
     case HX_RIGHT_PAREN:
     {
-        return Token(TokenType::R_PAREN, "");
+        return make_token(TokenType::R_PAREN, "");
     }
     case HX_LEFT_BRACK:
     {
-        return Token(TokenType::L_BRACK, "");
+        return make_token(TokenType::L_BRACK, "");
     }
     case HX_RIGHT_BRACK:
     {
-        return Token(TokenType::R_BRACK, "");
+        return make_token(TokenType::R_BRACK, "");
     }
     case HX_MODULO:
     {
         if (peek_next() == HX_EQUALS)
         {
             advance();
-            return Token(TokenType::MODEQUALS, "");
+            return make_token(TokenType::MODEQUALS, "");
         }
-        return Token(TokenType::MODULO, "");
+        return make_token(TokenType::MODULO, "");
     }
     /*
     case AT:
     {
-        return Token(TokenType::AT, "");
+        return make_token(TokenType::AT, "");
     }
     */
     case HX_LEFT_ARROW:
@@ -267,28 +265,28 @@ Token Lexer::get_next()
         if (peek_next() == HX_EQUALS)
         {
             advance();
-            return Token(TokenType::LTE, "");
+            return make_token(TokenType::LTE, "");
         }
         if (peek_next() == HX_LEFT_ARROW)
         {
             advance();
-            return Token(TokenType::SHIFT_LEFT, "");
+            return make_token(TokenType::SHIFT_LEFT, "");
         }
-        return Token(TokenType::LT, "");
+        return make_token(TokenType::LT, "");
     }
     case HX_RIGHT_ARROW:
     {
         if (peek_next() == HX_EQUALS)
         {
             advance();
-            return Token(TokenType::GTE, "");
+            return make_token(TokenType::GTE, "");
         }
         if (peek_next() == HX_RIGHT_ARROW)
         {
             advance();
-            return Token(TokenType::SHIFT_RIGHT, "");
+            return make_token(TokenType::SHIFT_RIGHT, "");
         }
-        return Token(TokenType::GT, "");
+        return make_token(TokenType::GT, "");
     }
 
     case HX_EQUALS:
@@ -296,9 +294,9 @@ Token Lexer::get_next()
         if (peek_next() == HX_EQUALS)
         {
             advance();
-            return Token(TokenType::DOUBLE_EQU, "");
+            return make_token(TokenType::DOUBLE_EQU, "");
         }
-        return Token(TokenType::EQU, "");
+        return make_token(TokenType::EQU, "");
     }
 
     case HX_EXCLAMATION_MARK:
@@ -307,27 +305,27 @@ Token Lexer::get_next()
         if (peek_next() == HX_EQUALS)
         {
             advance();
-            return Token(TokenType::NEQU, "");
+            return make_token(TokenType::NEQU, "");
         }
 
-        return Token(TokenType::NOT, "");
+        return make_token(TokenType::NOT, "");
 
     }
     /*
     case QUESTION_MARK:
     {
 
-        return Token(TokenType::NOT_A_TOKEN, "");
+        return make_token(TokenType::QUESTION_MARK, "");
     }*/
 
 
     case HX_SEMICOLON:
     {
-        return Token(TokenType::SEMICOLON, "");
+        return make_token(TokenType::SEMICOLON, "");
     }
     case HX_COLON:
     {
-        return Token(TokenType::COLON, "");
+        return make_token(TokenType::COLON, "");
     }
     }
     if (strchr(characters, m_cur_char))
@@ -340,8 +338,7 @@ Token Lexer::get_next()
         return make_number();
     }
     
-
-    return Token(TokenType::NOT_A_TOKEN, "");
+    Logger::error(m_filename, m_line_number, m_line_position, HX_UNRECONIZED_CHARACTER, "Unrecognized character");
 }
 
 Token Lexer::make_number()
@@ -372,7 +369,7 @@ Token Lexer::make_number()
     }
 
 
-    Token tok = Token(is_int ? TokenType::INTEGER : TokenType::FLOAT, body);
+    Token tok = make_token(is_int ? TokenType::INTEGER : TokenType::FLOAT, body);
 
     return tok;
 
@@ -400,10 +397,11 @@ Token Lexer::make_identifier()
         [body](const auto& other)
         {return (body == other.first); }) != keywords.end())
     {
-        return Token(TokenType::KEYWORD, body);
+        body;
+        return make_token(TokenType::KEYWORD, body);
     }
         
-    Token tok = Token(TokenType::IDENTIFIER, body);
+    Token tok = make_token(TokenType::IDENTIFIER, body);
 
     return tok;
 
@@ -430,8 +428,21 @@ bool Lexer::advance()
     m_cur_char = m_text[m_index - 1];
 
     if (m_cur_char == '\n')
+    {
         m_line_number++;
+        m_line_position = 0;
+    }
+    else
+    {
+        m_line_position++;
+    }
 
     return true;
 }
+
+Token Lexer::make_token(TokenType type, std::string value)
+{
+    return Token(type, value, m_filename, m_line_number, m_line_position);
 }
+
+} // namespace hx

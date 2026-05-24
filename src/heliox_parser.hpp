@@ -45,8 +45,8 @@ private:
 	void eat(TokenType token_type);
      
 private:
-    Token m_current_token;
     uptr<Lexer> m_lexer;
+    Token m_current_token;
     std::string current_module = "";
 };
 }

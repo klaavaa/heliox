@@ -1,31 +1,29 @@
 #include "heliox_error.hpp"
+#include "heliox_token.hpp"
+#include <print>
 
 namespace hx {
-void Logger::log_error(Error error_data)
-{
-	std::string formatted_string = format_error(error_data);
-	printf(formatted_string.c_str());
 
+void Logger::error(std::string_view filename, int error_code, std::string_view info)
+{
+	std::println(stderr, "{}(): error {}: {}", filename, error_code, info);
+	exit(error_code);
 }
 
-void Logger::log_and_exit(Error error_data)
+void Logger::error(std::string_view filename, uint32_t line, uint32_t position, int error_code, std::string_view info)
 {
-    log_error(error_data);
-	exit(-1);
+	std::println(stderr, "{}({}:{}): error {}: {}", filename, line, position, error_code, info);
+	exit(error_code);
 }
 
-
-std::string Logger::format_error(Error error_data)
+void Logger::error(Token& token, int error_code, std::string_view info)
 {
-	std::string error_string;
-	error_string +=
-		string_format(
-			"File \"%s\", line %d\n",
-			error_data.file.c_str(), error_data.line);
-
-	error_string += error_data.error_type + ": " + error_data.info + "\n";
-
-	return error_string;
+	std::println(stderr, "{}({}:{}): error {}: {}", token.filename, token.line, token.position, error_code, info);
+	exit(error_code);
+}
+void Logger::warning(Token& token, int warning_code, std::string_view info)
+{
+	std::println(stderr, "{}({}:{}): warning {}: {}", token.filename, token.line, token.position, warning_code, info);
 }
 
 }
