@@ -8,9 +8,6 @@
 int main(int argc, char** argv)
 {
      
-    //if (argc <= 1)
-    //    return 0;
-
     hx_flags& flags = HX_GET_FLAGS();
 
     std::vector<std::string> file_paths;

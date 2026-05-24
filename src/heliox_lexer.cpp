@@ -347,22 +347,27 @@ Token Lexer::make_number()
 
     bool is_int = true;
 
+
     while (m_cur_char != HX_SPACE && m_cur_char != HX_NEWLINE && m_cur_char != HX_TAB)
     {
         if (m_cur_char == HX_DOT)
         {
-            assert(is_int);//TODO ERROR;
+            if (!is_int)
+            {
+                Logger::error(m_filename, m_line_number, m_line_position, HX_INVALID_FLOAT_LITERAL, "Invalid float literal, more than 1 dot found");
+            }
             is_int = false;
         }
 
 
         body += m_cur_char;
 
-    
+        
         if (!strchr(numbers, peek_next()))
         {
             if (peek_next() != HX_DOT)
                 break;
+            
         }
         advance();
 
@@ -380,6 +385,7 @@ Token Lexer::make_identifier()
 {
 
     std::string body;
+    uint32_t start_position = m_line_position;
 
     while (m_cur_char != HX_SPACE && m_cur_char != HX_NEWLINE && m_cur_char != HX_TAB)
     {
@@ -398,10 +404,10 @@ Token Lexer::make_identifier()
         {return (body == other.first); }) != keywords.end())
     {
         body;
-        return make_token(TokenType::KEYWORD, body);
+        return Token(TokenType::KEYWORD, body, m_filename, m_line_number, start_position);
     }
         
-    Token tok = make_token(TokenType::IDENTIFIER, body);
+    Token tok = Token(TokenType::IDENTIFIER, body, m_filename, m_line_number, start_position);
 
     return tok;
 
