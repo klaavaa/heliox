@@ -19,7 +19,8 @@ enum class KeyWord : uint32_t
 	WHILE,
     EXTERN,
     MODULE,
-    IMPORT
+    IMPORT,
+    STRUCT
 };
 
 
@@ -32,6 +33,7 @@ inline const std::unordered_map<std::string_view, KeyWord> keywords = {
     {"extern",       KeyWord::EXTERN},
 	{"module",		 KeyWord::MODULE},
     {"import",       KeyWord::IMPORT},
+    {"struct",       KeyWord::STRUCT}
 };
 
 inline KeyWord get_kword_from_string(std::string_view name)
@@ -39,7 +41,7 @@ inline KeyWord get_kword_from_string(std::string_view name)
 	if (!keywords.count(name))
     {
         //TODO ERROR
-        std::println("Unexpected keyword '{}' at get_kword_from_string", name);
+        std::println(stderr, "Unexpected keyword '{}' at get_kword_from_string", name);
         exit(-1);
     }
     return keywords.at(name);

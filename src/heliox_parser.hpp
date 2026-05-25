@@ -42,6 +42,7 @@ private:
     uptr<conditional_statement> parse_conditional_statement();
     uptr<while_statement> parse_while_statement();
 
+
 	void eat(TokenType token_type);
      
 private:

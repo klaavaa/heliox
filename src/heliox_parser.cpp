@@ -23,6 +23,8 @@ uptr<Program> Parser::parse_program()
     std::unordered_set<std::string> imports;
     std::unordered_set<std::string> modules;
 
+    std::unordered_map<std::string, struct_declaration> struct_declarations;
+
     while (m_current_token.type != TokenType::END_OF_FILE)
     {
         switch (m_current_token.type) 
@@ -30,40 +32,64 @@ uptr<Program> Parser::parse_program()
             case TokenType::KEYWORD:
                 {
                 KeyWord kword = get_kword_from_string(m_current_token.value);
-                if (kword == KeyWord::FUN || kword == KeyWord::EXTERN) 
+                switch (kword) 
                 {
-                    functions.push_back(std::move(parse_function()));
-                }
-                else if (kword == KeyWord::MODULE)
-                {
-                    eat(TokenType::KEYWORD);
-                    if (m_current_token.type == TokenType::SEMICOLON)
+                    case KeyWord::FUN:
+                    case KeyWord::EXTERN:
+                        functions.push_back(std::move(parse_function()));
+                        break;
+                    case KeyWord::MODULE:
                     {
-                        current_module = "";
+                        eat(TokenType::KEYWORD);
+                        if (m_current_token.type == TokenType::SEMICOLON)
+                        {
+                            current_module = "";
+                            eat(TokenType::SEMICOLON);
+                            break;
+                        }
+                        current_module = m_current_token.value; 
+                        modules.insert(current_module);
+                        eat(TokenType::IDENTIFIER);
                         eat(TokenType::SEMICOLON);
                         break;
                     }
-                    current_module = m_current_token.value; 
-                    modules.insert(current_module);
-                    eat(TokenType::IDENTIFIER);
-                    eat(TokenType::SEMICOLON);
-                }
-                else if (kword == KeyWord::IMPORT)
-                {
-                    eat(TokenType::KEYWORD);
-                    uptr<identifier_literal_expr> identifier_lit = parse_identifier_literal();
-                    eat(TokenType::SEMICOLON);
-                    imports.insert(identifier_lit->name);
-                }
-                else
-                {
-                    Logger::error(m_current_token, HX_UNEXPECTED_KEYWORD, "Unexpected keyword");
+                    case KeyWord::IMPORT:
+                    {
+                        eat(TokenType::KEYWORD);
+                        uptr<identifier_literal_expr> identifier_lit = parse_identifier_literal();
+                        eat(TokenType::SEMICOLON);
+                        imports.insert(identifier_lit->name);
+                        break;
+                    }
+                    case KeyWord::STRUCT:
+                    {
+                        eat(TokenType::KEYWORD);
+                        std::string struct_name = m_current_token.value;
+                        std::vector<uptr<variable_declaration_statement>> fields;
+                        eat(TokenType::IDENTIFIER);
+                        eat(TokenType::L_BRACE);
+                        while (m_current_token.type != TokenType::R_BRACE)
+                        {
+                            fields.push_back(parse_variable_declaration());
+                            eat(TokenType::SEMICOLON);
+                        }
+                        eat(TokenType::R_BRACE);
+                        eat(TokenType::SEMICOLON);
+                        struct_declarations.insert({struct_name, struct_declaration(std::move(fields))});
+                        break;
+                    }
+                    default:
+                    {
+                        Logger::error(m_current_token, HX_UNEXPECTED_KEYWORD, "Unexpected keyword");
+                        break;
+                    }
                 }
                 break;
                 }
             default:
                 {
                     Logger::error(m_current_token, HX_UNEXPECTED_TOKEN, "Unexpected token");
+                    break;
                 }
         }
 
@@ -72,6 +98,7 @@ uptr<Program> Parser::parse_program()
 
     return std::make_unique<Program>(std::move(functions), std::move(modules), std::move(imports));
 }
+
 uptr<function> Parser::parse_function()
 {
     bool is_extern = false;
@@ -312,12 +339,12 @@ expression Parser::parse_expression()
 type_data Parser::parse_type()
 {
     std::optional<primitive_type> pt = get_primitive_type_from_string(m_current_token.value);
-    eat(TokenType::IDENTIFIER);
     if (!pt.has_value())
     {
         // TODO OWN TYPES 
         Logger::error(m_current_token, HX_NOT_PRIMITIVE_TYPE, "Expected a primitive type");
     }
+    eat(TokenType::IDENTIFIER);
      
     uint32_t ptr_depth = 0;
     while (m_current_token.type == TokenType::MULTIPLY)
@@ -397,9 +424,8 @@ uptr<return_statement> Parser::parse_return_statement()
 uptr<conditional_statement> Parser::parse_conditional_statement()
 {
     eat(TokenType::KEYWORD);
-    eat(TokenType::L_PAREN);
     expression expr = parse_expression();
-    eat(TokenType::R_PAREN);
+
     statement stat = parse_statement();
     statement else_stat = std::make_unique<noop_statement>();
     if (m_current_token.type == TokenType::KEYWORD &&
@@ -414,9 +440,7 @@ uptr<conditional_statement> Parser::parse_conditional_statement()
 uptr<while_statement> Parser::parse_while_statement()
 {
     eat(TokenType::KEYWORD);
-    eat(TokenType::L_PAREN);
     expression expr = parse_expression(); 
-    eat(TokenType::R_PAREN);
     statement stat = parse_statement();
     
     return std::make_unique<while_statement>(std::move(expr), std::move(stat));

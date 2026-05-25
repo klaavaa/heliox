@@ -39,5 +39,15 @@ struct function
     bool has_varargs;
     std::string in_module;
 };
-}
+
+struct struct_declaration
+{
+    struct_declaration(std::vector<uptr<variable_declaration_statement>> fields)
+        : fields(std::move(fields)) {}
+
+    std::vector<uptr<variable_declaration_statement>> fields;
+};
+
+
+} // namespace hx
 
