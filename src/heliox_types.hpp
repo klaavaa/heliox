@@ -5,6 +5,7 @@
 #include <optional>
 #include <unordered_map>
 #include <print>
+#include "heliox_error.hpp"
 
 namespace hx {
 enum class primitive_type
@@ -19,8 +20,8 @@ enum class primitive_type
     I32,
     I64,
     F32,
-    F64
-    
+    F64,
+    USER_DEFINED_STRUCT
 };
 
 inline std::unordered_map<std::string_view, primitive_type> primitive_type_map = 
@@ -59,8 +60,7 @@ constexpr uint32_t get_byte_size_from_known_type(primitive_type type)
         case primitive_type::VOID: return 0;
         default:
             // TODO ERROR
-           std::println("Type not implemented");
-           exit(-1);
+            Logger::error("", HX_TODO, "Type not implemented");
    }     
 }
 constexpr uint32_t get_ptr_byte_size()
@@ -85,7 +85,14 @@ struct type_data
         if (ptr_depth) 
             byte_size = get_ptr_byte_size();
         else
+        {
+            if (type == primitive_type::USER_DEFINED_STRUCT)
+            {
+                Logger::error("", HX_TODO, "Size of user defined struct is not known at this point");
+            }
+            else
             byte_size = get_byte_size_from_known_type(type);
+        }
     }
 
     type_data(const type_data& other)

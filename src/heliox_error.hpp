@@ -4,6 +4,8 @@
 #include "heliox_tools.hpp"
 #include "heliox_token.hpp"
 
+#define HX_TODO 999
+
 #define HX_NOT_HELIOX_FILE 1
 #define HX_FILE_OPEN_ERROR 2
 
@@ -18,10 +20,14 @@
 #define HX_UNEXPECTED_TOKEN 102
 #define HX_UNEXPECTED_KEYWORD 103
 
+#define HX_SYMBOL_REDEFINITION 200
+#define HX_SYMBOL_NOT_FOUND 201
+#define HX_MODULE_NOT_FOUND 202
 
 
 namespace hx 
 {
+
 
 class Logger
 {

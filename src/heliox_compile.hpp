@@ -8,9 +8,10 @@
 #include "heliox_error.hpp"
 #include "heliox_file.hpp"
 
-#include "heliox_symbol_visitor.hpp"
-#include "heliox_instruction_gen.hpp"
-#include "heliox_codegen.hpp"
+#include "heliox_symbol_table.hpp"
+//#include "heliox_symbol_visitor.hpp"
+//#include "heliox_instruction_gen.hpp"
+//#include "heliox_codegen.hpp"
 
 
 
@@ -19,8 +20,10 @@ namespace hx
 inline void compile(const std::vector<std::string>& file_paths, const std::string& output_path)
 {
     std::vector<uptr<Program>> programs;
-    std::vector<sptr<SymbolTable>> tables;
     std::vector<std::string> asm_file_paths;
+
+    std::vector<uptr<TranslationUnit>> translation_units;
+    
     for (const auto& file_path : file_paths)
     {
     if (file_path.substr(file_path.size() - 4) != ".hlx")
@@ -46,19 +49,20 @@ inline void compile(const std::vector<std::string>& file_paths, const std::strin
     } */
 
     Parser parser = Parser(std::make_unique<Lexer>(text, file_path));
-    uptr<Program> program = parser.parse_program();
-    
-    
-    sptr<SymbolTable> global_table = std::make_shared<SymbolTable>();
-    
-    SymbolVisitor sv(global_table);
-    sv.visit_program(program);
-    programs.push_back(std::move(program));
-    tables.push_back(global_table);
+
+    uptr<TranslationUnit> tu = parser.parse_translation_unit(); 
+    translation_units.push_back(std::move(tu));
     }  
     
+    uptr<Program> program = std::make_unique<Program>(translation_units);
 
-    for (size_t i = 0; i < programs.size(); i++)
+
+    auto global_table = create_global_table_for_translation_unit(translation_units.front(), program);
+
+    find_function_symbol(global_table, "main", {"foo", "bar", "baz"}, true);
+    find_function_symbol(global_table, "wtf", {"bro"}, false);
+
+    /*for (size_t i = 0; i < programs.size(); i++)
     {
         for (const auto& import : programs[i]->imports)
         {
@@ -68,8 +72,8 @@ inline void compile(const std::vector<std::string>& file_paths, const std::strin
                 tables[i]->import_module(tables[j], import, programs[i]);
             }
         }
-    }
-
+    }*/
+    /*
     for (size_t i = 0; i < programs.size(); i++)
     {
         auto& program = programs[i];

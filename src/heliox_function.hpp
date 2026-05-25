@@ -12,14 +12,16 @@ struct function
     function(uptr<identifier_literal_expr> identifier, 
             std::vector<uptr<variable_declaration_statement>> params,
             std::vector<statement> statements, type_data type,
-            bool is_extern, bool has_varargs, std::string in_module)
+            bool is_extern, bool has_varargs, std::string_view filename, uint32_t line, uint32_t position)
         : identifier(std::move(identifier)),
           params(std::move(params)),
           statements(std::move(statements)), 
           type(type),
           is_extern(is_extern),
           has_varargs(has_varargs),
-          in_module(in_module) {}
+          filename(filename),
+          line_number(line),
+          position(position) {}
 
 
     std::vector<type_data> get_parameter_type_data() const 
@@ -37,7 +39,9 @@ struct function
     type_data type;
     bool is_extern;
     bool has_varargs;
-    std::string in_module;
+    std::string_view filename;
+    uint32_t line_number;
+    uint32_t position;
 };
 
 struct struct_declaration

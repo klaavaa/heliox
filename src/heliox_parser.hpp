@@ -13,9 +13,10 @@ class Parser
 public:
     Parser(uptr<Lexer> lex);
     
-    uptr<Program> parse_program();
+    uptr<TranslationUnit> parse_translation_unit();
 
 private:	
+    void parse_module();
 
     uptr<function> parse_function();
     expression parse_identifier();
@@ -48,6 +49,12 @@ private:
 private:
     uptr<Lexer> m_lexer;
     Token m_current_token;
-    std::string current_module = "";
+
+    sptr<Module> global_module;
+    sptr<Module> m_current_module;
+
+    std::vector<uptr<import_statement>> imports;
+    
+    bool in_module_block = false;
 };
 }

@@ -30,21 +30,15 @@ namespace hx {
         uptr<while_statement>,
         uptr<expression_statement>,
         uptr<noop_statement>,
-        uptr<module_statement>,
         uptr<import_statement>>;
 
-    struct module_statement
-    {
-        module_statement(std::string name)
-            : name(name) {}
-        std::string name;
-    };
 
     struct import_statement
     {
-        import_statement(std::string name)
-            : name(name) {}
-        std::string name;
+        import_statement(uptr<identifier_literal_expr> module_path)
+            : module_path(std::move(module_path)) {}
+        
+        uptr<identifier_literal_expr> module_path;
     };
 
     struct return_statement

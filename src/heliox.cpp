@@ -1,11 +1,11 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <print>
 #include "heliox_timer.hpp"
 #include "heliox_flags.hpp"
 #include "heliox_compile.hpp"
 #include "heliox_symbol_table.hpp"
-
 #if !defined(_WIN32) && !defined(__linux__)
 #error "Unsupported platform"
 #endif
@@ -15,7 +15,7 @@ int main(int argc, char** argv)
      
     hx_flags& flags = HX_GET_FLAGS();
 
-    std::vector<std::string> file_paths;
+    std::vector<std::string> file_paths; //= {"../example.hlx"};
     for (int i = 1; i < argc; i++)
     {
         if (argv[i][0] == '-')

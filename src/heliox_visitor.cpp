@@ -10,12 +10,23 @@ namespace hx
     Visitor::Visitor() = default;
     Visitor::~Visitor() = default;
 
+
     void Visitor::visit_program(uptr<Program>& prog)
     {
-        for (auto& func : prog->functions)
+        visit_module(prog->global_module);
+    }
+
+    void Visitor::visit_module(sptr<Module>& module)
+    {
+        for (auto& func : module->functions)
         {
             visit_function(func);
         }
+        for (auto& [name, submodule] : module->submodules)
+        {
+            visit_module(submodule);
+        }
+
     }
 
     void Visitor::visit_expression(expression& expr)

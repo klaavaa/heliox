@@ -52,9 +52,21 @@ struct string_literal_expr
 };
 struct identifier_literal_expr
 {
-    identifier_literal_expr(std::string name)
-        : name(name) {}
+    identifier_literal_expr(std::string name, std::vector<std::string> module_path = {})
+        : name(name), module_path(std::move(module_path)) {}
     std::string name;
+    std::vector<std::string> module_path;
+
+    std::string get_full_name() const
+    {
+        std::string full_name;
+        for (const auto& module : module_path)
+        {
+            full_name += module + "::";
+        }
+        full_name += name;
+        return full_name;
+    }
 };
 struct binop_expr
 {
@@ -73,14 +85,18 @@ struct unary_expr
 };
 struct function_call_expr
 {
-    function_call_expr(uptr<identifier_literal_expr> identifier,
-            std::vector<expression> parameters, std::string in_module)
-        : identifier(std::move(identifier)),
+    function_call_expr(uptr<identifier_literal_expr> _identifier,
+            std::vector<expression> parameters, std::vector<std::string> in_module)
+        : identifier(std::move(_identifier)),
           parameters(std::move(parameters)),
-          in_module(in_module) {}
+          in_module(std::move(in_module)) 
+          {
+            find_in_parent_modules = identifier->module_path.empty();
+          }
     uptr<identifier_literal_expr> identifier;
     std::vector<expression> parameters;
-    std::string in_module;
+    std::vector<std::string> in_module;
+    bool find_in_parent_modules;
 };
 
 struct explicit_conversion_expr

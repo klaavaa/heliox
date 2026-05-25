@@ -11,6 +11,8 @@ namespace hx
         virtual ~Visitor();
 
         virtual void visit_program(uptr<Program>& prog);
+        virtual void visit_module(sptr<Module>& module);
+
         virtual void visit_expression(expression& expr);
         virtual void visit_statement(statement& stat);
         

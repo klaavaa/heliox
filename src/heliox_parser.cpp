@@ -13,94 +13,108 @@ namespace hx
 Parser::Parser(uptr<Lexer> lex)
 	:
 	m_lexer(std::move(lex)),
-    m_current_token(m_lexer->get_next())
+    m_current_token(m_lexer->get_next()),
+    global_module(std::make_shared<Module>()),
+    m_current_module(global_module)
 {
 }
 
-uptr<Program> Parser::parse_program()
+uptr<TranslationUnit> Parser::parse_translation_unit()
 {
-    std::vector<uptr<function>> functions;
-    std::unordered_set<std::string> imports;
-    std::unordered_set<std::string> modules;
+    //std::vector<uptr<function>> functions;
 
-    std::unordered_map<std::string, struct_declaration> struct_declarations;
+    //sptr<Module> current_module = std::make_shared<Module>();
 
     while (m_current_token.type != TokenType::END_OF_FILE)
     {
-        switch (m_current_token.type) 
-        {
-            case TokenType::KEYWORD:
-                {
-                KeyWord kword = get_kword_from_string(m_current_token.value);
-                switch (kword) 
-                {
-                    case KeyWord::FUN:
-                    case KeyWord::EXTERN:
-                        functions.push_back(std::move(parse_function()));
-                        break;
-                    case KeyWord::MODULE:
-                    {
-                        eat(TokenType::KEYWORD);
-                        if (m_current_token.type == TokenType::SEMICOLON)
-                        {
-                            current_module = "";
-                            eat(TokenType::SEMICOLON);
-                            break;
-                        }
-                        current_module = m_current_token.value; 
-                        modules.insert(current_module);
-                        eat(TokenType::IDENTIFIER);
-                        eat(TokenType::SEMICOLON);
-                        break;
-                    }
-                    case KeyWord::IMPORT:
-                    {
-                        eat(TokenType::KEYWORD);
-                        uptr<identifier_literal_expr> identifier_lit = parse_identifier_literal();
-                        eat(TokenType::SEMICOLON);
-                        imports.insert(identifier_lit->name);
-                        break;
-                    }
-                    case KeyWord::STRUCT:
-                    {
-                        eat(TokenType::KEYWORD);
-                        std::string struct_name = m_current_token.value;
-                        std::vector<uptr<variable_declaration_statement>> fields;
-                        eat(TokenType::IDENTIFIER);
-                        eat(TokenType::L_BRACE);
-                        while (m_current_token.type != TokenType::R_BRACE)
-                        {
-                            fields.push_back(parse_variable_declaration());
-                            eat(TokenType::SEMICOLON);
-                        }
-                        eat(TokenType::R_BRACE);
-                        eat(TokenType::SEMICOLON);
-                        struct_declarations.insert({struct_name, struct_declaration(std::move(fields))});
-                        break;
-                    }
-                    default:
-                    {
-                        Logger::error(m_current_token, HX_UNEXPECTED_KEYWORD, "Unexpected keyword");
-                        break;
-                    }
-                }
-                break;
-                }
-            default:
-                {
-                    Logger::error(m_current_token, HX_UNEXPECTED_TOKEN, "Unexpected token");
-                    break;
-                }
-        }
-
-
+        parse_module();
     }
 
-    return std::make_unique<Program>(std::move(functions), std::move(modules), std::move(imports));
+    return std::make_unique<TranslationUnit>(std::move(global_module), std::move(imports));
+
+}
+
+void Parser::parse_module()
+{
+    switch (m_current_token.type) 
+     {
+        case TokenType::KEYWORD:
+        {
+            KeyWord kword = get_kword_from_string(m_current_token.value);
+            switch (kword) 
+            {
+                case KeyWord::FUN:
+                case KeyWord::EXTERN:
+                    m_current_module->insert_function(std::move(parse_function()));
+                    break;
+                case KeyWord::MODULE:
+                {
+                    if (!in_module_block)
+                    {
+                        m_current_module = global_module;
+                    }
+
+                    eat(TokenType::KEYWORD);
+                    if (m_current_token.type == TokenType::SEMICOLON)
+                    {
+                        eat(TokenType::SEMICOLON);
+                        return;
+                    }
+                    m_current_module = create_or_get_submodule(m_current_module, m_current_token.value);
+                    eat(TokenType::IDENTIFIER);
+                    while (m_current_token.type == TokenType::COLON)
+                    {
+                        eat(TokenType::COLON);
+                        eat(TokenType::COLON);
+                        m_current_module = create_or_get_submodule(m_current_module, m_current_token.value);
+                        eat(TokenType::IDENTIFIER);
+                    }
+                    if (m_current_token.type == TokenType::L_BRACE)
+                    {
+                        bool was_in_module_block = in_module_block;
+                        eat(TokenType::L_BRACE);
+                        in_module_block = true;
+                        parse_module();
+                        eat(TokenType::R_BRACE);
+                        in_module_block = was_in_module_block;
+                        m_current_module = m_current_module->parent_module;
+                        return;
+                    }
+                    eat(TokenType::SEMICOLON);
+                    return;
+                }
+                case KeyWord::IMPORT:
+                {
+                    eat(TokenType::KEYWORD);
+                    uptr<identifier_literal_expr> module_path = parse_identifier_literal();
+                    imports.push_back(std::make_unique<import_statement>(std::move(module_path)));
+                    eat(TokenType::SEMICOLON);
+                    break;
+                }
+                case KeyWord::STRUCT:
+                {
+                    Logger::error(m_current_token, HX_TODO, "TODO: STRUCT");
+                    break;
+                }
+                default:
+                {
+                    Logger::error(m_current_token, HX_UNEXPECTED_KEYWORD, "Unexpected keyword");
+                }
+            }
+            break;
+            }
+        default:
+        {
+            Logger::error(m_current_token, HX_UNEXPECTED_TOKEN, "Unexpected token");
+        }
+    }
 }
 
 uptr<function> Parser::parse_function()
 {
+    uint32_t fun_line = m_current_token.line;
+    uint32_t fun_position = m_current_token.position;
+
     bool is_extern = false;
     KeyWord kword = get_kword_from_string(m_current_token.value);
     if (kword == KeyWord::EXTERN)
@@ -166,9 +180,9 @@ uptr<function> Parser::parse_function()
         eat(TokenType::SEMICOLON);
         if (is_extern)
             return std::make_unique<function>(std::move(identifier), std::move(parameters),
-                    std::move(std::vector<statement>{}), td, is_extern, varargs, "");
+                    std::move(std::vector<statement>{}), td, is_extern, varargs, m_current_token.filename, fun_line, fun_position);
         return std::make_unique<function>(std::move(identifier), std::move(parameters),
-                std::move(std::vector<statement>{}), td, is_extern, varargs, current_module);
+                std::move(std::vector<statement>{}), td, is_extern, varargs, m_current_token.filename, fun_line, fun_position);
     }
     if (is_extern)
     {
@@ -182,26 +196,29 @@ uptr<function> Parser::parse_function()
     }
     eat(TokenType::R_BRACE);
     return std::make_unique<function>(std::move(identifier), std::move(parameters),
-           std::move(statements), td, is_extern, varargs, current_module);
+           std::move(statements), td, is_extern, varargs, m_current_token.filename, fun_line, fun_position);
 }
 
 uptr<identifier_literal_expr> Parser::parse_identifier_literal()
 {
-    std::string name{m_current_token.value};
+    std::vector<std::string> name_parts{};
+    name_parts.push_back(m_current_token.value);
     eat(TokenType::IDENTIFIER);
     while (m_current_token.type == TokenType::COLON)
     {
         eat(TokenType::COLON);
         eat(TokenType::COLON);
-        
-        name += "." + std::string(m_current_token.value);
+        name_parts.push_back(m_current_token.value);
         eat(TokenType::IDENTIFIER);
     }
-    return std::make_unique<identifier_literal_expr>(name);
+    if (name_parts.size() == 1)
+        return std::make_unique<identifier_literal_expr>(name_parts.front());
+    std::string name = name_parts.back();
+    name_parts.pop_back();
+    return std::make_unique<identifier_literal_expr>(name, name_parts);
 }
 expression Parser::parse_identifier()
 {
-
     uptr<identifier_literal_expr> identifier = parse_identifier_literal();
     // check if identifier is a primitive type, if it is, explicit casting is in order
     auto primitive_opt = get_primitive_type_from_string(identifier->name);
@@ -237,8 +254,11 @@ expression Parser::parse_identifier()
             eat(TokenType::COMMA);
         }
         eat(TokenType::R_PAREN);
+
+        std::vector<std::string> module_path = m_current_module->get_module_path();
+
         return std::make_unique<function_call_expr>(
-                std::move(identifier), std::move(expressions), current_module);
+                std::move(identifier), std::move(expressions), std::move(module_path));
     }
     return identifier;
 }
