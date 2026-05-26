@@ -54,13 +54,20 @@ inline void compile(const std::vector<std::string>& file_paths, const std::strin
     translation_units.push_back(std::move(tu));
     }  
     
+    // Creates a program which contains all modules
     uptr<Program> program = std::make_unique<Program>(translation_units);
 
 
-    auto global_table = create_global_table_for_translation_unit(translation_units.front(), program);
+    for (auto& tu : translation_units)
+    {
+        // create a symbol table for each translation unit
+        // the imports are handled here by fetching imported symbols from program's global module
+        auto global_table = create_global_table_for_translation_unit(tu, program);
 
-    find_function_symbol(global_table, "main", {"foo", "bar", "baz"}, true);
-    find_function_symbol(global_table, "wtf", {"bro"}, false);
+        
+    }
+
+    
 
     /*for (size_t i = 0; i < programs.size(); i++)
     {
