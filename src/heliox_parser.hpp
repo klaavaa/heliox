@@ -46,6 +46,13 @@ private:
 
 	void eat(TokenType token_type);
      
+    // creates the node with source location information
+    template<typename T, typename... Args>
+    uptr<T> make_node(Args&&... args)
+    {
+        return std::make_unique<T>(m_current_token.filename, relevant_line, relevant_position, std::forward<Args>(args)...);
+    }
+
 private:
     uptr<Lexer> m_lexer;
     Token m_current_token;
@@ -56,5 +63,8 @@ private:
     std::vector<uptr<import_statement>> imports;
     
     bool in_module_block = false;
+
+    uint32_t relevant_line;
+    uint32_t relevant_position;
 };
 }

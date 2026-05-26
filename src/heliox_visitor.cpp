@@ -18,6 +18,10 @@ namespace hx
 
     void Visitor::visit_module(sptr<Module>& module)
     {
+        if (!module->name.empty())
+        {
+            current_module_path.push_back(module->name);
+        }
         for (auto& func : module->functions)
         {
             visit_function(func);
@@ -25,6 +29,10 @@ namespace hx
         for (auto& [name, submodule] : module->submodules)
         {
             visit_module(submodule);
+        }
+        if (!current_module_path.empty())
+        {
+            current_module_path.pop_back();
         }
 
     }
@@ -68,11 +76,9 @@ namespace hx
             { visit_while(while_s);},
            [this](uptr<expression_statement>& expression_s)
             { visit_expression_s(expression_s);},
-            [this](uptr<noop_statement>& noop_s)
+           [this](uptr<noop_statement>& noop_s)
             { visit_noop(noop_s); },
-            [this](uptr<module_statement>& module_s)
-            { visit_module(module_s); },
-            [this](uptr<import_statement>& import_s)
+           [this](uptr<import_statement>& import_s)
             { visit_import(import_s); }
             }, stat);
     }

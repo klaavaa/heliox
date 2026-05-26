@@ -30,7 +30,7 @@ uptr<TranslationUnit> Parser::parse_translation_unit()
         parse_module();
     }
 
-    return std::make_unique<TranslationUnit>(std::move(global_module), std::move(imports));
+    return std::make_unique<TranslationUnit>(std::move(global_module), std::move(imports), m_current_token.filename);
 
 }
 
@@ -87,7 +87,7 @@ void Parser::parse_module()
                 {
                     eat(TokenType::KEYWORD);
                     uptr<identifier_literal_expr> module_path = parse_identifier_literal();
-                    imports.push_back(std::make_unique<import_statement>(std::move(module_path)));
+                    imports.push_back(make_node<import_statement>(std::move(module_path))); 
                     eat(TokenType::SEMICOLON);
                     break;
                 }
@@ -156,12 +156,12 @@ uptr<function> Parser::parse_function()
             
             if (m_current_token.type == TokenType::IDENTIFIER)
             {
-                parameters.emplace_back(std::make_unique<variable_declaration_statement>(td, parse_identifier_literal()));
+                parameters.emplace_back(make_node<variable_declaration_statement>(td, parse_identifier_literal()));
             }
             else
             {
-                parameters.emplace_back(std::make_unique<variable_declaration_statement>(td,
-                            std::make_unique<identifier_literal_expr>("")));
+                parameters.emplace_back(make_node<variable_declaration_statement>(td,
+                            make_node<identifier_literal_expr>("")));
             }
 
             if (m_current_token.type == TokenType::R_PAREN)
@@ -212,10 +212,10 @@ uptr<identifier_literal_expr> Parser::parse_identifier_literal()
         eat(TokenType::IDENTIFIER);
     }
     if (name_parts.size() == 1)
-        return std::make_unique<identifier_literal_expr>(name_parts.front());
+        return make_node<identifier_literal_expr>(name_parts.front());
     std::string name = name_parts.back();
     name_parts.pop_back();
-    return std::make_unique<identifier_literal_expr>(name, name_parts);
+    return make_node<identifier_literal_expr>(name, name_parts);
 }
 expression Parser::parse_identifier()
 {
@@ -234,7 +234,7 @@ expression Parser::parse_identifier()
         eat(TokenType::L_PAREN); 
         expression expr = parse_expression();
         eat(TokenType::R_PAREN);
-        return std::make_unique<explicit_conversion_expr>(conversion_type, std::move(expr));
+        return make_node<explicit_conversion_expr>(conversion_type, std::move(expr));
     }
 
     // check if its a function call 
@@ -257,7 +257,7 @@ expression Parser::parse_identifier()
 
         std::vector<std::string> module_path = m_current_module->get_module_path();
 
-        return std::make_unique<function_call_expr>(
+        return make_node<function_call_expr>(
                 std::move(identifier), std::move(expressions), std::move(module_path));
     }
     return identifier;
@@ -266,20 +266,20 @@ uptr<string_literal_expr> Parser::parse_string_literal()
 {
     std::string value{m_current_token.value};
     eat(TokenType::STRING);
-    return std::make_unique<string_literal_expr>(value);
+    return make_node<string_literal_expr>(value);
 }
 uptr<int_literal_expr> Parser::parse_int_literal()
 {
     std::string value{m_current_token.value};
     eat(TokenType::INTEGER);
-    return std::make_unique<int_literal_expr>(value);
+    return make_node<int_literal_expr>(value);
 }
 
 uptr<float_literal_expr> Parser::parse_float_literal()
 {
     std::string value{m_current_token.value};
     eat(TokenType::FLOAT);
-    return std::make_unique<float_literal_expr>(value);
+    return make_node<float_literal_expr>(value);
 }
 
 expression Parser::parse_unary()
@@ -291,7 +291,7 @@ expression Parser::parse_unary()
 
         expression expr = parse_unary();
 
-        return std::make_unique<unary_expr>(std::move(expr), op);
+        return make_node<unary_expr>(std::move(expr), op);
     }
     return parse_primary();
 }
@@ -346,7 +346,7 @@ expression Parser::parse_expression_from_primary(expression primary, uint32_t mi
             rhs = parse_expression_from_primary(std::move(rhs), new_precedence);
 
         }
-        lhs = make_unique<binop_expr>(std::move(lhs), std::move(rhs), op);
+        lhs = make_node<binop_expr>(std::move(lhs), std::move(rhs), op);
     }
     return lhs;
 }
@@ -380,7 +380,7 @@ uptr<variable_declaration_statement> Parser::parse_variable_declaration()
 {
     type_data td = parse_type(); 
     uptr<identifier_literal_expr> identifier = parse_identifier_literal();
-    return std::make_unique<variable_declaration_statement>(td, std::move(identifier));
+    return make_node<variable_declaration_statement>(td, std::move(identifier));
 }
 
 statement Parser::parse_statement()
@@ -395,7 +395,7 @@ statement Parser::parse_statement()
             
         case TokenType::SEMICOLON:
             eat(TokenType::SEMICOLON);
-            return std::make_unique<noop_statement>();
+            return make_node<noop_statement>();
     // assume it is an expression statement if none of the above      
         default:
             if (m_current_token.type == TokenType::IDENTIFIER)
@@ -407,7 +407,7 @@ statement Parser::parse_statement()
             }
             expression expr = parse_expression();
             eat(TokenType::SEMICOLON);
-            return std::make_unique<expression_statement>(std::move(expr));
+            return make_node<expression_statement>(std::move(expr));
     }
 }
 
@@ -433,12 +433,12 @@ uptr<return_statement> Parser::parse_return_statement()
     if (m_current_token.type == TokenType::SEMICOLON)
     {
         eat(TokenType::SEMICOLON);
-        expression expr = std::make_unique<int_literal_expr>("0");
-        return std::make_unique<return_statement>(std::move(expr));
+        expression expr = make_node<int_literal_expr>("0");
+        return make_node<return_statement>(std::move(expr));
     }
     expression expr = parse_expression();
     eat(TokenType::SEMICOLON);
-    return std::make_unique<return_statement>(std::move(expr));
+    return make_node<return_statement>(std::move(expr));
 }
 
 uptr<conditional_statement> Parser::parse_conditional_statement()
@@ -447,14 +447,14 @@ uptr<conditional_statement> Parser::parse_conditional_statement()
     expression expr = parse_expression();
 
     statement stat = parse_statement();
-    statement else_stat = std::make_unique<noop_statement>();
+    statement else_stat = make_node<noop_statement>();
     if (m_current_token.type == TokenType::KEYWORD &&
             get_kword_from_string(m_current_token.value) == KeyWord::ELSE)
     {
         eat(TokenType::KEYWORD); 
         else_stat = parse_statement();
     }
-    return std::make_unique<conditional_statement>(std::move(expr), std::move(stat), std::move(else_stat));
+    return make_node<conditional_statement>(std::move(expr), std::move(stat), std::move(else_stat));
 }
 
 uptr<while_statement> Parser::parse_while_statement()
@@ -463,7 +463,7 @@ uptr<while_statement> Parser::parse_while_statement()
     expression expr = parse_expression(); 
     statement stat = parse_statement();
     
-    return std::make_unique<while_statement>(std::move(expr), std::move(stat));
+    return make_node<while_statement>(std::move(expr), std::move(stat));
 
 }
 
@@ -473,14 +473,14 @@ statement Parser::parse_type_statement()
     type_data type = parse_type();
     uptr<identifier_literal_expr> identifier = parse_identifier_literal();
     uptr<variable_declaration_statement> declaration = 
-        std::make_unique<variable_declaration_statement>(type, std::move(identifier));
+        make_node<variable_declaration_statement>(type, std::move(identifier));
 
     if (m_current_token.type == TokenType::EQU)
     {
         eat(TokenType::EQU);
         expression definition = parse_expression();
         eat(TokenType::SEMICOLON);
-        return std::make_unique<variable_definition_statement>
+        return make_node<variable_definition_statement>
             (std::move(declaration), std::move(definition));
 
     }
@@ -502,7 +502,7 @@ uptr<compound_statement> Parser::parse_compound_statement()
         
     }
     eat(TokenType::R_BRACE);
-    return std::make_unique<compound_statement>(std::move(statements));
+    return make_node<compound_statement>(std::move(statements));
 }
 
     
@@ -513,7 +513,9 @@ void Parser::eat(TokenType token_type)
         // TODO: unexpected token error
         Logger::error(m_current_token, HX_UNEXPECTED_TOKEN, "Unexpected token");
     }
-    
+    relevant_line = m_current_token.line; 
+    relevant_position = m_current_token.position;
+
     m_current_token = m_lexer->get_next();
 }
 

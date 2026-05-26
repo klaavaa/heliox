@@ -34,8 +34,10 @@ namespace hx
         virtual void visit_while(uptr<while_statement>& while_s) = 0;
         virtual void visit_expression_s(uptr<expression_statement>& expr) = 0;
         virtual void visit_noop(uptr<noop_statement>& noop) = 0;
-        virtual void visit_module(uptr<module_statement>& module_s) = 0;
         virtual void visit_import(uptr<import_statement>& import_s) = 0;
+
+    protected:
+        std::vector<std::string> current_module_path;
   };
 
 }

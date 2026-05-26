@@ -15,14 +15,20 @@ void Logger::error(std::string_view filename, uint32_t line, uint32_t position, 
 	exit(error_code);
 }
 
-void Logger::error(Token& token, int error_code, std::string_view info)
+void Logger::error(const Token& token, int error_code, std::string_view info)
 {
-	std::println(stderr, "{}({}:{}): error {}: {}", token.filename, token.line, token.position, error_code, info);
-	exit(error_code);
+	error(token.filename, token.line, token.position, error_code, info);
 }
+	
+void Logger::error(const ast_node& node, int error_code, std::string_view info)
+{
+	error(node.filename, node.line, node.position, error_code, info);
+}
+
 void Logger::warning(Token& token, int warning_code, std::string_view info)
 {
 	std::println(stderr, "{}({}:{}): warning {}: {}", token.filename, token.line, token.position, warning_code, info);
 }
 
-}
+
+} //namespace hx

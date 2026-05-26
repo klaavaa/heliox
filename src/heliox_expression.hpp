@@ -6,6 +6,7 @@
 #include "heliox_pointer.hpp"
 #include "heliox_types.hpp"
 #include "heliox_token.hpp"
+#include "heliox_ast_node.hpp"
 namespace hx
 {
 
@@ -30,30 +31,31 @@ using expression = std::variant<
     >;
 
 
-struct int_literal_expr
+struct int_literal_expr : ast_node
 {
-    int_literal_expr(std::string value)
-        : value(value) {}
+    int_literal_expr(std::string_view filename, uint32_t line, uint32_t position, std::string value)
+        : ast_node(filename, line, position), value(value) {}
     std::string value;
 };
 
-struct float_literal_expr
+struct float_literal_expr : ast_node
 {
-    float_literal_expr(std::string value)
-        : value(value) {}
+    float_literal_expr(std::string_view filename, uint32_t line, uint32_t position, std::string value)
+        : ast_node(filename, line, position), value(value) {}
+    std::string value;
+};
+struct string_literal_expr : ast_node
+{
+    string_literal_expr(std::string_view filename, uint32_t line, uint32_t position, std::string value)
+        : ast_node(filename, line, position), value(value) {}
     std::string value;
 };
 
-struct string_literal_expr
+struct identifier_literal_expr : ast_node
+
 {
-    string_literal_expr(std::string value)
-        : value(value) {}
-    std::string value;
-};
-struct identifier_literal_expr
-{
-    identifier_literal_expr(std::string name, std::vector<std::string> module_path = {})
-        : name(name), module_path(std::move(module_path)) {}
+    identifier_literal_expr(std::string_view filename, uint32_t line, uint32_t position, std::string name, std::vector<std::string> module_path = {})
+        : ast_node(filename, line, position), name(name), module_path(std::move(module_path)) {}
     std::string name;
     std::vector<std::string> module_path;
 
@@ -68,26 +70,26 @@ struct identifier_literal_expr
         return full_name;
     }
 };
-struct binop_expr
+struct binop_expr : ast_node
 {
-    binop_expr(expression left, expression right, TokenType op_token)
-        : left(std::move(left)), right(std::move(right)), op_token(op_token) {} 
+    binop_expr(std::string_view filename, uint32_t line, uint32_t position, expression left, expression right, TokenType op_token)
+        : ast_node(filename, line, position), left(std::move(left)), right(std::move(right)), op_token(op_token) {} 
     expression left;
     expression right;
     TokenType op_token;
 };
-struct unary_expr
+struct unary_expr : ast_node
 {
-    unary_expr(expression expr, TokenType op_token)
-        : expr(std::move(expr)), op_token(op_token) {}
+    unary_expr(std::string_view filename, uint32_t line, uint32_t position, expression expr, TokenType op_token)
+        : ast_node(filename, line, position), expr(std::move(expr)), op_token(op_token) {}
     expression expr;
     TokenType op_token;
 };
-struct function_call_expr
+struct function_call_expr : ast_node
 {
-    function_call_expr(uptr<identifier_literal_expr> _identifier,
+    function_call_expr(std::string_view filename, uint32_t line, uint32_t position, uptr<identifier_literal_expr> _identifier,
             std::vector<expression> parameters, std::vector<std::string> in_module)
-        : identifier(std::move(_identifier)),
+        : ast_node(filename, line, position), identifier(std::move(_identifier)),
           parameters(std::move(parameters)),
           in_module(std::move(in_module)) 
           {
@@ -99,10 +101,10 @@ struct function_call_expr
     bool find_in_parent_modules;
 };
 
-struct explicit_conversion_expr
+struct explicit_conversion_expr : ast_node
 {
-    explicit_conversion_expr(type_data type_info, expression expr)
-        : type_info(type_info), expr(std::move(expr)) {}
+    explicit_conversion_expr(std::string_view filename, uint32_t line, uint32_t position, type_data type_info, expression expr)
+        : ast_node(filename, line, position), type_info(type_info), expr(std::move(expr)) {}
 
     type_data type_info;
     expression expr;

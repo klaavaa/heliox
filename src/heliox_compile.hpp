@@ -9,9 +9,7 @@
 #include "heliox_file.hpp"
 
 #include "heliox_symbol_table.hpp"
-//#include "heliox_symbol_visitor.hpp"
-//#include "heliox_instruction_gen.hpp"
-//#include "heliox_codegen.hpp"
+#include "heliox_instruction_gen.hpp"
 
 
 
@@ -60,11 +58,16 @@ inline void compile(const std::vector<std::string>& file_paths, const std::strin
 
     for (auto& tu : translation_units)
     {
+        Logger::info("generating IR for '{}'", tu->filename);
         // create a symbol table for each translation unit
         // the imports are handled here by fetching imported symbols from program's global module
         auto global_table = create_global_table_for_translation_unit(tu, program);
 
+        // generate IR 
+        InstructionGenerator instruction_gen(std::move(tu), global_table);
+        auto unit = instruction_gen.generate_instructions();
         
+        print_ir_unit(unit);
     }
 
     

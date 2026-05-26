@@ -10,383 +10,115 @@
 namespace hx
 {
 
-enum class Instruction 
+using virtual_register = size_t;
+
+enum class IRInstructionType 
 {
+    LABEL,
+    JUMP_TRUE,
+    JUMP_FALSE,
+
     LOAD_INT,
     LOAD_FLOAT,
-    LOAD_VAR,
     LOAD_STRING,
-    LOAD_PARAM,
-     
-    STORE, 
-
-    CALL_BEGIN,
-    CALL,
-    CALL_END,
     
-    ALIGN,
-    PUSH,
-    POP,
-
-    ADD,
-    SUB,
-    DIV,
-    MUL,
-    MOD,
-    
-    NEG,
-    DEREF,
-
-    IS_EQUAL,
-    NOT_EQUAL,
-    GREATER_THAN,
-    GREATER_OR_EQUAL_THAN,
-    LESS_THAN,
-    LESS_OR_EQUAL_THAN,
-     
-    LOGICAL_AND_TEST_LEFT,
-    LOGICAL_AND_TEST_RIGHT,
-    LOGICAL_OR_TEST_LEFT,
-    LOGICAL_OR_TEST_RIGHT,
-    LOGICAL_NOT,
-    
-    SHIFT_LEFT,
-    SHIFT_RIGHT,
-
-    BITWISE_AND,
-    BITWISE_OR,
-    BITWISE_XOR,
-    BITWISE_NOT,
-
+    FUNCTION_CALL, // dst = return value, src1 = function_index
     RETURN,
-    
-    IF,
-    ELSE,
-    ENDIF,
 
-    WHILE,
-    WHILE_JUMPEND,
-    ENDWHILE,
-    
-    SIGNEXTENDTOI64,
+    // function argument  src1 = arg to push, src2 = arg index
+    PUSH_ARG
+    // ==================
 
-    CONVERTF32TOF64,
-    CONVERTF64TOF32,
-        
-    CONVERTI64TOF64,
-    CONVERTI64TOF32,
-
-    CONVERTU64TOF64,
-    CONVERTU64TOF32,
-
-    CONVERTF64TOI64,
-    CONVERTF32TOI64
-
-    
 };
 
-using virtual_register = int64_t;
-
-
-enum class ItemType
+enum class LiteralType
 {
-    VIRTUAL_REGISTER,
-    IMMEDIATE_VALUE,
-    RELATIVE_ADDRESS,
-    STRINGTABLE_INDEX,
-    FLOATTABLE_INDEX,
-    FUNCTIONTABLE_INDEX,
-    PARAMETER_INDEX
+    STRING,
+    FUNCTION_NAME,
 };
 
-
-struct Item
+struct AllocatedLiteral
 {
-    Item(ItemType item_type, int64_t value)
-        : item_type(item_type), value(value) {}
-    
-    std::string get_string() const
-    {
-        switch (item_type)
-        {
-            case ItemType::VIRTUAL_REGISTER:
-                return std::format("r{}", value);
-            case ItemType::IMMEDIATE_VALUE:
-                return std::format("{}", value);
-            case ItemType::RELATIVE_ADDRESS:
-                return std::format("[rbp - {}]", value);
-            case ItemType::STRINGTABLE_INDEX:
-                return std::format("STRING_TABLE({})", value);
-            case ItemType::FUNCTIONTABLE_INDEX:
-                return std::format("FUNCTION_TABLE({})", value);
-            case ItemType::FLOATTABLE_INDEX:
-                return std::format("FLOAT_TABLE({})", value);
-            case ItemType::PARAMETER_INDEX:
-                return std::format("p{}", value);
-            default:
-                //TODO ERROR
-                std::println("Error getting string from item");
-                exit(-1);
-           
-
-        }
-        return {};
-    }
-    ItemType item_type;
-    int64_t value;
+    LiteralType type;
+    std::string value;
 };
 
-
-struct ReservedRegister
+struct IRInstruction
 {
-    union {
-    Register reg;
-    int32_t stack_position;
-    };
-    bool on_stack = false;
-    std::vector<Register> reserved_without_vr;
-};
-struct InstructionTriplet
-{
-    InstructionTriplet(Instruction instruction, virtual_register dst, std::vector<Item> items, type_data type)
-        : instruction(instruction), dst(dst), items(items), type(type)
-    {}
-    Instruction instruction;
-    uint32_t instruc_count;
-    virtual_register dst;
-    std::vector<Item> items;
-    
-    type_data type;
+    IRInstructionType type;
+    virtual_register dst; 
+    virtual_register src1;
+    virtual_register src2;
 };
 
-struct LiveRange
+struct IRFunction
 {
-    uint32_t first_use;
-    uint32_t last_use;
-};
-
-using ReservedRegisters = std::unordered_map<virtual_register, ReservedRegister>;
-using LiveRanges = std::map<virtual_register, LiveRange>;
-using InstructionTriplets = std::vector<InstructionTriplet>;
-using VirtualRegisterTypes = std::unordered_map<virtual_register, type_data>;
-
-struct InstructionFunction
-{
-    InstructionFunction(const std::string& name, bool is_extern=false)
-        : name(name), is_extern(is_extern) {}
     std::string name;
-    bool is_extern;
-    InstructionTriplets instruction_triplets;
-    LiveRanges live_ranges;
-    ReservedRegisters reserved_registers;
-    VirtualRegisterTypes vr_types;
-    int32_t allocated_stack;
+    std::vector<IRInstruction> instructions{};
 };
 
-struct InstructionData
+struct IRUnit
 {
-    std::vector<InstructionFunction> instruction_functions;
-};
+    std::vector<IRFunction> ir_functions;
+    std::unordered_map<size_t, AllocatedLiteral> allocated_literals;
+    std::unordered_map<virtual_register, type_data> virtual_register_types;
 
-inline void print_instruction(const InstructionTriplet& triplet)
-{
-    std::string prefix;
-    prefix += std::format("{:4}\t", triplet.instruc_count);
-
-    switch (get_register_size(triplet.type))
+    size_t allocate_string_literal(const std::string& value)
     {
-    case RegisterSize::BIT64:
-        prefix += std::format("{:4}", "(64)");
-        break;
-    case RegisterSize::BIT32:
-        prefix += std::format("{:4}", "(32)");
-
-        break;
-    case RegisterSize::BIT16:
-        prefix += std::format("{:4}", "(16)");
-        break;
-    case RegisterSize::BIT8:
-        prefix += std::format("{:4}", "(8)");
-        break;
-    case RegisterSize::BIT0:
-        prefix += std::format("{:4}", "(0)");
-        break;
-    default:
-        // TODO ERROR
-        std::println("Unknown register size in print_instruction");
-        exit(-1);
-
+        size_t id = allocated_literals.size();
+        // todo parse string literals for escape sequences 
+        allocated_literals.insert({id, AllocatedLiteral{LiteralType::STRING, value}});
+        return id;
     }
-    switch (triplet.instruction)
+
+    size_t allocate_function_name(const std::string& value)
     {
-        case Instruction::LOAD_INT:
-            std::println("{} LOADI r{} {}", prefix, triplet.dst, triplet.items[0].get_string());
+        size_t id = allocated_literals.size();
+        allocated_literals.insert({id, AllocatedLiteral{LiteralType::FUNCTION_NAME, value}});
+        return id;
+    }
+
+};
+
+
+inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instruction_number)
+{
+    std::string prefix = std::format("{:3}", instruction_number);
+    switch (ir_instruction.type)
+    {
+        case IRInstructionType::FUNCTION_CALL:
+            std::println("{}  CALL      {} {}", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
-        case Instruction::LOAD_FLOAT:
-            std::println("{} LOADF r{} {}", prefix, triplet.dst, triplet.items[0].get_string());
+        case IRInstructionType::PUSH_ARG:
+            std::println("{}  PUSH_ARG  {} {}", prefix, ir_instruction.src1, ir_instruction.src2);
             break;
-        case Instruction::LOAD_STRING:
-            std::println("{} LOADS r{} {}", prefix, triplet.dst, triplet.items[0].get_string());
+        case IRInstructionType::RETURN:
+            std::println("{}  RETURN    {} {}", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
-        case Instruction::LOAD_VAR:
-            std::println("{} LOADV r{} {}", prefix, triplet.dst, triplet.items[0].get_string());
+        case IRInstructionType::LOAD_STRING:
+            std::println("{}  LOAD_STR  {} {}", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
-        case Instruction::LOAD_PARAM:
-            std::println("{} LOADP r{} {}", prefix, triplet.dst, triplet.items[0].get_string());
-            break;
-        case Instruction::CALL:
-            std::print("{} CALL  r{} ", prefix, triplet.dst);
-            for (const auto& i : triplet.items)
-            {
-                std::print("{} ", i.get_string());
-            }
-            std::println("");
-            break;
-        case Instruction::CALL_BEGIN:
-            std::println("{} CALL_BEGIN", prefix);
-            break;
-        case Instruction::CALL_END:
-            std::println("{} CALL_END", prefix);
-            break;
-        case Instruction::RETURN:
-            std::println("{} RET   r{}", prefix, triplet.dst);
-            break;
-        case Instruction::ADD:
-            std::println("{} ADD   r{} {}", prefix, triplet.dst, 
-                    triplet.items[0].get_string());
-            break;
-        case Instruction::SUB:
-            std::println("{} SUB   r{} {}", prefix, triplet.dst, 
-                    triplet.items[0].get_string());
+        case IRInstructionType::LOAD_INT:
+            std::println("{}  LOAD_INT  {} {}", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
 
-        case Instruction::DIV:
-            std::println("{} DIV   r{} {}", prefix, triplet.dst, 
-                    triplet.items[0].get_string());
+        default:
+            std::println("instruction {} not implemented yet", static_cast<int>(ir_instruction.type));
             break;
+    }
+}
+inline void print_ir_unit(IRUnit& ir_unit)
+{
 
-        case Instruction::MOD:
-            std::println("{} MOD   r{} {}", prefix, triplet.dst, 
-                    triplet.items[0].get_string());
-            break;
-
-        case Instruction::MUL:
-            std::println("{} MUL   r{} {}", prefix, triplet.dst, 
-                    triplet.items[0].get_string());
-            break;
-       
-        case Instruction::NEG:
-            std::println("{} NEG   r{}", prefix, triplet.dst);
-            break;
-        case Instruction::DEREF:
-            std::println("{} DEREF r{} {}", prefix, triplet.dst, triplet.items[0].get_string());
-            break;
-
-        case Instruction::IS_EQUAL:
-            std::println("{} CEQU  r{} {}", prefix, triplet.dst, 
-                    triplet.items[0].get_string());
-            break;
-        case Instruction::NOT_EQUAL:
-            std::println("{} CNEQU r{} {}", prefix, triplet.dst, 
-                    triplet.items[0].get_string());
-            break;
-        case Instruction::GREATER_THAN:
-            std::println("{} CGT   r{} {}", prefix, triplet.dst, 
-                    triplet.items[0].get_string());
-            break;
-        case Instruction::GREATER_OR_EQUAL_THAN:
-            std::println("{} CGTE  r{} {}", prefix, triplet.dst, 
-                    triplet.items[0].get_string());
-            break;
-        case Instruction::LESS_THAN:
-            std::println("{} CLT   r{} {}", prefix, triplet.dst, 
-                    triplet.items[0].get_string());
-            break;
-        case Instruction::LESS_OR_EQUAL_THAN:
-            std::println("{} CLTE  r{} {}", prefix, triplet.dst, 
-                    triplet.items[0].get_string());
-            break;
-
-        case Instruction::STORE:
-            std::println("{} STORE r{} {}", prefix,
-                    triplet.dst, triplet.items[0].get_string());  
-            break;
-        case Instruction::PUSH:
-            std::println("{} PUSH  r{}", prefix,
-                    triplet.dst);  
-            break;
-        case Instruction::ALIGN:
-            std::println("{} ALIGN {}", prefix,
-                    triplet.items[0].get_string());  
-            break;
-        case Instruction::IF:
-            std::println("{} IF    r{} {}", prefix, triplet.items[1].value, triplet.items[0].value);  
-            break;
-        case Instruction::ELSE:
-            std::println("{} ELSE   {}", prefix, triplet.items[0].value);  
-            break;
-        case Instruction::ENDIF:
-            std::println("{} ENDIF  {}", prefix, triplet.items[0].value);  
-            break;
-        case Instruction::WHILE:
-            std::println("{} WHILE  {}", prefix, triplet.items[0].value);  
-            break;
-        case Instruction::WHILE_JUMPEND:
-            std::println("{} WHIJZ r{} {}", prefix, triplet.items[1].value, triplet.items[0].value);  
-            break;
-        case Instruction::ENDWHILE:
-            std::println("{} ENDWH  {}", prefix, triplet.items[0].value);  
-            break;
-        case Instruction::BITWISE_AND:
-            std::println("{} BTAND r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
-            break;
-        case Instruction::BITWISE_OR:
-            std::println("{} BTOR  r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
-            break;
-        case Instruction::BITWISE_XOR:
-            std::println("{} BTXOR r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
-            break;
-        case Instruction::LOGICAL_AND_TEST_LEFT:
-            std::println("{} LEAND {}", prefix, triplet.items[0].get_string());  
-            break;
-        case Instruction::LOGICAL_AND_TEST_RIGHT:
-            std::println("{} RIAND {}", prefix, triplet.items[0].get_string());  
-            break;
-        case Instruction::LOGICAL_OR_TEST_LEFT:
-            std::println("{} LEOR  {}", prefix, triplet.items[0].get_string());  
-            break;
-        case Instruction::LOGICAL_OR_TEST_RIGHT:
-            std::println("{} RIOR {}", prefix, triplet.items[0].get_string());  
-            break;
-        case Instruction::CONVERTF32TOF64:
-            std::println("{} F4TF8 r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
-            break;
-        case Instruction::CONVERTF64TOF32:
-            std::println("{} F8TF4 r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
-            break;
-        case Instruction::CONVERTI64TOF64:
-            std::println("{} I8TF8 r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
-            break;
-        case Instruction::CONVERTI64TOF32:
-            std::println("{} I8TF4 r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
-            break;
-        case Instruction::CONVERTF64TOI64:
-            std::println("{} F8TI8 r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
-            break;
-        case Instruction::CONVERTF32TOI64:
-            std::println("{} F4TI8 r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
-            break;
-        case Instruction::SIGNEXTENDTOI64:
-            std::println("{} MVSX8 r{} {}", prefix, triplet.dst, triplet.items[0].get_string());  
-            break;
-
-            
-
-      default:
-        std::println("Instruction not implemented");
+    for (auto& ir_function : ir_unit.ir_functions)
+    {
+        std::println("{}():", ir_function.name);
+        size_t instruction_number = 1;
+        for (auto& inst : ir_function.instructions)
+        {
+            print_ir_instruction(inst, instruction_number++);
+        }
     }
 }
 
-
-
-}
+} // namespace hx

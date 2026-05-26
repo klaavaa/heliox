@@ -18,7 +18,7 @@ void insert_variable_symbol(sptr<SymbolTable> table, const std::string& name, co
     table->variable_symbols.insert({name, symbol});
 }
 
-void insert_function_symbol(sptr<SymbolTable> table, const std::string& name, const type_data& return_type, const std::vector<type_data>& parameter_types, bool has_varargs, const std::vector<std::string>& module_path, std::string_view filename, uint32_t line_number, uint32_t position)
+void insert_function_symbol(sptr<SymbolTable> table, const std::string &name, const type_data &return_type, const std::vector<type_data> &parameter_types, bool has_varargs, const std::vector<std::string> &module_path, std::string_view filename, uint32_t line_number, uint32_t position)
 {
     if (table->function_symbols.contains(name))
     {
@@ -28,10 +28,10 @@ void insert_function_symbol(sptr<SymbolTable> table, const std::string& name, co
     table->function_symbols.insert({name, symbol});
 }
 
-sptr<SymbolTable> find_submodule_table(sptr<SymbolTable> table, const std::vector<std::string>& module_path)
+sptr<SymbolTable> find_submodule_table(sptr<SymbolTable> table, const std::vector<std::string> &module_path)
 {
     sptr<SymbolTable> current_table = table;
-    for (const auto& module_name : module_path)
+    for (const auto &module_name : module_path)
     {
         if (!current_table->submodule_tables.contains(module_name))
         {
@@ -42,9 +42,10 @@ sptr<SymbolTable> find_submodule_table(sptr<SymbolTable> table, const std::vecto
     return current_table;
 }
 
-sptr<SymbolTable> get_or_create_submodule_table(sptr<SymbolTable> table, const std::string& module_name)
+sptr<SymbolTable> get_or_create_submodule_table(sptr<SymbolTable> table, const std::string &module_name)
 {
-    if (module_name.empty()) return table;
+    if (module_name.empty())
+        return table;
     if (table->submodule_tables.contains(module_name))
     {
         return table->submodule_tables.at(module_name);
@@ -67,10 +68,9 @@ void insert_module(sptr<SymbolTable> table, sptr<Module> module)
     {
         insert_module(submodule_table, submodule);
     }
-
 }
 
-FunctionSymbol find_function_symbol(sptr<SymbolTable> table, const std::string& name, const std::vector<std::string>& module_path, bool find_in_parent_modules)
+FunctionSymbol& find_function_symbol(sptr<SymbolTable> table, const std::string& name, const std::vector<std::string>& module_path, bool find_in_parent_modules)
 {
     sptr<SymbolTable> submodule_table = find_submodule_table(table, module_path);
     do

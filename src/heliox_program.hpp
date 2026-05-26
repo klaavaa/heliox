@@ -104,11 +104,13 @@ namespace hx
 
     struct TranslationUnit
     {
-        TranslationUnit(sptr<Module> global_module, std::vector<uptr<import_statement>> imports)
-            : global_module(std::move(global_module)), imports(std::move(imports)) {}
+        TranslationUnit(sptr<Module> global_module, std::vector<uptr<import_statement>> imports, std::string_view filename)
+            : global_module(std::move(global_module)), imports(std::move(imports)), filename(filename) {}
         
         sptr<Module> global_module;
         std::vector<uptr<import_statement>> imports;
+
+        std::string_view filename;
     };
 
     struct Program 
