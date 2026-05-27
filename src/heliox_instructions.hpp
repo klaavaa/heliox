@@ -65,6 +65,7 @@ struct IRInstruction
 struct IRFunction
 {
     std::string name;
+    bool is_extern;
     std::vector<IRInstruction> instructions{};
 };
 

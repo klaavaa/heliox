@@ -330,6 +330,14 @@ expression Parser::parse_expression_from_primary(expression primary, uint32_t mi
             get_binop_precedence_level(m_current_token.type) >= min_precedence)
     {
         TokenType op = m_current_token.type;
+        if (is_equals_operator(op))
+        {
+            if (equal_sign_in_current_expression)
+            {
+                Logger::error(m_current_token, HX_MULTIPLE_EQUAL_SIGNS_IN_EXPRESSION, "Multiple equal signs in expression");
+            }
+            equal_sign_in_current_expression = true;
+        }
         uint32_t op_precedence = get_binop_precedence_level(op);
         eat(op);
         expression rhs = parse_unary();
@@ -346,6 +354,7 @@ expression Parser::parse_expression_from_primary(expression primary, uint32_t mi
             rhs = parse_expression_from_primary(std::move(rhs), new_precedence);
 
         }
+
         lhs = make_node<binop_expr>(std::move(lhs), std::move(rhs), op);
     }
     return lhs;
@@ -405,6 +414,7 @@ statement Parser::parse_statement()
                     return parse_type_statement();
                 }
             }
+            equal_sign_in_current_expression = false;
             expression expr = parse_expression();
             eat(TokenType::SEMICOLON);
             return make_node<expression_statement>(std::move(expr));
@@ -478,6 +488,7 @@ statement Parser::parse_type_statement()
     if (m_current_token.type == TokenType::EQU)
     {
         eat(TokenType::EQU);
+        equal_sign_in_current_expression = true;
         expression definition = parse_expression();
         eat(TokenType::SEMICOLON);
         return make_node<variable_definition_statement>

@@ -18,8 +18,9 @@ public:
 
 private:
     void emit_instruction(const IRInstruction& instruction, int64_t inc = 1, bool set_effective = true);
-    void emit_assignment(expression& left_side, expression& right_side);
-
+    void emit_assignment(TokenType op_token, expression& left_side, expression& right_side);
+    int64_t unwrap_assigment(TokenType op_token, int64_t left_register, int64_t right_register);
+        
     IRInstructionType get_ir_binop_instruction(TokenType op_token, int64_t left_register);
 
     void register_vr_type(int64_t vr, const type_data& type);
@@ -58,8 +59,6 @@ private:
 
     int64_t current_register = 0;
     int64_t effective_register = 0;
-
-    bool parsing_lvalue = false;
 };
 
 

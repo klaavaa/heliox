@@ -68,6 +68,9 @@ inline void compile(const std::vector<std::string>& file_paths, const std::strin
         auto unit = instruction_gen.generate_instructions();
         
         print_ir_unit(unit);
+
+        // liveness analysis
+        
     }
 
     

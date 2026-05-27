@@ -63,6 +63,7 @@ void InstructionGenerator::visit_function(uptr<function>& func)
 {
     IRFunction ir_func;
     ir_func.name = get_module_prefix() + func->identifier->name;
+    ir_func.is_extern = func->is_extern;
 
     current_table = add_child_table(global_table, ir_func.name);
    
@@ -185,21 +186,28 @@ void InstructionGenerator::visit_variable_definition(uptr<variable_definition_st
     emit_instruction(store, 0, false);
 }
 
-void InstructionGenerator::emit_assignment(expression& left_side, expression& right_side)
+int64_t InstructionGenerator::unwrap_assigment(TokenType op_token, int64_t left_register, int64_t right_register)
+{
+
+    // maybe do this shit in the parser, problem is that they are all unique ptrs Q_Q
+    Logger::not_implemented();
+
+}
+void InstructionGenerator::emit_assignment(TokenType op_token, expression& left_side, expression& right_side)
 {
     visit_expression(right_side);
     int64_t right_register = effective_register;
 
+
     std::visit(
         overloads{
-        [this, right_register](uptr<identifier_literal_expr>& identifier)
+        [this, op_token, &right_register](uptr<identifier_literal_expr>& identifier)
         {
             const VariableSymbol& var_sym = find_variable_symbol(current_table, identifier);
-            
             IRInstruction write_var(IRInstructionType::MOV, var_sym.virtual_register, right_register, -1);
             emit_instruction(write_var, 0);
         },
-        [this, right_register](uptr<unary_expr>& unary) 
+        [this, op_token, &right_register](uptr<unary_expr>& unary) 
         {
             if (unary->op_token != TokenType::MULTIPLY)
             {
@@ -262,7 +270,7 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
     if (is_equals_operator(binop->op_token))
     {
         // todo += -= etc (maybe unwrap in parser?)
-        emit_assignment(binop->left, binop->right);
+        emit_assignment(binop->op_token, binop->left, binop->right);
         return;
     }
 

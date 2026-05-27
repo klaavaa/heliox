@@ -66,5 +66,6 @@ private:
 
     uint32_t relevant_line;
     uint32_t relevant_position;
+    bool equal_sign_in_current_expression = false;
 };
 }

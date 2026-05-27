@@ -2,7 +2,7 @@
 #include <string>
 #include <cstdint>
 #include <print>
-#include "heliox_tools.hpp"
+#include <source_location>
 #include "heliox_token.hpp"
 #include "heliox_ast_node.hpp"
 
@@ -21,6 +21,7 @@
 #define HX_NOT_PRIMITIVE_TYPE 101
 #define HX_UNEXPECTED_TOKEN 102
 #define HX_UNEXPECTED_KEYWORD 103
+#define HX_MULTIPLE_EQUAL_SIGNS_IN_EXPRESSION 104
 
 #define HX_SYMBOL_REDEFINITION 200
 #define HX_SYMBOL_NOT_FOUND 201
@@ -49,6 +50,12 @@ public:
 	[[noreturn]] static void error(const ast_node& node, int error_code, std::string_view info);
 
 	static void warning(Token& token, int warning_code,std::string_view info);
+
+	[[noreturn]] static void not_implemented(std::source_location location = std::source_location::current())
+	{
+		std::println(stderr, "{}({}:{}): {}: NOT IMPLEMENTED", location.file_name(), location.line(), location.column(), location.function_name());
+		exit(-1);
+	}
 
 	template<typename... Args>
 	static void info(std::string_view info, Args&&... args)
