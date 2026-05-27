@@ -127,6 +127,22 @@ struct LiveRange
     size_t end;
 };
 
+struct RegisterReservation
+{
+    static RegisterReservation Stack() { return RegisterReservation{.on_stack = true};}
+    static RegisterReservation Reg(Register reg) { return RegisterReservation{.reg = reg};}
+
+    union{
+    // force the vr to go to stack
+    bool on_stack;
+    // register that the vr will always map to
+    Register reg;
+    };
+    // other registers that will get reserved also (for example for idiv rdx etc.)
+    std::vector<Register> non_vr_regs;
+
+};
+
 struct IRFunction
 {
     std::string name;
@@ -135,6 +151,8 @@ struct IRFunction
     std::unordered_map<int64_t, type_data> virtual_register_types;
     std::map<int64_t, LiveRange> live_ranges;
     std::unordered_map<int64_t, Location> virtual_register_locations;
+
+    std::map<int64_t, RegisterReservation> register_reservations;
 
     int64_t total_stack_allocated = 0;
 };
@@ -204,16 +222,19 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
             break;
 
         case IRInstructionType::IADD:
-            std::println("{}  IADD       r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            std::println("{}  IADD       r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+
             break;
         case IRInstructionType::ISUB:
-            std::println("{}  ISUB       r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            std::println("{}  ISUB       r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+
             break;
         case IRInstructionType::IMUL:
-            std::println("{}  IMUL       r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            std::println("{}  IMUL       r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+
             break;
         case IRInstructionType::IDIV:
-            std::println("{}  IDIV       r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            std::println("{}  IDIV       r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
 
         case IRInstructionType::DEREF:

@@ -288,9 +288,9 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
 
     IRInstructionType instruction_type = get_ir_binop_instruction(binop->op_token, left_register);
 
-    IRInstruction binop_inst(instruction_type, left_register, right_register, IROperand::None());
-    emit_instruction(binop_inst, 0);
-    effective_register = left_register;
+    IRInstruction binop_inst(instruction_type, current_register, left_register, right_register);
+    register_vr_type(current_register, left_register);
+    emit_instruction(binop_inst);
 
 }
 

@@ -73,6 +73,8 @@ inline void compile(const std::vector<std::string>& file_paths, const std::strin
         // generate live-ranges for virtual registers
         perform_liveness_analysis_on_unit(ir_unit);
 
+        // preallocate certain registers / stack
+
         // perform register allocation
         RegisterAllocator register_allocator;
         register_allocator.allocate_registers(ir_unit);

@@ -2,7 +2,7 @@
 #include <print>
 #include <array> 
 #include <vector>
-#include <unordered_set>
+#include <set>
 #include <utility>
 #include "heliox_types.hpp"
 
@@ -26,9 +26,10 @@ enum class RegisterSize
 struct RegisterData
 {
     // R11 SCRATCH REGISTER 
-    std::unordered_set<Register> available_general_purpose_registers = {Register::A, Register::B, Register::C,
-            Register::D, Register::DI, Register::SI, Register::R8, Register::R9, Register::R10, Register::R11,
-            Register::R12, Register::R13, Register::R14, Register::R15};
+    std::set<Register> available_general_purpose_registers = {Register::A, Register::B};
+    //std::set<Register> available_general_purpose_registers = {Register::A, Register::B, Register::C,
+    //        Register::D, Register::DI, Register::SI, Register::R8, Register::R9, Register::R10, Register::R11,
+    //        Register::R12, Register::R13, Register::R14, Register::R15};
     
     //RegisterBitSet available_xmm_registers = RegisterBitSet(
     //        {Register::XMM0, Register::XMM1, Register::XMM2, Register::XMM3, Register::XMM4, Register::XMM5,

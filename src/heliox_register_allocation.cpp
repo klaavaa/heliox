@@ -23,7 +23,6 @@ void RegisterAllocator::allocate_stack(IRFunction& ir_function, const int64_t vr
 void RegisterAllocator::allocate_register(IRFunction& ir_function, const int64_t vr, Register reg)
 {
     ir_function.virtual_register_locations.insert({vr, Location::Reg(reg)});
-    gp_free_registers.erase(reg);
     active_virtual_registers.push_back(vr);
 }
 
@@ -66,23 +65,66 @@ void RegisterAllocator::spill(IRFunction& ir_function, const int64_t current_vr)
         ir_function.virtual_register_locations.erase(vr_spill);
         allocate_stack(ir_function, vr_spill);
         active_virtual_registers.push_back(current_vr);
-
         return;
     }
 
     allocate_stack(ir_function, current_vr);
 }
 
+std::set<Register> RegisterAllocator::get_pre_reserved_registers(IRFunction& ir_function, int64_t current_vr)
+{
+    std::set<Register> pre_reserved_registers;
+    const auto& current_live_range = ir_function.live_ranges.at(current_vr);
+
+    for (const auto& [vr, val] : ir_function.register_reservations)
+    {
+        if (val.on_stack) continue;
+        const auto& live_range = ir_function.live_ranges.at(vr);
+        if (current_live_range.start > live_range.end || current_live_range.end < live_range.start)
+            continue;
+        
+        pre_reserved_registers.insert(val.reg);
+        for (auto r : val.non_vr_regs)
+        {
+            pre_reserved_registers.insert(r);
+        }
+    }
+    return pre_reserved_registers;
+}
+
 void RegisterAllocator::allocate_registers(IRFunction& ir_function)
 {
-    std::vector<int64_t> active_virtual_registers;
-
-    gp_free_registers = g_register_data.available_general_purpose_registers;
+    active_virtual_registers.clear();
 
     for (auto [vr, live_range] : ir_function.live_ranges)
     {
+
+        if (ir_function.register_reservations.contains(vr))
+        {
+            if (ir_function.register_reservations.at(vr).on_stack)
+            {
+                allocate_stack(ir_function, vr);
+            }
+            continue;
+        }
+
         expire_old_intervals(ir_function, vr);
-        if (active_virtual_registers.size() == g_register_data.available_general_purpose_registers.size())
+
+        // erases pre-reserved registers from the available register pool
+        auto gp_pre_reserved_registers = get_pre_reserved_registers(ir_function, vr);
+        gp_free_registers.clear();
+        std::set_difference(g_register_data.available_general_purpose_registers.begin(), g_register_data.available_general_purpose_registers.end(),
+         gp_pre_reserved_registers.begin(), gp_pre_reserved_registers.end(), std::inserter(gp_free_registers, gp_free_registers.end()));
+
+        // erases currently reserved registers from the available register pool
+        for (int64_t active_vr : active_virtual_registers)
+        {
+            gp_free_registers.erase(ir_function.virtual_register_locations.at(active_vr).reg);
+        }
+
+        
+
+        if (gp_free_registers.size() == 0)
         {
             spill(ir_function, vr);
             continue;
@@ -97,9 +139,38 @@ void RegisterAllocator::allocate_registers(IRUnit& ir_unit)
 {
     for (auto& ir_func : ir_unit.ir_functions)
     {
+        preallocate_registers(ir_func);
         allocate_registers(ir_func);
     }
 }
 
+
+void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
+{
+    for (auto& instruction : ir_function.instructions)
+    {
+        switch (instruction.type)
+        {
+        case IRInstructionType::IDIV:
+            preallocate_register(ir_function, instruction.src1.value, Register::A, {Register::D});
+            break;
+        }
+
+
+    }
+}
+
+void RegisterAllocator::preallocate_register(IRFunction& ir_function, const int64_t vr, Register reg, std::vector<Register> non_vr_regs)
+{
+    RegisterReservation res = RegisterReservation::Reg(reg);
+    res.non_vr_regs = non_vr_regs;
+    ir_function.register_reservations.insert({vr, res});
+    ir_function.virtual_register_locations.insert({vr, Location::Reg(reg)});
+}
+void RegisterAllocator::preallocate_stack(IRFunction& ir_function, const int64_t vr)
+{
+    RegisterReservation res = RegisterReservation::Stack();
+    ir_function.register_reservations.insert({vr, res});
+}
 
 } // namespace hx
