@@ -10,6 +10,7 @@
 
 #include "heliox_symbol_table.hpp"
 #include "heliox_instruction_gen.hpp"
+#include "heliox_liveness_analysis.hpp"
 
 
 
@@ -70,7 +71,15 @@ inline void compile(const std::vector<std::string>& file_paths, const std::strin
         print_ir_unit(unit);
 
         // liveness analysis
+        perform_liveness_analysis_on_unit(unit);        
         
+        for (auto& f: unit.ir_functions)
+        {
+            for (auto [k, v] : f.live_ranges)
+            {
+                std::println("r{}: [{} -> {}]", k, v.start+1, v.end+1);
+            }
+        }
     }
 
     

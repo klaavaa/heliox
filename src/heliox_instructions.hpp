@@ -7,6 +7,8 @@
 #include "heliox_registerdata.hpp"
 #include "heliox_types.hpp"
 
+
+
 namespace hx
 {
 
@@ -49,31 +51,77 @@ struct AllocatedLiteral
     std::string value;
 };
 
+enum class IROperandKind
+{
+    NONE,
+    VIRTUAL_REGISTER,
+    IMMEDIATE_VALUE,
+    LITERAL_LOCATION,
+    ARG_NUMBER,
+};
+
+struct IROperand
+{
+    IROperand(IROperandKind _kind, int64_t _value) : kind(_kind), value(_value) {}
+
+    static IROperand none()
+    {
+        return {IROperandKind::NONE, -1};
+    }
+    static IROperand vr(int64_t val)
+    {
+        return {IROperandKind::VIRTUAL_REGISTER, val};
+    }
+    static IROperand immediate(int64_t val)
+    {
+        return {IROperandKind::IMMEDIATE_VALUE, val};
+    }
+    static IROperand arg(int64_t val)
+    {
+        return {IROperandKind::ARG_NUMBER, val};
+    }
+    static IROperand literal(int64_t val)
+    {
+        return {IROperandKind::LITERAL_LOCATION, val};
+    }
+
+
+    IROperandKind kind;
+    int64_t value;
+};
+
 struct IRInstruction
 {
-    IRInstruction(IRInstructionType _type, int64_t _dst, int64_t _src1, int64_t _src2)
+    IRInstruction(IRInstructionType _type, IROperand _dst, IROperand _src1, IROperand _src2)
     : type(_type), dst(_dst), src1(_src1), src2(_src2) {}
     
     IRInstructionType type;
     
-    int64_t dst; 
-    int64_t src1;
-    int64_t src2;
+    IROperand dst; 
+    IROperand src1;
+    IROperand src2;
 };
 
+struct LiveRange
+{
+    LiveRange(size_t _start, size_t _end) : start(_start), end(_end) {}
+    size_t start;
+    size_t end;
+};
 
 struct IRFunction
 {
     std::string name;
     bool is_extern;
     std::vector<IRInstruction> instructions{};
+    std::unordered_map<int64_t, type_data> virtual_register_types;
+    std::unordered_map<int64_t, LiveRange> live_ranges;
 };
 
 struct IRUnit
 {
     std::vector<IRFunction> ir_functions;
     std::unordered_map<size_t, AllocatedLiteral> allocated_literals;
-    std::unordered_map<int64_t, type_data> virtual_register_types;
 
     size_t allocate_string_literal(const std::string& value)
     {
@@ -91,8 +139,20 @@ struct IRUnit
     }
 
 };
+} // namespace hx
 
+template<>
+struct std::formatter<hx::IROperand> : std::formatter<std::string_view> {
+    auto format(const hx::IROperand& op, format_context& ctx) const {
+        return std::formatter<std::string_view>::format(
+            std::to_string(op.value),
+            ctx
+        );
+    }
+};
 
+namespace hx
+{
 inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instruction_number)
 {
     std::string prefix = std::format("{:3}", instruction_number);
@@ -159,3 +219,4 @@ inline void print_ir_unit(IRUnit& ir_unit)
 }
 
 } // namespace hx
+

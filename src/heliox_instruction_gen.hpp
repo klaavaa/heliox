@@ -19,14 +19,14 @@ public:
 private:
     void emit_instruction(const IRInstruction& instruction, int64_t inc = 1, bool set_effective = true);
     void emit_assignment(TokenType op_token, expression& left_side, expression& right_side);
-    int64_t unwrap_assigment(TokenType op_token, int64_t left_register, int64_t right_register);
+    int64_t unwrap_assigment(TokenType op_token, IROperand left_register, IROperand right_register);
         
-    IRInstructionType get_ir_binop_instruction(TokenType op_token, int64_t left_register);
+    IRInstructionType get_ir_binop_instruction(TokenType op_token, IROperand left_register);
 
-    void register_vr_type(int64_t vr, const type_data& type);
-    void register_vr_type(int64_t vr, int64_t from_vr);
+    void register_vr_type(IROperand vr, const type_data& type);
+    void register_vr_type(IROperand vr, IROperand from_vr);
 
-    const type_data& get_vr_type(int64_t vr) const;
+    const type_data& get_vr_type(IROperand vr) const;
 
     std::string get_module_prefix() const;
 
@@ -55,10 +55,10 @@ private:
     sptr<SymbolTable> current_table;
 
     IRUnit ir_unit;
-    std::vector<IRInstruction> current_instructions;
+    IRFunction current_function;
 
-    int64_t current_register = 0;
-    int64_t effective_register = 0;
+    IROperand current_register = {IROperandKind::VIRTUAL_REGISTER, 0};
+    IROperand effective_register = {IROperandKind::VIRTUAL_REGISTER, 0};
 };
 
 
