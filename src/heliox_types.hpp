@@ -99,11 +99,15 @@ struct type_data
         : type(other.type), ptr_depth(other.ptr_depth), byte_size(other.byte_size)
     { }
 
-    //type_data(primitive_type type)
-    //    : type(type), ptr_depth(0)
-    //{
-    //    byte_size = get_byte_size_from_known_type(type);
-    //}
+
+    type_data deref() const
+    {
+        if (ptr_depth == 0)
+        {
+            Logger::error("", HX_ILLEGAL_DEREF, "Cannot dereference non-pointer type");
+        }
+        return type_data(type, ptr_depth - 1);
+    }
 
     friend bool operator!=(const type_data& left, const type_data& right)
     {

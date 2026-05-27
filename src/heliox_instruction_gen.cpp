@@ -238,6 +238,15 @@ IRInstructionType InstructionGenerator::get_ir_binop_instruction(TokenType op_to
     case TokenType::PLUS:
         ir_instruction_type = IRInstructionType::IADD;
         break;
+    case TokenType::MINUS:
+        ir_instruction_type = IRInstructionType::ISUB;
+        break;
+    case TokenType::MULTIPLY:
+        ir_instruction_type = IRInstructionType::IMUL;
+        break;
+    case TokenType::DIVIDE:
+        ir_instruction_type = IRInstructionType::IDIV;
+        break;
     default:
         goto unknown_binop_operator;
     }
@@ -281,6 +290,13 @@ void InstructionGenerator::visit_unary(uptr<unary_expr>& unary)
 
     switch (unary->op_token)
     {
+    case TokenType::MULTIPLY:
+    {
+        IRInstruction deref(IRInstructionType::DEREF, current_register, effective_register, -1);
+        register_vr_type(current_register, get_vr_type(effective_register).deref());
+        emit_instruction(deref);
+        break;
+    }
     default:
         Logger::error(*unary, HX_UNKNOWN_OPERATOR, "Unknown unary operator");
     }

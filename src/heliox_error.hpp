@@ -34,6 +34,8 @@
 
 #define HX_ILLEGAL_ASSIGNMENT 369
 
+#define HX_ILLEGAL_DEREF 380
+
 namespace hx 
 {
 

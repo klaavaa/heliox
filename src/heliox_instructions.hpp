@@ -26,6 +26,7 @@ enum class IRInstructionType
     // function argument  src1 = arg to push, src2 = arg index
     MOV_ARG,
 
+    DEREF,
 
     IADD,
     ISUB,
@@ -123,7 +124,19 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
         case IRInstructionType::IADD:
             std::println("{}  IADD       r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
+        case IRInstructionType::ISUB:
+            std::println("{}  ISUB       r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
+        case IRInstructionType::IMUL:
+            std::println("{}  IMUL       r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
+        case IRInstructionType::IDIV:
+            std::println("{}  IDIV       r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
 
+        case IRInstructionType::DEREF:
+            std::println("{}  DEREF      r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
 
         default:
             std::println("instruction {} not implemented yet", static_cast<int>(ir_instruction.type));
