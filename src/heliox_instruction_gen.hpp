@@ -14,8 +14,6 @@ public:
 
     IRUnit generate_instructions();
 
-
-
 private:
     void emit_instruction(const IRInstruction& instruction, int64_t inc = 1, bool set_effective = true);
     void emit_assignment(TokenType op_token, expression& left_side, expression& right_side);

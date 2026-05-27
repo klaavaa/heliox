@@ -6,6 +6,8 @@ namespace hx
 
 void perform_liveness_analysis_on_function(IRFunction& ir_function)
 {
+    //todo LOOP
+
     size_t instruction_number = 0;
     for (const auto& instruction : ir_function.instructions)
     {

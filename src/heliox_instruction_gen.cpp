@@ -11,6 +11,7 @@ InstructionGenerator::InstructionGenerator(uptr<TranslationUnit> _translation_un
 IRUnit InstructionGenerator::generate_instructions()
 {
     visit_module(translation_unit->global_module);
+
     return ir_unit;
 }
 
@@ -108,7 +109,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
 
     // call instruction
     int64_t name_id = (int64_t)ir_unit.allocate_function_name(function_call->identifier->get_full_name());
-    IRInstruction call_instruction(IRInstructionType::FUNCTION_CALL, current_register, IROperand::literal(name_id), IROperand::none());
+    IRInstruction call_instruction(IRInstructionType::FUNCTION_CALL, current_register, IROperand::Literal(name_id), IROperand::None());
     register_vr_type(current_register, func_symbol.return_type);
     emit_instruction(call_instruction);
 
@@ -136,14 +137,14 @@ void InstructionGenerator::visit_expression_s(uptr<expression_statement>& expr)
 void InstructionGenerator::visit_string_literal(uptr<string_literal_expr>& string_literal) 
 {
     int64_t literal_location = (int64_t)ir_unit.allocate_string_literal(string_literal->value);
-    IRInstruction load_string(IRInstructionType::LOAD_MEM_INDEX, current_register, IROperand::literal(literal_location), IROperand::none());
+    IRInstruction load_string(IRInstructionType::LOAD_MEM_INDEX, current_register, IROperand::Literal(literal_location), IROperand::None());
     register_vr_type(current_register, type_data{primitive_type::U8, 1});
     emit_instruction(load_string);
 }
 void InstructionGenerator::visit_int_literal(uptr<int_literal_expr>& int_literal) 
 {
     int64_t int_value = std::stoll(int_literal->value);
-    IRInstruction load_int(IRInstructionType::LOAD_IMMEDIATE, current_register, IROperand::immediate(int_value), IROperand::none());
+    IRInstruction load_int(IRInstructionType::LOAD_IMMEDIATE, current_register, IROperand::Immediate(int_value), IROperand::None());
     register_vr_type(current_register, type_data{primitive_type::I64, 0});
     emit_instruction(load_int);
 }
@@ -152,7 +153,7 @@ void InstructionGenerator::visit_identifier_literal(uptr<identifier_literal_expr
 {
     const VariableSymbol& var_sym = find_variable_symbol(current_table, identifier_literal);
     
-    IRInstruction mov(IRInstructionType::MOV, current_register, IROperand::vr(var_sym.virtual_register), IROperand::none());
+    IRInstruction mov(IRInstructionType::MOV, current_register, IROperand::Vr(var_sym.virtual_register), IROperand::None());
     register_vr_type(current_register, mov.src1);
     emit_instruction(mov);
 }
@@ -161,7 +162,7 @@ void InstructionGenerator::visit_return(uptr<return_statement>& return_s)
 {
     // todo check current function return type
     visit_expression(return_s->return_expression);
-    IRInstruction return_inst(IRInstructionType::RETURN, current_register, effective_register, IROperand::none());
+    IRInstruction return_inst(IRInstructionType::RETURN, current_register, effective_register, IROperand::None());
     register_vr_type(current_register, effective_register);
     emit_instruction(return_inst);
 }
@@ -183,7 +184,7 @@ void InstructionGenerator::visit_variable_definition(uptr<variable_definition_st
     IROperand expression_vr = effective_register;
     visit_variable_declaration(variable_definition->declaration);
     const VariableSymbol& var_symbol = find_variable_symbol(current_table, variable_definition->declaration->var_identifier);
-    IRInstruction store(IRInstructionType::MOV, IROperand::vr(var_symbol.virtual_register), expression_vr, IROperand::none());
+    IRInstruction store(IRInstructionType::MOV, IROperand::Vr(var_symbol.virtual_register), expression_vr, IROperand::None());
     emit_instruction(store, 0, false);
 }
 
@@ -205,7 +206,7 @@ void InstructionGenerator::emit_assignment(TokenType op_token, expression& left_
         [this, op_token, &right_register](uptr<identifier_literal_expr>& identifier)
         {
             const VariableSymbol& var_sym = find_variable_symbol(current_table, identifier);
-            IRInstruction write_var(IRInstructionType::MOV, IROperand::vr(var_sym.virtual_register), right_register, IROperand::none());
+            IRInstruction write_var(IRInstructionType::MOV, IROperand::Vr(var_sym.virtual_register), right_register, IROperand::None());
             emit_instruction(write_var, 0);
         },
         [this, op_token, &right_register](uptr<unary_expr>& unary) 
@@ -216,7 +217,7 @@ void InstructionGenerator::emit_assignment(TokenType op_token, expression& left_
             }
 
             visit_expression(unary->expr);
-            IRInstruction write_mem(IRInstructionType::STORE_MEM, effective_register, right_register, IROperand::none());
+            IRInstruction write_mem(IRInstructionType::STORE_MEM, effective_register, right_register, IROperand::None());
             emit_instruction(write_mem, 0, false);
             
         },
@@ -287,7 +288,7 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
 
     IRInstructionType instruction_type = get_ir_binop_instruction(binop->op_token, left_register);
 
-    IRInstruction binop_inst(instruction_type, left_register, right_register, IROperand::none());
+    IRInstruction binop_inst(instruction_type, left_register, right_register, IROperand::None());
     emit_instruction(binop_inst, 0);
     effective_register = left_register;
 
@@ -301,7 +302,7 @@ void InstructionGenerator::visit_unary(uptr<unary_expr>& unary)
     {
     case TokenType::MULTIPLY:
     {
-        IRInstruction deref(IRInstructionType::DEREF, current_register, effective_register, IROperand::none());
+        IRInstruction deref(IRInstructionType::DEREF, current_register, effective_register, IROperand::None());
         register_vr_type(current_register, get_vr_type(effective_register).deref());
         emit_instruction(deref);
         break;

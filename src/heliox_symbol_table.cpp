@@ -2,10 +2,6 @@
 
 namespace hx {
 
-int64_t align_up(int64_t offset, int64_t align)
-{
-    return (offset + align - 1) & ~(align - 1);
-}
 
 void insert_variable_symbol(sptr<SymbolTable> table, const std::string& name, int64_t virtual_register, const type_data& data_type, std::string_view filename, uint32_t line_number, uint32_t position)
 {

@@ -11,6 +11,7 @@
 #include "heliox_symbol_table.hpp"
 #include "heliox_instruction_gen.hpp"
 #include "heliox_liveness_analysis.hpp"
+#include "heliox_register_allocation.hpp"
 
 
 
@@ -64,22 +65,19 @@ inline void compile(const std::vector<std::string>& file_paths, const std::strin
         // the imports are handled here by fetching imported symbols from program's global module
         auto global_table = create_global_table_for_translation_unit(tu, program);
 
-        // generate IR 
+        // generate IR instructions
         InstructionGenerator instruction_gen(std::move(tu), global_table);
-        auto unit = instruction_gen.generate_instructions();
         
-        print_ir_unit(unit);
+        IRUnit ir_unit = instruction_gen.generate_instructions();
 
-        // liveness analysis
-        perform_liveness_analysis_on_unit(unit);        
-        
-        for (auto& f: unit.ir_functions)
-        {
-            for (auto [k, v] : f.live_ranges)
-            {
-                std::println("r{}: [{} -> {}]", k, v.start+1, v.end+1);
-            }
-        }
+        // generate live-ranges for virtual registers
+        perform_liveness_analysis_on_unit(ir_unit);
+
+        // perform register allocation
+        RegisterAllocator register_allocator;
+        register_allocator.allocate_registers(ir_unit);
+
+        print_ir_unit(ir_unit);
     }
 
     

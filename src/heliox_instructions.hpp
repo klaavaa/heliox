@@ -39,6 +39,24 @@ enum class IRInstructionType
 
 };
 
+enum class LocationKind
+{
+    REGISTER,
+    STACK
+};
+
+struct Location
+{
+    static Location Reg(Register r) { return {.kind = LocationKind::REGISTER, .reg = r };}
+    static Location Stack(int64_t offset) { return {.kind = LocationKind::STACK, .stack = offset };}
+
+    LocationKind kind;
+    union {
+        Register reg;
+        int64_t stack;
+    };
+};
+
 enum class LiteralType
 {
     STRING,
@@ -64,23 +82,23 @@ struct IROperand
 {
     IROperand(IROperandKind _kind, int64_t _value) : kind(_kind), value(_value) {}
 
-    static IROperand none()
+    static IROperand None()
     {
         return {IROperandKind::NONE, -1};
     }
-    static IROperand vr(int64_t val)
+    static IROperand Vr(int64_t val)
     {
         return {IROperandKind::VIRTUAL_REGISTER, val};
     }
-    static IROperand immediate(int64_t val)
+    static IROperand Immediate(int64_t val)
     {
         return {IROperandKind::IMMEDIATE_VALUE, val};
     }
-    static IROperand arg(int64_t val)
+    static IROperand Arg(int64_t val)
     {
         return {IROperandKind::ARG_NUMBER, val};
     }
-    static IROperand literal(int64_t val)
+    static IROperand Literal(int64_t val)
     {
         return {IROperandKind::LITERAL_LOCATION, val};
     }
@@ -115,7 +133,10 @@ struct IRFunction
     bool is_extern;
     std::vector<IRInstruction> instructions{};
     std::unordered_map<int64_t, type_data> virtual_register_types;
-    std::unordered_map<int64_t, LiveRange> live_ranges;
+    std::map<int64_t, LiveRange> live_ranges;
+    std::unordered_map<int64_t, Location> virtual_register_locations;
+
+    int64_t total_stack_allocated = 0;
 };
 
 struct IRUnit
@@ -210,6 +231,17 @@ inline void print_ir_unit(IRUnit& ir_unit)
     for (auto& ir_function : ir_unit.ir_functions)
     {
         std::println("{}():", ir_function.name);
+
+        for (auto [vr, loc] : ir_function.virtual_register_locations)
+        {
+            if (loc.kind == LocationKind::REGISTER)
+            {
+                std::println("{} in reg {}", vr, static_cast<int>(loc.reg));
+                continue;
+            }
+            std::println("{} in stack {}", vr, loc.stack);
+        }
+
         size_t instruction_number = 1;
         for (auto& inst : ir_function.instructions)
         {
