@@ -168,4 +168,19 @@ op_associativity get_unop_associativity(TokenType token_type)
             return op_associativity::RIGHT_TO_LEFT;
     }
 }
+
+bool is_equals_operator(TokenType token_type)
+{
+    switch (token_type)
+    {
+        case TokenType::EQU:
+        case TokenType::PLUSEQUALS:
+        case TokenType::MINUSEQUALS:
+        case TokenType::DIVEQUALS:
+        case TokenType::MULEQUALS:
+            return true;
+        default:
+            return false;
+    }
+}
 }

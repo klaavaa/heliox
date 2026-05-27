@@ -18,4 +18,6 @@ op_associativity get_unop_associativity(TokenType token_type);
 uint32_t get_binop_precedence_level(TokenType token_type);
 uint32_t get_unop_precedence_level(TokenType token_type);
 
+bool is_equals_operator(TokenType token_type);
+
 }

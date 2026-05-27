@@ -7,14 +7,14 @@ int64_t align_up(int64_t offset, int64_t align)
     return (offset + align - 1) & ~(align - 1);
 }
 
-void insert_variable_symbol(sptr<SymbolTable> table, const std::string& name, const type_data& data_type, std::string_view filename, uint32_t line_number, uint32_t position)
+void insert_variable_symbol(sptr<SymbolTable> table, const std::string& name, int64_t virtual_register, const type_data& data_type, std::string_view filename, uint32_t line_number, uint32_t position)
 {
     if (table->variable_symbols.contains(name))
     {
         Logger::error(filename, line_number, position, HX_SYMBOL_REDEFINITION, "Variable with this name already exists in current scope");
     }
-    VariableSymbol symbol{data_type, table->current_stack_offset, filename, line_number, position};
-    table->current_stack_offset = align_up(table->current_stack_offset + data_type.byte_size, data_type.byte_size);
+
+    VariableSymbol symbol{virtual_register, data_type, filename, line_number, position};
     table->variable_symbols.insert({name, symbol});
 }
 
@@ -84,6 +84,21 @@ FunctionSymbol& find_function_symbol(sptr<SymbolTable> table, const std::string&
     Logger::error("", HX_SYMBOL_NOT_FOUND, "Function not found");
 }
 
+VariableSymbol& find_variable_symbol(sptr<SymbolTable> table, const uptr<identifier_literal_expr>& identifier)
+{
+    const std::string& name = identifier->name;
+    if (table->variable_symbols.contains(name)) 
+    {
+        return table->variable_symbols.at(name);
+    }
+    else if (table->parent_table)
+    {
+        return find_variable_symbol(table->parent_table, identifier);
+    }
+    Logger::error(*identifier, HX_SYMBOL_NOT_FOUND, "Variable not found");
+
+}
+
 sptr<SymbolTable> add_child_table(sptr<SymbolTable> parent, const std::string& name)
 {
     sptr<SymbolTable> child = std::make_shared<SymbolTable>();
@@ -96,9 +111,9 @@ sptr<SymbolTable> get_compound_table(sptr<SymbolTable> current_table)
 {
     sptr<SymbolTable> compound_table = std::make_shared<SymbolTable>();
     compound_table->parent_table = current_table;
-    compound_table->current_stack_offset = current_table->current_stack_offset;
     return compound_table;
 }
+
 
 sptr<SymbolTable> create_global_table_for_translation_unit(const uptr<TranslationUnit>& tu, const uptr<Program>& program)
 {

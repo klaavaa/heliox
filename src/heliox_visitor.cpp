@@ -1,7 +1,5 @@
 #include "heliox_visitor.hpp"
 
-template<class... Ts>
-struct overloads : Ts... { using Ts::operator()...; };
 
     
 namespace hx

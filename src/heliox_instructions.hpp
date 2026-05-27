@@ -10,23 +10,28 @@
 namespace hx
 {
 
-using virtual_register = size_t;
-
 enum class IRInstructionType 
 {
-    LABEL,
-    JUMP_TRUE,
-    JUMP_FALSE,
+    MOV,
+    LOAD_IMMEDIATE,
+    LOAD_MEM_INDEX,
 
-    LOAD_INT,
-    LOAD_FLOAT,
-    LOAD_STRING,
+    STORE_MEM,
     
-    FUNCTION_CALL, // dst = return value, src1 = function_index
+    // dst = return value, src1 = function_index
+
+    FUNCTION_CALL,
     RETURN,
 
     // function argument  src1 = arg to push, src2 = arg index
-    PUSH_ARG
+    MOV_ARG,
+
+
+    IADD,
+    ISUB,
+    IDIV,
+    IMUL,
+
     // ==================
 
 };
@@ -45,11 +50,16 @@ struct AllocatedLiteral
 
 struct IRInstruction
 {
+    IRInstruction(IRInstructionType _type, int64_t _dst, int64_t _src1, int64_t _src2)
+    : type(_type), dst(_dst), src1(_src1), src2(_src2) {}
+    
     IRInstructionType type;
-    virtual_register dst; 
-    virtual_register src1;
-    virtual_register src2;
+    
+    int64_t dst; 
+    int64_t src1;
+    int64_t src2;
 };
+
 
 struct IRFunction
 {
@@ -61,7 +71,7 @@ struct IRUnit
 {
     std::vector<IRFunction> ir_functions;
     std::unordered_map<size_t, AllocatedLiteral> allocated_literals;
-    std::unordered_map<virtual_register, type_data> virtual_register_types;
+    std::unordered_map<int64_t, type_data> virtual_register_types;
 
     size_t allocate_string_literal(const std::string& value)
     {
@@ -87,20 +97,33 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
     switch (ir_instruction.type)
     {
         case IRInstructionType::FUNCTION_CALL:
-            std::println("{}  CALL      {} {}", prefix, ir_instruction.dst, ir_instruction.src1);
+            std::println("{}  CALL       r{}  <- fun[{}]", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
-        case IRInstructionType::PUSH_ARG:
-            std::println("{}  PUSH_ARG  {} {}", prefix, ir_instruction.src1, ir_instruction.src2);
+
+        case IRInstructionType::MOV_ARG:
+            std::println("{}  MOV_ARG    r{}  <- r{}, arg[{}]", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
+
         case IRInstructionType::RETURN:
-            std::println("{}  RETURN    {} {}", prefix, ir_instruction.dst, ir_instruction.src1);
+            std::println("{}  RETURN     r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
-        case IRInstructionType::LOAD_STRING:
-            std::println("{}  LOAD_STR  {} {}", prefix, ir_instruction.dst, ir_instruction.src1);
+        case IRInstructionType::LOAD_MEM_INDEX:
+            std::println("{}  LOAD_STR   r{}  <- idx[{}]", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
-        case IRInstructionType::LOAD_INT:
-            std::println("{}  LOAD_INT  {} {}", prefix, ir_instruction.dst, ir_instruction.src1);
+        case IRInstructionType::LOAD_IMMEDIATE:
+            std::println("{}  LOAD_INT   r{}  <- {}", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
+        case IRInstructionType::MOV:
+            std::println("{}  MOV        r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
+        case IRInstructionType::STORE_MEM:
+            std::println("{}  STORE_MEM [r{}] <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
+
+        case IRInstructionType::IADD:
+            std::println("{}  IADD       r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
+
 
         default:
             std::println("instruction {} not implemented yet", static_cast<int>(ir_instruction.type));

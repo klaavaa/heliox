@@ -1,6 +1,9 @@
 #pragma once
 #include "heliox_program.hpp"
 
+template<class... Ts>
+struct overloads : Ts... { using Ts::operator()...; };
+
 namespace hx
 {
 
