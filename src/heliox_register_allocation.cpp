@@ -34,25 +34,26 @@ void RegisterAllocator::expire_old_intervals(IRFunction& ir_function, const int6
         {
             return ir_function.live_ranges.at(a).end < ir_function.live_ranges.at(b).end;
         });
+        
+    
+    std::erase_if(active_virtual_registers, 
+        [&ir_function, current_vr](int64_t vr) 
+        {
+        if (ir_function.live_ranges.at(vr).end < ir_function.live_ranges.at(current_vr).start)
+            return true;
+        return false;
+        });
 
-    for (size_t i = 0; i < active_virtual_registers.size(); i++)
-    {
-        int64_t vr = active_virtual_registers[i];
-        if (ir_function.live_ranges.at(vr).end >= ir_function.live_ranges.at(current_vr).start)
-        {
-            active_virtual_registers = std::vector<int64_t>(active_virtual_registers.begin() + i, active_virtual_registers.end());
-            return;
-        }
-        if (ir_function.virtual_register_locations.at(vr).kind == LocationKind::REGISTER)
-        {
-            gp_free_registers.insert(ir_function.virtual_register_locations.at(vr).reg);
-        }
-    }
 }
 
 
 void RegisterAllocator::spill(IRFunction& ir_function, const int64_t current_vr)
 {
+    if (!active_virtual_registers.size())
+    {
+        allocate_stack(ir_function, current_vr);
+        return;
+    }
     int64_t vr_spill = active_virtual_registers.back();
     if (ir_function.live_ranges.at(vr_spill).end > ir_function.live_ranges.at(current_vr).end)
     {
@@ -108,7 +109,6 @@ void RegisterAllocator::allocate_registers(IRFunction& ir_function)
             continue;
         }
 
-        expire_old_intervals(ir_function, vr);
 
         // erases pre-reserved registers from the available register pool
         auto gp_pre_reserved_registers = get_pre_reserved_registers(ir_function, vr);
@@ -116,11 +116,16 @@ void RegisterAllocator::allocate_registers(IRFunction& ir_function)
         std::set_difference(g_register_data.available_general_purpose_registers.begin(), g_register_data.available_general_purpose_registers.end(),
          gp_pre_reserved_registers.begin(), gp_pre_reserved_registers.end(), std::inserter(gp_free_registers, gp_free_registers.end()));
 
+
+        expire_old_intervals(ir_function, vr);
+
         // erases currently reserved registers from the available register pool
         for (int64_t active_vr : active_virtual_registers)
         {
             gp_free_registers.erase(ir_function.virtual_register_locations.at(active_vr).reg);
         }
+
+
 
         
 
@@ -135,7 +140,7 @@ void RegisterAllocator::allocate_registers(IRFunction& ir_function)
 
 }
 
-void RegisterAllocator::allocate_registers(IRUnit& ir_unit)
+void RegisterAllocator::allocate_registers()
 {
     for (auto& ir_func : ir_unit.ir_functions)
     {

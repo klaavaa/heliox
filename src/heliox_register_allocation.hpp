@@ -8,7 +8,8 @@ namespace hx
 class RegisterAllocator
 {
 public:
-    void allocate_registers(IRUnit& ir_unit);
+    RegisterAllocator(IRUnit& _ir_unit) : ir_unit(_ir_unit) {}
+    void allocate_registers();
 private:
 
     void allocate_registers(IRFunction& ir_function);
@@ -23,7 +24,7 @@ private:
 
     std::set<Register> get_pre_reserved_registers(IRFunction& ir_function, int64_t current_vr);
 
-
+    IRUnit& ir_unit;
     std::vector<int64_t> active_virtual_registers;
     std::set<Register> gp_free_registers;
 
