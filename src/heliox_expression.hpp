@@ -58,17 +58,6 @@ struct identifier_literal_expr : ast_node
         : ast_node(filename, line, position), name(name), module_path(std::move(module_path)) {}
     std::string name;
     std::vector<std::string> module_path;
-
-    std::string get_full_name() const
-    {
-        std::string full_name;
-        for (const auto& module : module_path)
-        {
-            full_name += module + "::";
-        }
-        full_name += name;
-        return full_name;
-    }
 };
 struct binop_expr : ast_node
 {
@@ -88,12 +77,14 @@ struct unary_expr : ast_node
 struct function_call_expr : ast_node
 {
     function_call_expr(std::string_view filename, uint32_t line, uint32_t position, uptr<identifier_literal_expr> _identifier,
-            std::vector<expression> parameters, std::vector<std::string> in_module)
+            std::vector<expression> parameters, std::vector<std::string> _in_module)
         : ast_node(filename, line, position), identifier(std::move(_identifier)),
           parameters(std::move(parameters)),
-          in_module(std::move(in_module)) 
+          in_module(std::move(_in_module)) 
           {
             find_in_parent_modules = identifier->module_path.empty();
+            if (!find_in_parent_modules)
+                in_module = identifier->module_path; 
           }
     uptr<identifier_literal_expr> identifier;
     std::vector<expression> parameters;

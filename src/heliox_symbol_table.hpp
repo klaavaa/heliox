@@ -58,5 +58,22 @@ namespace hx
     VariableSymbol& find_variable_symbol(sptr<SymbolTable> table, const uptr<identifier_literal_expr>& identifier);
 
 
+    inline void print_table(sptr<SymbolTable> table)
+    {
+        for (auto& [n, f] : table->function_symbols)
+        {
+            std::println("{}()", n);
+        }
+        for (auto& [n, t] : table->submodule_tables)
+        {
+            std::println("submodule_table: {}", n);
+            print_table(t);
+        }
+        for (auto& [n, t] : table->child_tables)
+        {
+            std::println("child_table: {}", n);
+            print_table(t);
+        }
+    }
 
 } // namespace hx

@@ -108,7 +108,14 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     }
 
     // call instruction
-    int64_t name_id = (int64_t)ir_unit.allocate_function_name(function_call->identifier->get_full_name());
+
+    std::string function_full_name;
+    for (const auto& s : function_call->in_module)
+    {
+        function_full_name += s + ".";
+    }
+    function_full_name += function_call->identifier->name;
+    int64_t name_id = (int64_t)ir_unit.allocate_function_name(function_full_name);
     IRInstruction call_instruction(IRInstructionType::FUNCTION_CALL, current_register, IROperand::Literal(name_id), IROperand::None());
     register_vr_type(current_register, func_symbol.return_type);
     emit_instruction(call_instruction);

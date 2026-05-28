@@ -6,8 +6,9 @@ namespace hx
 std::string CodeGenerator::generate()
 {
 
-    data_section += "section .data\n";
+    emit_data_section();
 
+    data_section += "section .text\n";
     for (auto& ir_function : ir_unit.ir_functions)
     {
         current_function = &ir_function;
@@ -78,6 +79,10 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         emit("pop", "rbp");
         emit("ret");
         return;
+
+    case IRInstructionType::FUNCTION_CALL:
+        emit("call", instruction.src1);
+        return;
     }
 
 
@@ -116,6 +121,10 @@ std::string CodeGenerator::get_location(const IROperand operand)
     case IROperandKind::VIRTUAL_REGISTER:
         return get_vr_location(operand.value);
     case IROperandKind::LITERAL_LOCATION:
+        if (ir_unit.allocated_literals.at(operand.value).type == LiteralType::FUNCTION_NAME)
+        {
+            return std::format("{}", ir_unit.allocated_literals.at(operand.value).value);
+        }
         return std::format(".L{}", operand.value);
     case IROperandKind::IMMEDIATE_VALUE:
         return std::format("{}", operand.value);
@@ -123,6 +132,18 @@ std::string CodeGenerator::get_location(const IROperand operand)
         Logger::error("", HX_ILLEGAL_LOCATION, "Trying to get an illegal location");
     }
 
+}
+
+void CodeGenerator::emit_data_section()
+{
+    data_section += "section .data\n";
+    for (auto& [key, literal] : ir_unit.allocated_literals)
+    {
+        if (literal.type == LiteralType::STRING)
+        {
+            data_section += std::format("\t.L{} db {}\n", key, literal.value);
+        }
+    }
 }
 
 void CodeGenerator::emit(const std::string_view asm_instruction, const IROperand dst, const IROperand src)

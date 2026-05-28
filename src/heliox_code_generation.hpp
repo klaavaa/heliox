@@ -21,9 +21,8 @@ private:
     void emit(const std::string_view asm_instruction, const std::string_view dst, const std::string_view src);
     void emit_function(IRFunction& ir_function);
     void emit_instruction(IRInstruction& instruction);
-    void emit_load_immediate(IRInstruction& load);
-    void emit_mov();
-    void emit_add();
+
+    void emit_data_section();
 
     IRUnit& ir_unit;
     IRFunction* current_function;
