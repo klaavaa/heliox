@@ -159,6 +159,9 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
         case IRInstructionType::IDIV:
             preallocate_register(ir_function, instruction.src1.value, Register::A, {Register::D});
             break;
+        case IRInstructionType::RETURN:
+            preallocate_register(ir_function, instruction.dst.value, Register::A);
+            break;
         }
 
 

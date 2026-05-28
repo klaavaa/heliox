@@ -150,7 +150,7 @@ struct IRFunction
     std::vector<IRInstruction> instructions{};
     std::unordered_map<int64_t, type_data> virtual_register_types;
     std::map<int64_t, LiveRange> live_ranges;
-    std::unordered_map<int64_t, Location> virtual_register_locations;
+    std::map<int64_t, Location> virtual_register_locations;
 
     std::map<int64_t, RegisterReservation> register_reservations;
 
@@ -252,16 +252,6 @@ inline void print_ir_unit(IRUnit& ir_unit)
     for (auto& ir_function : ir_unit.ir_functions)
     {
         std::println("{}():", ir_function.name);
-
-        for (auto [vr, loc] : ir_function.virtual_register_locations)
-        {
-            if (loc.kind == LocationKind::REGISTER)
-            {
-                std::println("{} in reg {}", vr, static_cast<int>(loc.reg));
-                continue;
-            }
-            std::println("{} in stack {}", vr, loc.stack);
-        }
 
         size_t instruction_number = 1;
         for (auto& inst : ir_function.instructions)

@@ -37,6 +37,9 @@
 
 #define HX_ILLEGAL_DEREF 380
 
+#define HX_ILLEGAL_REG_SIZE 500
+#define HX_ILLEGAL_LOCATION 501
+
 namespace hx 
 {
 

@@ -12,6 +12,7 @@
 #include "heliox_instruction_gen.hpp"
 #include "heliox_liveness_analysis.hpp"
 #include "heliox_register_allocation.hpp"
+#include "heliox_code_generation.hpp"
 
 
 
@@ -76,10 +77,14 @@ inline void compile(const std::vector<std::string>& file_paths, const std::strin
         // preallocate certain registers / stack
 
         // perform register allocation
-        RegisterAllocator register_allocator;
-        register_allocator.allocate_registers(ir_unit);
-
+        RegisterAllocator register_allocator(ir_unit);
+        register_allocator.allocate_registers();
         print_ir_unit(ir_unit);
+
+        // generate code
+        CodeGenerator code_generator(ir_unit);
+        std::string generated_nasm = code_generator.generate();
+        std::println("{}", generated_nasm);
     }
 
     
