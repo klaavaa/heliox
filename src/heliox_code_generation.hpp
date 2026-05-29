@@ -28,6 +28,9 @@ private:
 
     int64_t allignment_to_add_before_call();
 
+    void save_callee_preserved_registers();
+    void load_callee_preserved_registers();
+
     IRUnit& ir_unit;
     IRFunction* current_function;
 
@@ -37,6 +40,9 @@ private:
     std::string text_section;
 
     int64_t arg_push_count = 0;
+    bool aligned_before_call = false;
+    std::set<Register> registers_to_preserve;
+
 };
 
 

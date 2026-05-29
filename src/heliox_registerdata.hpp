@@ -198,8 +198,8 @@ struct RegisterData
     std::array<Register, 4> register_passed_int_args = {Register::C, Register::D, Register::R8, Register::R9};
     std::array<Register, 4> register_passed_float_args = {Register::XMM0, Register::XMM1, Register::XMM2, Register::XMM3}; 
 
-    std::array<Register, 7> callee_saved_registers = {Register::B, Register::DI, Register::SI, Register::R12, Register::R13, Register::R14, Register::R15};
-    std::array<Register, 6> caller_saved_registers = {Register::A, Register::C, Register::D, Register::R8, Register::R9, Register::R10};
+    std::set<Register> callee_saved_registers = {Register::B, Register::DI, Register::SI, Register::R12, Register::R13, Register::R14, Register::R15};
+    std::set<Register> caller_saved_registers = {Register::A, Register::C, Register::D, Register::R8, Register::R9, Register::R10};
 
 #endif
 

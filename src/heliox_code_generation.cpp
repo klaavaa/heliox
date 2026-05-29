@@ -28,13 +28,19 @@ void CodeGenerator::emit_function(IRFunction& ir_function)
 
     text_section += std::format("global {}\n{}:\n", ir_function.name, ir_function.name);
 
+
+    save_callee_preserved_registers();
+
     emit("push", "rbp");
     emit("mov", "rbp", "rsp");
 
     if (ir_function.total_stack_allocated != 0)
     {
+        // fix the alignment based on the preserved registers (by default the total_stack_allocated is aligned to 16 bytes, so if an odd number of pushes occur, we need to add 8)
+        ir_function.total_stack_allocated += (registers_to_preserve.size() % 2) * 8;
         emit("sub", "rsp", std::to_string(ir_function.total_stack_allocated));
     }
+
 
     for (auto& instruction : ir_function.instructions)
     {
@@ -59,9 +65,13 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         return;
     case IRInstructionType::ARG_PUSH:
         arg_push_count += 1;
-        //stack alignment
+
         if (instruction.src2.kind != IROperandKind::NONE)
+        {
+            aligned_before_call = true;
             emit("sub", "rsp", "8");
+        }
+
         // set the reg_size manually because the vr reg size may not be 8  
         emit("push", get_location(instruction.src1, 8));
         return;
@@ -88,17 +98,12 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         emit("mov", instruction.dst, instruction.src1);
         emit("mov", "rsp", "rbp");
         emit("pop", "rbp");
+        load_callee_preserved_registers();
         emit("ret");
         return;
 
     case IRInstructionType::FUNCTION_CALL:
         {
-            // TODO FIX THIS SHIIIIIT
-        int64_t to_add = allignment_to_add_before_call(); 
-        if (to_add)
-        {
-            emit("sub", "rsp", std::to_string(to_add));
-        }
     #ifdef _WIN32
         emit("sub", "rsp", "32");
         emit("call", instruction.src1);
@@ -106,11 +111,14 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
     #else
         emit("call", instruction.src1);
     #endif
-        if (arg_push_count > 0)
+
+        int64_t to_add = 8*arg_push_count + (int64_t)aligned_before_call * 8; 
+        if (to_add)
         {
-            emit("add", "rsp", std::format("{}", 8 * arg_push_count));
-            arg_push_count = 0;
+            emit("add", "rsp", std::to_string(to_add));
         }
+        arg_push_count = 0;
+        aligned_before_call= false;
 
         return;
         }
@@ -122,11 +130,37 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
 
 
 }
+
+
+void CodeGenerator::save_callee_preserved_registers()
+{
+    for (const auto& [vr, loc] : current_function->virtual_register_locations)
+    {
+        if (loc.kind != LocationKind::REGISTER) continue;
+        if (!g_register_data.callee_saved_registers.contains(loc.reg)) continue;
+        if (registers_to_preserve.contains(loc.reg)) continue;
+        registers_to_preserve.insert(loc.reg);
+        emit("push", get_register(loc.reg, 8));
+    }
+}
+
 int64_t CodeGenerator::allignment_to_add_before_call()
 {
-    int64_t total = current_function->total_stack_allocated + 8*arg_push_count;
-    return total - ((total + 15) & ~15);
+    return ((arg_push_count + registers_to_preserve.size()) % 2) * 8;
+    //int64_t total = current_function->total_stack_allocated + 8*(arg_push_count % 2);
+    //return total - ((total + 15) & ~15);
 }
+
+void CodeGenerator::load_callee_preserved_registers()
+{
+    for (auto it = registers_to_preserve.rbegin(); it != registers_to_preserve.rend(); it++)
+    {
+        const Register r = *it;
+        emit("pop", get_register(r, 8));
+    }
+    registers_to_preserve.clear();
+}
+
 std::string CodeGenerator::get_vr_location(int64_t vr)
 {
     uint32_t byte_size = current_function->virtual_register_types.at(vr).byte_size;

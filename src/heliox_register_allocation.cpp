@@ -4,10 +4,6 @@ namespace hx
 {
 
 
-inline int64_t align_up(int64_t offset, int64_t align)
-{
-    return (offset + align - 1) & ~(align - 1);
-}
 
 void RegisterAllocator::allocate_stack(IRFunction& ir_function, const int64_t vr)
 {
@@ -139,8 +135,9 @@ void RegisterAllocator::allocate_registers(IRFunction& ir_function)
     }
 
 
-    // align stack to 16 byte alignment
-    ir_function.total_stack_allocated = align_up(ir_function.total_stack_allocated, 16);
+    // align stack x % 16 = 8
+    ir_function.total_stack_allocated = align_up(ir_function.total_stack_allocated, 8);
+    if (ir_function.total_stack_allocated % 16 == 0) ir_function.total_stack_allocated += 8;
 }
 
 void RegisterAllocator::cleanup_pass(IRFunction& ir_func)
@@ -238,6 +235,21 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
         case IRInstructionType::RETURN:
             preallocate_register(ir_function, instruction.dst.value, Register::A);
             break;
+        case IRInstructionType::REGISTER_ARG:
+            if (!is_integer_type(ir_function.virtual_register_types.at(instruction.src1.value)))
+            {
+                Logger::not_implemented();
+            }
+            if (instruction.src2.value < (int64_t)g_register_data.register_passed_int_args.size())
+            {
+                preallocate_register(ir_function, instruction.src1.value, g_register_data.register_passed_int_args.at(instruction.src2.value));
+            }
+            else
+            {
+                
+                ir_function.live_ranges.erase(instruction.dst.value);
+            }
+            break;
         case IRInstructionType::MOV_ARG:
             if (!is_integer_type(ir_function.virtual_register_types.at(instruction.src1.value)))
             {
@@ -249,28 +261,23 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
             }
             else // push the arguments on the stack (already in reverse order from IR)
             {
-                // todo: if reg not 8 byte then fix
+
+                ir_function.live_ranges.erase(instruction.dst.value);
                 instruction.type = IRInstructionType::ARG_PUSH;
                 instruction.dst = IROperand::None();
-                if (first_func_push_arg)
+                if (first_func_push_arg && ((instruction.src2.value - (int64_t)g_register_data.register_passed_int_args.size() + 1) % 2 == 0))
                 {
-                    first_func_push_arg = false;
-                    instruction.src2.value -= g_register_data.register_passed_int_args.size() - 1;
-                    instruction.src2.value %= 2;
-                    if (instruction.src2.value == 0)
-                    {
-                        instruction.src2 = IROperand::None();
-                    }
+                    instruction.src2 = IROperand::Immediate(1);
                 }
                 else
                 {
                     instruction.src2 = IROperand::None();
                 }
-
-                ir_function.live_ranges.erase(instruction.dst.value);
+                first_func_push_arg = false;
 
             }
             break;
+
         case IRInstructionType::FUNCTION_CALL:
             first_func_push_arg = true;
             // reserve A for return value and globber caller saved registers

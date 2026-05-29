@@ -7,6 +7,19 @@ namespace hx
 void perform_liveness_analysis_on_function(IRFunction& ir_function)
 {
     //todo LOOP
+    
+    auto update_liverange = [&ir_function](IROperand op, size_t instruction_number)
+    {
+        auto& live_ranges = ir_function.live_ranges;
+        if (!live_ranges.contains(op.value))
+        {
+            live_ranges.insert({op.value, LiveRange{instruction_number, instruction_number}});
+        }
+        else
+        {
+            live_ranges.at(op.value).end = instruction_number;
+        }
+    };
 
     size_t instruction_number = 0;
     for (const auto& instruction : ir_function.instructions)
@@ -14,23 +27,17 @@ void perform_liveness_analysis_on_function(IRFunction& ir_function)
         auto& live_ranges = ir_function.live_ranges;
         if (instruction.dst.kind == IROperandKind::VIRTUAL_REGISTER)
         {
-            if (!live_ranges.contains(instruction.dst.value))
-            {
-                live_ranges.insert({instruction.dst.value, LiveRange{instruction_number, instruction_number}});
-            }
-            else
-            {
-                live_ranges.at(instruction.dst.value).end = instruction_number;
-            }
+            update_liverange(instruction.dst, instruction_number);
         }
         if (instruction.src1.kind == IROperandKind::VIRTUAL_REGISTER)
         {
-            live_ranges.at(instruction.src1.value).end = instruction_number;
+            update_liverange(instruction.src1, instruction_number);
         }
         if (instruction.src2.kind == IROperandKind::VIRTUAL_REGISTER)
         {
-            live_ranges.at(instruction.src2.value).end = instruction_number;
+            update_liverange(instruction.src2, instruction_number);
         }
+
         instruction_number++;
     }
 }

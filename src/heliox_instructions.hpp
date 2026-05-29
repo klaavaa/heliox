@@ -12,6 +12,11 @@
 namespace hx
 {
 
+inline int64_t align_up(int64_t offset, int64_t align)
+{
+    return (offset + align - 1) & ~(align - 1);
+}
+
 inline std::string parse_string_for_asm(const std::string& str)
 {
         std::string parsed_string = "\"";
@@ -74,6 +79,7 @@ enum class IRInstructionType
     // function argument  src1 = arg to push, src2 = arg index
     MOV_ARG,
     ARG_PUSH,
+    REGISTER_ARG,
 
     DEREF,
 
@@ -266,6 +272,10 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
             break;
         case IRInstructionType::ARG_PUSH:
             std::println("{}  ARG_PUSH        <- r{}", prefix, ir_instruction.src1);
+            break;
+
+        case IRInstructionType::REGISTER_ARG:
+            std::println("{}  REGISTER_ARG    <- r{}, arg[{}]", prefix, ir_instruction.src1, ir_instruction.src2);
             break;
         case IRInstructionType::STORE_MEM:
             std::println("{}  STORE_MEM [r{}] <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);

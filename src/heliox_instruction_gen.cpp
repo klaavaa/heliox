@@ -61,14 +61,29 @@ const type_data& InstructionGenerator::get_vr_type(IROperand vr) const
 
 void InstructionGenerator::visit_function(uptr<function>& func)
 {
+    current_register.value = 0;
+    effective_register.value = 0;
+
     current_function = IRFunction{};
     current_function.name = get_module_prefix() + func->identifier->name;
     current_function.is_extern = func->is_extern;
 
+    if (current_function.is_extern)
+    {
+        ir_unit.ir_functions.push_back(std::move(current_function));
+        return;
+    }
+
     current_table = add_child_table(global_table, current_function.name);
     
-    current_register.value = 0;
-    effective_register.value = 0;
+
+    for (size_t i = 0; i < func->params.size(); i++)
+    {
+        const auto& param = func->params[i];
+        insert_variable_symbol(current_table, param->var_identifier->name, current_register.value, param->var_type, param->filename, param->line, param->position);
+        register_vr_type(current_register, param->var_type);
+        emit_instruction(IRInstruction(IRInstructionType::REGISTER_ARG, IROperand::None(), current_register, IROperand::Arg((int64_t)i)));
+    }
 
     for (auto& statement : func->statements)
     {
@@ -101,7 +116,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     }
     for (size_t i = 0; i < arg_vregs.size(); i++)
     {
-        size_t arg_index = arg_vregs.size() -  1 -i;
+        size_t arg_index = arg_vregs.size() -  1 - i;
         IROperand arg_vreg = arg_vregs[arg_index];
         IRInstruction push_arg_instruction(IRInstructionType::MOV_ARG, current_register, arg_vreg, {IROperandKind::ARG_NUMBER, (int64_t)arg_index});
         register_vr_type(current_register, arg_vreg);
