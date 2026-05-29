@@ -12,9 +12,55 @@
 namespace hx
 {
 
+inline std::string parse_string_for_asm(const std::string& str)
+{
+        std::string parsed_string = "\"";
+    bool escaped = false;
+    for (size_t i = 0; i < str.size(); i++)
+    {
+        if (str[i] == '\\')
+        {
+            if (!escaped)
+                parsed_string += '"';
+            i++;
+            escaped = true;
+
+            switch (str[i])
+            {
+            case 'n':
+                parsed_string += ", 10";
+                continue;
+            case 't':
+                parsed_string += ", 9";
+                continue;
+            case '0':
+                parsed_string += ", 0";
+                continue;
+            default:
+                parsed_string += str[i];
+                escaped = false;
+                continue;
+            }
+            
+        }
+        if (escaped)
+        {
+            parsed_string += ",\"";
+            escaped = false;
+        }
+        parsed_string += str[i];
+        
+    }
+    if (!escaped)
+        parsed_string += '"';
+    return parsed_string;
+}
+
+
 enum class IRInstructionType 
 {
     MOV,
+
     LOAD_IMMEDIATE,
     LOAD_MEM_INDEX,
 
@@ -27,6 +73,7 @@ enum class IRInstructionType
 
     // function argument  src1 = arg to push, src2 = arg index
     MOV_ARG,
+    ARG_PUSH,
 
     DEREF,
 
@@ -42,7 +89,7 @@ enum class IRInstructionType
 enum class LocationKind
 {
     REGISTER,
-    STACK
+    STACK,
 };
 
 struct Location
@@ -114,7 +161,7 @@ struct IRInstruction
     : type(_type), dst(_dst), src1(_src1), src2(_src2) {}
     
     IRInstructionType type;
-    
+
     IROperand dst; 
     IROperand src1;
     IROperand src2;
@@ -130,14 +177,13 @@ struct LiveRange
 struct RegisterReservation
 {
     static RegisterReservation Stack() { return RegisterReservation{.on_stack = true};}
-    static RegisterReservation Reg(Register reg) { return RegisterReservation{.reg = reg};}
+    static RegisterReservation Reg(Register reg) { return RegisterReservation{.on_stack = false, .reg = reg};}
 
-    union{
     // force the vr to go to stack
     bool on_stack;
+
     // register that the vr will always map to
     Register reg;
-    };
     // other registers that will get reserved also (for example for idiv rdx etc.)
     std::vector<Register> non_vr_regs;
 
@@ -166,7 +212,8 @@ struct IRUnit
     {
         size_t id = allocated_literals.size();
         // todo parse string literals for escape sequences 
-        allocated_literals.insert({id, AllocatedLiteral{LiteralType::STRING, value}});
+        std::string parsed = parse_string_for_asm(value);
+        allocated_literals.insert({id, AllocatedLiteral{LiteralType::STRING, parsed}});
         return id;
     }
 
@@ -209,13 +256,16 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
             std::println("{}  RETURN     r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
         case IRInstructionType::LOAD_MEM_INDEX:
-            std::println("{}  LOAD_STR   r{}  <- idx[{}]", prefix, ir_instruction.dst, ir_instruction.src1);
+            std::println("{}  LOAD_MEM   r{}  <- idx[{}]", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
         case IRInstructionType::LOAD_IMMEDIATE:
             std::println("{}  LOAD_INT   r{}  <- {}", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
         case IRInstructionType::MOV:
             std::println("{}  MOV        r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
+        case IRInstructionType::ARG_PUSH:
+            std::println("{}  ARG_PUSH        <- r{}", prefix, ir_instruction.src1);
             break;
         case IRInstructionType::STORE_MEM:
             std::println("{}  STORE_MEM [r{}] <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);

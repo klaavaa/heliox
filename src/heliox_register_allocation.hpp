@@ -18,11 +18,14 @@ private:
     void preallocate_stack(IRFunction& ir_function, const int64_t vr);
 
     void allocate_stack(IRFunction& ir_function, const int64_t vr);
+    void push_stack(IRFunction& ir_function, const int64_t vr);
     void spill(IRFunction& ir_function, const int64_t current_vr);
     void allocate_register(IRFunction& ir_function, const int64_t vr, Register reg);
     void expire_old_intervals(IRFunction& ir_function, const int64_t current_vr);
 
     std::set<Register> get_pre_reserved_registers(IRFunction& ir_function, int64_t current_vr);
+
+    bool is_spilled(IRFunction& ir_function, IROperand operand);
 
     IRUnit& ir_unit;
     std::vector<int64_t> active_virtual_registers;

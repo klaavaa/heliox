@@ -13,6 +13,8 @@ public:
 
 private:
     std::string get_vr_location(int64_t vr);
+    std::string get_vr_location(int64_t vr, uint32_t byte_size);
+    std::string get_location(const IROperand operand, uint32_t byte_size);
     std::string get_location(const IROperand operand);
     void emit(const std::string_view asm_instruction, const IROperand dst, const IROperand src);
     void emit(const std::string_view asm_instruction, const IROperand src);
@@ -24,6 +26,8 @@ private:
 
     void emit_data_section();
 
+    int64_t allignment_to_add_before_call();
+
     IRUnit& ir_unit;
     IRFunction* current_function;
 
@@ -31,6 +35,8 @@ private:
     std::string data_section;
     std::string bss_section;
     std::string text_section;
+
+    int64_t arg_push_count = 0;
 };
 
 

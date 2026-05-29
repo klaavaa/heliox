@@ -51,8 +51,18 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
     case IRInstructionType::LOAD_IMMEDIATE:
         emit("mov", instruction.dst, instruction.src1);
         return;
+    case IRInstructionType::LOAD_MEM_INDEX:
+        emit("lea", instruction.dst, instruction.src1);
+        return;
     case IRInstructionType::MOV:
         emit("mov", instruction.dst, instruction.src1);
+        return;
+    case IRInstructionType::ARG_PUSH:
+        arg_push_count += 1;
+        //stack alignment
+        if (instruction.src2.kind != IROperandKind::NONE)
+            emit("sub", "rsp", "8");
+        emit("push", instruction.src1);
         return;
     case IRInstructionType::IADD:
         emit("add", instruction.src1, instruction.src2);
@@ -81,17 +91,50 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         return;
 
     case IRInstructionType::FUNCTION_CALL:
+        {
+            // TODO FIX THIS SHIIIIIT
+        int64_t to_add = allignment_to_add_before_call(); 
+        if (to_add)
+        {
+            emit("sub", "rsp", std::to_string(to_add));
+        }
+    #ifdef _WIN32
+        emit("sub", "rsp", "32");
         emit("call", instruction.src1);
+        emit("add", "rsp", "32");
+    #else
+        emit("call", instruction.src1);
+    #endif
+        if (arg_push_count > 0)
+        {
+            emit("add", "rsp", std::format("{}", 8 * arg_push_count));
+            arg_push_count = 0;
+        }
+
+        return;
+        }
+
+    case IRInstructionType::MOV_ARG:
+        emit("mov", instruction.dst, instruction.src1);
         return;
     }
 
 
 }
-
+int64_t CodeGenerator::allignment_to_add_before_call()
+{
+    int64_t total = current_function->total_stack_allocated + 8*arg_push_count;
+    return total - ((total + 15) & ~15);
+}
 std::string CodeGenerator::get_vr_location(int64_t vr)
 {
-    Location& location = current_function->virtual_register_locations.at(vr);
     uint32_t byte_size = current_function->virtual_register_types.at(vr).byte_size;
+    return get_vr_location(vr, byte_size);
+}
+
+std::string CodeGenerator::get_vr_location(int64_t vr, uint32_t byte_size)
+{
+    Location& location = current_function->virtual_register_locations.at(vr);
     if (location.kind == LocationKind::REGISTER)
     {
         return get_register(location.reg, byte_size);
@@ -116,16 +159,22 @@ std::string CodeGenerator::get_vr_location(int64_t vr)
 
 std::string CodeGenerator::get_location(const IROperand operand)
 {
+    uint32_t instruction_size = current_function->virtual_register_types.at(operand.value).byte_size;
+    return get_location(operand, instruction_size);
+}
+
+std::string CodeGenerator::get_location(const IROperand operand, uint32_t byte_size)
+{
     switch (operand.kind)
     {
     case IROperandKind::VIRTUAL_REGISTER:
-        return get_vr_location(operand.value);
+        return get_vr_location(operand.value, byte_size);
     case IROperandKind::LITERAL_LOCATION:
         if (ir_unit.allocated_literals.at(operand.value).type == LiteralType::FUNCTION_NAME)
         {
             return std::format("{}", ir_unit.allocated_literals.at(operand.value).value);
         }
-        return std::format(".L{}", operand.value);
+        return std::format("[rel $L{}]", operand.value);
     case IROperandKind::IMMEDIATE_VALUE:
         return std::format("{}", operand.value);
     default:
@@ -141,14 +190,15 @@ void CodeGenerator::emit_data_section()
     {
         if (literal.type == LiteralType::STRING)
         {
-            data_section += std::format("\t.L{} db {}\n", key, literal.value);
+            data_section += std::format("\t$L{} db {}\n", key, literal.value);
         }
     }
 }
 
 void CodeGenerator::emit(const std::string_view asm_instruction, const IROperand dst, const IROperand src)
 {
-    text_section += std::format("\t{} {}, {}\n", asm_instruction, get_location(dst), get_location(src));
+    uint32_t instruction_size = current_function->virtual_register_types.at(dst.value).byte_size;
+    text_section += std::format("\t{} {}, {}\n", asm_instruction, get_location(dst, instruction_size), get_location(src, instruction_size));
 }
 void CodeGenerator::emit(const std::string_view asm_instruction, const IROperand src)
 {

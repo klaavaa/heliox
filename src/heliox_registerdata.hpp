@@ -180,7 +180,7 @@ struct RegisterData
     // R11 SCRATCH REGISTER 
     std::set<Register> available_general_purpose_registers = {Register::A, Register::B};
     //std::set<Register> available_general_purpose_registers = {Register::A, Register::B, Register::C,
-    //        Register::D, Register::DI, Register::SI, Register::R8, Register::R9, Register::R10, Register::R11,
+    //        Register::D, Register::DI, Register::SI, Register::R8, Register::R9, Register::R10,
     //        Register::R12, Register::R13, Register::R14, Register::R15};
     
     //RegisterBitSet available_xmm_registers = RegisterBitSet(
@@ -198,8 +198,8 @@ struct RegisterData
     std::array<Register, 4> register_passed_int_args = {Register::C, Register::D, Register::R8, Register::R9};
     std::array<Register, 4> register_passed_float_args = {Register::XMM0, Register::XMM1, Register::XMM2, Register::XMM3}; 
 
-    //RegisterBitSet callee_saved_registers = RegisterBitSet({Register::B, Register::DI, Register::SI, Register::R12, Register::R13, Register::R14, Register::R15});
-    //RegisterBitSet caller_saved_registers = RegisterBitSet({Register::A, Register::C, Register::D, Register::R8, Register::R9, Register::R10});
+    std::array<Register, 7> callee_saved_registers = {Register::B, Register::DI, Register::SI, Register::R12, Register::R13, Register::R14, Register::R15};
+    std::array<Register, 6> caller_saved_registers = {Register::A, Register::C, Register::D, Register::R8, Register::R9, Register::R10};
 
 #endif
 

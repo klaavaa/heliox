@@ -179,4 +179,15 @@ inline bool is_unsigned(const type_data td)
     }
 }
 
+inline bool is_implicit_conversion_possible(const type_data t1, const type_data t2)
+{
+    if (is_integer_type(t1) && is_integer_type(t2))
+        return true;
+
+    if (is_float_type(t1) && is_float_type(t2))
+        return true;
+
+    return false;
+}
+
 }

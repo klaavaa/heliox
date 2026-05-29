@@ -58,7 +58,7 @@ inline void compile(const std::vector<std::string>& file_paths, const std::strin
     // Creates a program which contains all modules
     uptr<Program> program = std::make_unique<Program>(translation_units);
 
-
+    size_t i = 0;
     for (auto& tu : translation_units)
     {
         Logger::info("generating IR for '{}'", tu->filename);
@@ -85,7 +85,10 @@ inline void compile(const std::vector<std::string>& file_paths, const std::strin
         // generate code
         CodeGenerator code_generator(ir_unit);
         std::string generated_nasm = code_generator.generate();
+
         std::println("{}", generated_nasm);
+        create_assembly_file(asm_file_paths[i], generated_nasm);
+        i++;
     }
 
     

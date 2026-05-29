@@ -47,6 +47,8 @@ private:
     void visit_noop(uptr<noop_statement>& noop) override{}
     void visit_import(uptr<import_statement>& import_s) override{}
 
+    void emit_implicit_conversion(const ast_node& node, IROperand vr, const type_data type_to);
+
 private:
     uptr<TranslationUnit> translation_unit;
     sptr<SymbolTable> global_table;

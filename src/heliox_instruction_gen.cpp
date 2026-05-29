@@ -101,8 +101,9 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     }
     for (size_t i = 0; i < arg_vregs.size(); i++)
     {
-        IROperand arg_vreg = arg_vregs[i];
-        IRInstruction push_arg_instruction(IRInstructionType::MOV_ARG, current_register, arg_vreg, {IROperandKind::ARG_NUMBER, (int64_t)i});
+        size_t arg_index = arg_vregs.size() -  1 -i;
+        IROperand arg_vreg = arg_vregs[arg_index];
+        IRInstruction push_arg_instruction(IRInstructionType::MOV_ARG, current_register, arg_vreg, {IROperandKind::ARG_NUMBER, (int64_t)arg_index});
         register_vr_type(current_register, arg_vreg);
         emit_instruction(push_arg_instruction);
     }
@@ -190,9 +191,36 @@ void InstructionGenerator::visit_variable_definition(uptr<variable_definition_st
     visit_expression(variable_definition->definition);
     IROperand expression_vr = effective_register;
     visit_variable_declaration(variable_definition->declaration);
+    
+    if (get_vr_type(expression_vr) != get_vr_type(effective_register))
+    {
+        emit_implicit_conversion(*variable_definition, expression_vr, get_vr_type(effective_register));
+    }
+
     const VariableSymbol& var_symbol = find_variable_symbol(current_table, variable_definition->declaration->var_identifier);
     IRInstruction store(IRInstructionType::MOV, IROperand::Vr(var_symbol.virtual_register), expression_vr, IROperand::None());
     emit_instruction(store, 0, false);
+}
+
+void InstructionGenerator::emit_implicit_conversion(const ast_node& node, IROperand vr, const type_data type_to)
+{
+    const type_data& type_from = get_vr_type(vr);
+
+    if (!is_implicit_conversion_possible(type_from, type_to))
+    {
+        //todo cool text like from i32* to f32 or etc
+        Logger::error(node, HX_IMPLICIT_CONVERSION_NOT_POSSIBLE, "Implicit conversion not possible");
+    }
+
+    if (is_integer_type(type_from))
+    {
+        // todo: not sure if this is the best way to go about this
+        // current_function.virtual_register_types.at(vr.value) = type_to;
+        return;
+    }
+
+    Logger::not_implemented();
+
 }
 
 int64_t InstructionGenerator::unwrap_assigment(TokenType op_token, IROperand left_register, IROperand right_register)
@@ -287,10 +315,11 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
     IROperand left_register = effective_register;
     visit_expression(binop->right);
     IROperand right_register = effective_register;
-    // todo implicit conversion, actual check
-    if (is_integer_type(get_vr_type(left_register)) != is_integer_type(get_vr_type(right_register)))
+
+    // try implicit conversion
+    if (get_vr_type(left_register) != get_vr_type(right_register))
     {
-        Logger::error(*binop, HX_ILLEGAL_BINARY_OPERATION, "binary operation types dont match");
+        emit_implicit_conversion(*binop, right_register, get_vr_type(left_register));
     }
 
     IRInstructionType instruction_type = get_ir_binop_instruction(binop->op_token, left_register);
