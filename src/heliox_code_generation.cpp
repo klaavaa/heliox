@@ -62,7 +62,8 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         //stack alignment
         if (instruction.src2.kind != IROperandKind::NONE)
             emit("sub", "rsp", "8");
-        emit("push", instruction.src1);
+        // set the reg_size manually because the vr reg size may not be 8  
+        emit("push", get_location(instruction.src1, 8));
         return;
     case IRInstructionType::IADD:
         emit("add", instruction.src1, instruction.src2);

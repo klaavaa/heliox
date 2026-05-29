@@ -12,7 +12,10 @@ public:
     void allocate_registers();
 private:
 
+    void cleanup_pass(IRFunction& ir_function);
+
     void allocate_registers(IRFunction& ir_function);
+
     void preallocate_registers(IRFunction& ir_function);
     void preallocate_register(IRFunction& ir_function, const int64_t vr, Register reg, std::vector<Register> non_vr_regs={});
     void preallocate_stack(IRFunction& ir_function, const int64_t vr);

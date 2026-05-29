@@ -143,49 +143,67 @@ void RegisterAllocator::allocate_registers(IRFunction& ir_function)
     ir_function.total_stack_allocated = align_up(ir_function.total_stack_allocated, 16);
 }
 
+void RegisterAllocator::cleanup_pass(IRFunction& ir_func)
+{
+    // pass to clean up mem, mem instructions and push non 8 bytes
+    if (ir_func.instructions.empty()) return;
+    std::vector<IRInstruction> fixed_instructions;
+    int64_t next_vr = ir_func.virtual_register_locations.rbegin()->first + 1;
+    for (auto& instruction : ir_func.instructions)
+    {
+
+        if (is_spilled(ir_func, instruction.dst) && is_spilled(ir_func, instruction.src1))
+        {
+            // mov instruction to temp reg
+            IRInstruction mov(IRInstructionType::MOV, IROperand::Vr(next_vr), instruction.dst, IROperand::None());
+            fixed_instructions.push_back(mov); 
+            // set type for new vr
+            ir_func.virtual_register_types.insert({next_vr, ir_func.virtual_register_types.at(instruction.src1.value)});
+
+            // the instruction using scratch register
+            fixed_instructions.push_back(IRInstruction{instruction.type, IROperand::Vr(next_vr), instruction.src1, IROperand::None()});
+
+            // set new vr location as the scratch register
+            ir_func.virtual_register_locations.insert({next_vr, Location::Reg(g_register_data.gp_scratch_register)});
+
+            IRInstruction mov_back(IRInstructionType::MOV, instruction.dst, IROperand::Vr(next_vr), IROperand::None());
+            fixed_instructions.push_back(mov_back); 
+            next_vr++;
+            continue;
+        }
+
+        if (instruction.type == IRInstructionType::ARG_PUSH)
+        {
+            if (ir_func.virtual_register_types.at(instruction.src1.value).byte_size != 8)
+            {
+                IRInstruction mov(IRInstructionType::MOV, IROperand::Vr(next_vr), instruction.src1, IROperand::None());
+                ir_func.virtual_register_types.insert({next_vr, ir_func.virtual_register_types.at(instruction.src1.value)});
+                fixed_instructions.push_back(mov); 
+
+                IRInstruction arg_push(IRInstructionType::ARG_PUSH, instruction.dst, IROperand::Vr(next_vr), instruction.src2);
+                fixed_instructions.push_back(arg_push); 
+
+                ir_func.virtual_register_locations.insert({next_vr, Location::Reg(g_register_data.gp_scratch_register)});
+
+                next_vr++;
+                continue;
+            }
+        }
+
+        fixed_instructions.push_back(instruction);
+
+    }
+
+    ir_func.instructions = std::move(fixed_instructions);
+}
+
 void RegisterAllocator::allocate_registers()
 {
     for (auto& ir_func : ir_unit.ir_functions)
     {
         preallocate_registers(ir_func);
         allocate_registers(ir_func);
-
-        // pass to clean up mem, mem instructions
-        if (ir_func.instructions.empty()) continue;
-        std::vector<IRInstruction> fixed_instructions;
-        int64_t next_vr = ir_func.virtual_register_locations.rbegin()->first + 1;
-        for (auto& instruction : ir_func.instructions)
-        {
-            //if (!(instruction.dst.kind == IROperandKind::VIRTUAL_REGISTER && instruction.src1.kind == IROperandKind::VIRTUAL_REGISTER))
-            //{
-            //    fixed_instructions.push_back(std::move(instruction));
-            //    continue;
-            //}
-
-            if (is_spilled(ir_func, instruction.dst) && is_spilled(ir_func, instruction.src1))
-            {
-                // mov instruction to temp reg
-                IRInstruction mov(IRInstructionType::MOV, IROperand::Vr(next_vr), instruction.dst, IROperand::None());
-                fixed_instructions.push_back(mov); 
-                // set type for new vr
-                ir_func.virtual_register_types.insert({next_vr, ir_func.virtual_register_types.at(instruction.src1.value)});
-
-                // the instruction using scratch register
-                fixed_instructions.push_back(IRInstruction{instruction.type, IROperand::Vr(next_vr), instruction.src1, IROperand::None()});
-
-                // set new vr location as the scratch register
-                ir_func.virtual_register_locations.insert({next_vr, Location::Reg(g_register_data.gp_scratch_register)});
-
-                IRInstruction mov_back(IRInstructionType::MOV, instruction.dst, IROperand::Vr(next_vr), IROperand::None());
-                fixed_instructions.push_back(mov_back); 
-                next_vr++;
-                continue;
-            }
-            fixed_instructions.push_back(instruction);
-
-        }
-
-        ir_func.instructions = std::move(fixed_instructions);
+        cleanup_pass(ir_func);
     }
 
 }
