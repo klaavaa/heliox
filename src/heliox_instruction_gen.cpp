@@ -124,9 +124,8 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     }
 
     // call instruction
-
     std::string function_full_name;
-    for (const auto& s : function_call->in_module)
+    for (const auto& s : func_symbol.module_path)
     {
         function_full_name += s + ".";
     }

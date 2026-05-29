@@ -37,7 +37,8 @@ void CodeGenerator::emit_function(IRFunction& ir_function)
     if (ir_function.total_stack_allocated != 0)
     {
         // fix the alignment based on the preserved registers (by default the total_stack_allocated is aligned to 16 bytes, so if an odd number of pushes occur, we need to add 8)
-        ir_function.total_stack_allocated += (registers_to_preserve.size() % 2) * 8;
+        // + 1 => push rbp
+        ir_function.total_stack_allocated += ((registers_to_preserve.size() + 1) % 2) * 8;
         emit("sub", "rsp", std::to_string(ir_function.total_stack_allocated));
     }
 
@@ -176,16 +177,25 @@ std::string CodeGenerator::get_vr_location(int64_t vr, uint32_t byte_size)
     }
     else // STACK
     {
+        int64_t stack_pos = location.stack;
+        char op = '-';
+
+        if (location.stack < 0)
+        {
+            // fix the offset added by preserved registers
+            stack_pos -= registers_to_preserve.size() * 8;
+            op = '+';
+        }
         switch (byte_size)
         {
         case 8:
-            return std::format("qword[rbp - {}]", location.stack);
+            return std::format("qword[rbp {} {}]", op, location.stack);
         case 4:
-            return std::format("dword[rbp - {}]", location.stack);
+            return std::format("dword[rbp {} {}]", op, location.stack);
         case 2:
-            return std::format("word[rbp - {}]", location.stack);
+            return std::format("word[rbp  {} {}]", op, location.stack);
         case 1:
-            return std::format("byte[rbp - {}]", location.stack);
+            return std::format("byte[rbp  {} {}]", op, location.stack);
         default:
             Logger::error("", HX_ILLEGAL_REG_SIZE, std::format("tried to get a location of size: {}", byte_size));
         }

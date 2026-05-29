@@ -246,8 +246,9 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
             }
             else
             {
-                
-                ir_function.live_ranges.erase(instruction.dst.value);
+                //need to take in codegen consideration the callee saved registers
+                ir_function.virtual_register_locations.insert({instruction.src2.value,
+                     Location::Stack(-16-8 * (instruction.src2.value - (int64_t)g_register_data.register_passed_int_args.size()))});     
             }
             break;
         case IRInstructionType::MOV_ARG:
@@ -261,11 +262,11 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
             }
             else // push the arguments on the stack (already in reverse order from IR)
             {
-
                 ir_function.live_ranges.erase(instruction.dst.value);
                 instruction.type = IRInstructionType::ARG_PUSH;
                 instruction.dst = IROperand::None();
-                if (first_func_push_arg && ((instruction.src2.value - (int64_t)g_register_data.register_passed_int_args.size() + 1) % 2 == 0))
+                int64_t pushed_argi = instruction.src2.value + 1 - (int64_t)g_register_data.register_passed_int_args.size();
+                if (first_func_push_arg && ((instruction.src2.value + 1 - (int64_t)g_register_data.register_passed_int_args.size()) % 2 == 1))
                 {
                     instruction.src2 = IROperand::Immediate(1);
                 }

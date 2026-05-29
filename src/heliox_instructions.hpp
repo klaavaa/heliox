@@ -17,6 +17,8 @@ inline int64_t align_up(int64_t offset, int64_t align)
     return (offset + align - 1) & ~(align - 1);
 }
 
+
+
 inline std::string parse_string_for_asm(const std::string& str)
 {
         std::string parsed_string = "\"";
