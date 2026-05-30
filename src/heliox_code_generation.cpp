@@ -110,6 +110,22 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         emit("idiv", instruction.src2);
         emit("mov", get_location(instruction.dst), get_register(Register::D, get_vr_type(instruction.dst).byte_size));
         return;
+    case IRInstructionType::BITWISE_AND:
+        emit("and", instruction.src1, instruction.src2);
+        emit("mov", instruction.dst, instruction.src1);
+        return;
+    case IRInstructionType::BITWISE_OR:
+        emit("or", instruction.src1, instruction.src2);
+        emit("mov", instruction.dst, instruction.src1);
+        return;
+    case IRInstructionType::BITWISE_XOR:
+        emit("xor", instruction.src1, instruction.src2);
+        emit("mov", instruction.dst, instruction.src1);
+        return;
+    case IRInstructionType::BITWISE_NOT:
+        emit("not", instruction.src1);
+        emit("mov", instruction.dst, instruction.src1);
+        return;
     case IRInstructionType::RETURN:
         emit("mov", instruction.dst, instruction.src1);
         emit("mov", "rsp", "rbp");

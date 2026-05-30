@@ -51,6 +51,8 @@ private:
 
     void emit_implicit_conversion(const ast_node& node, IROperand vr, const type_data type_to);
 
+    void visit_logical_binop(TokenType op_token, expression& left, expression& right);
+
 private:
     uptr<TranslationUnit> translation_unit;
     sptr<SymbolTable> global_table;

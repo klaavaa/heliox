@@ -92,6 +92,11 @@ enum class IRInstructionType
     IMUL,
     IMOD,
 
+    BITWISE_AND,
+    BITWISE_OR,
+    BITWISE_XOR,
+    BITWISE_NOT,
+
     JMP,
     JMP_IF,
     JMP_IF_NOT,
@@ -322,6 +327,19 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
             break;
         case IRInstructionType::IMOD:
             std::println("{}  IMOD       r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+
+        case IRInstructionType::BITWISE_AND:
+            std::println("{}  BIT_AND    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+        case IRInstructionType::BITWISE_OR:
+            std::println("{}  BIT_OR     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+        case IRInstructionType::BITWISE_XOR:
+            std::println("{}  BIT_XOR    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+        case IRInstructionType::BITWISE_NOT:
+            std::println("{}  BIT_NOT    r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
 
         case IRInstructionType::DEREF:

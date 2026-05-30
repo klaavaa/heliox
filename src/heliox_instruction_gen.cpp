@@ -386,6 +386,15 @@ IRInstructionType InstructionGenerator::get_ir_binop_instruction(TokenType op_to
         ir_instruction_type = IRInstructionType::CMP_GTE;
         register_vr_type(current_register, type_data{primitive_type::I8, 0});
         break;
+    case TokenType::BITWISE_AND:
+        ir_instruction_type = IRInstructionType::BITWISE_AND;
+        break;
+    case TokenType::BITWISE_OR:
+        ir_instruction_type = IRInstructionType::BITWISE_OR;
+        break;
+    case TokenType::BITWISE_XOR:
+        ir_instruction_type = IRInstructionType::BITWISE_XOR;
+        break;
     default:
         goto unknown_binop_operator;
     }
@@ -405,6 +414,13 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
         return;
     }
 
+    // logical operators need to be handled with their own logic
+    if (binop->op_token == TokenType::LOGICAL_AND || binop->op_token == TokenType::LOGICAL_OR)
+    {
+        visit_logical_binop(binop->op_token, binop->left, binop->right);
+        return;
+    }
+
     visit_expression(binop->left);
     IROperand left_register = effective_register;
     visit_expression(binop->right);
@@ -415,6 +431,7 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
     {
         emit_implicit_conversion(*binop, right_register, get_vr_type(left_register));
     }
+
 
     IRInstructionType instruction_type = get_ir_binop_instruction(binop->op_token, left_register);
 
@@ -439,6 +456,13 @@ void InstructionGenerator::visit_unary(uptr<unary_expr>& unary)
         IRInstruction deref(IRInstructionType::DEREF, current_register, effective_register, IROperand::None());
         register_vr_type(current_register, get_vr_type(effective_register).deref());
         emit_instruction(deref);
+        break;
+    }
+    case TokenType::BITWISE_NOT:
+    {
+        IRInstruction bitwise_not(IRInstructionType::BITWISE_NOT, current_register, effective_register, IROperand::None());
+        register_vr_type(current_register, effective_register);
+        emit_instruction(bitwise_not);
         break;
     }
     default:
@@ -498,6 +522,69 @@ void InstructionGenerator::visit_while(uptr<while_statement>& while_s)
     IRInstruction end_label_inst(IRInstructionType::LABEL, IROperand::None(), IROperand::None(), end_label);
     emit_instruction(end_label_inst, 0, false);
 
+}
+
+void InstructionGenerator::visit_logical_binop(TokenType op_token, expression& left, expression& right)
+{
+    if (op_token == TokenType::LOGICAL_AND)
+    {
+        
+        auto zero_label = IROperand::Label(next_label++);
+        auto end_label = IROperand::Label(next_label++);
+
+        visit_expression(left);
+        IRInstruction jmp_if_zero1(IRInstructionType::JMP_IF_NOT, IROperand::None(), effective_register, zero_label);
+        emit_instruction(jmp_if_zero1, 0, false);
+        visit_expression(right);
+        IRInstruction jmp_if_zero2(IRInstructionType::JMP_IF_NOT, IROperand::None(), effective_register, zero_label);
+        emit_instruction(jmp_if_zero2, 0, false);
+
+        IRInstruction mov_one(IRInstructionType::MOV, current_register, IROperand::Immediate(1), IROperand::None());
+        emit_instruction(mov_one);
+
+        IRInstruction jmp_end(IRInstructionType::JMP, IROperand::None(), IROperand::None(), end_label);
+        emit_instruction(jmp_end, 0, false);
+
+        IRInstruction zero_label_inst(IRInstructionType::LABEL, IROperand::None(), IROperand::None(), zero_label);
+        emit_instruction(zero_label_inst, 0, false);
+        IRInstruction mov_zero(IRInstructionType::MOV, effective_register, IROperand::Immediate(0), IROperand::None());
+        emit_instruction(mov_zero, 0, false);
+        IRInstruction end_label_inst(IRInstructionType::LABEL, IROperand::None(), IROperand::None(), end_label);
+        emit_instruction(end_label_inst, 0, false);
+
+        register_vr_type(effective_register, type_data{primitive_type::I8, 0});
+        return;
+    }
+    if (op_token == TokenType::LOGICAL_OR)
+    {
+        auto one_label = IROperand::Label(next_label++);
+        auto end_label = IROperand::Label(next_label++);
+
+        visit_expression(left);
+        IRInstruction jmp_if1(IRInstructionType::JMP_IF, IROperand::None(), effective_register, one_label);
+        emit_instruction(jmp_if1, 0, false);
+        visit_expression(right);
+        IRInstruction jmp_if2(IRInstructionType::JMP_IF, IROperand::None(), effective_register, one_label);
+        emit_instruction(jmp_if2, 0, false);
+
+        IRInstruction mov_zero(IRInstructionType::MOV, current_register, IROperand::Immediate(0), IROperand::None());
+        emit_instruction(mov_zero);
+
+        IRInstruction jmp_end(IRInstructionType::JMP, IROperand::None(), IROperand::None(), end_label);
+        emit_instruction(jmp_end, 0, false);
+
+        IRInstruction one_label_inst(IRInstructionType::LABEL, IROperand::None(), IROperand::None(), one_label);
+        emit_instruction(one_label_inst, 0, false);
+        IRInstruction mov_one(IRInstructionType::MOV, effective_register, IROperand::Immediate(1), IROperand::None());
+        emit_instruction(mov_one, 0, false);
+        IRInstruction end_label_inst(IRInstructionType::LABEL, IROperand::None(), IROperand::None(), end_label);
+        emit_instruction(end_label_inst, 0, false);
+
+        register_vr_type(effective_register, type_data{primitive_type::I8, 0});
+        return;
+    }
+
+    Logger::not_implemented();
 }
 
 } // namespace hx
