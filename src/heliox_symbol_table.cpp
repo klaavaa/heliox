@@ -126,4 +126,13 @@ sptr<SymbolTable> create_global_table_for_translation_unit(const uptr<Translatio
     }
     return global_table;
 }
+
+bool table_has_variable_with_vr(sptr<SymbolTable> table, int64_t vr)
+{
+    for (auto& [_, sym] : table->variable_symbols)
+    {
+        if (sym.virtual_register == vr) return true;
+    }
+    return false;
+}
 } // namespace hx

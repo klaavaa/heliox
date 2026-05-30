@@ -4,7 +4,7 @@ namespace hx
 {
 
 
-void perform_liveness_analysis_on_function(IRFunction& ir_function)
+void perform_liveness_analysis_on_function(IRFunction& ir_function, sptr<SymbolTable> table)
 {
     //todo LOOP
     
@@ -22,9 +22,38 @@ void perform_liveness_analysis_on_function(IRFunction& ir_function)
     };
 
     size_t instruction_number = 0;
+
+    std::unordered_map<int64_t, size_t> label_numbers;
+
     for (const auto& instruction : ir_function.instructions)
     {
         auto& live_ranges = ir_function.live_ranges;
+
+        switch (instruction.type)
+        {
+            case IRInstructionType::LABEL:
+                label_numbers.insert({instruction.src2.value, instruction_number});
+                break;
+            case IRInstructionType::JMP:
+            case IRInstructionType::JMP_IF:
+            case IRInstructionType::JMP_IF_NOT:
+                if (!label_numbers.contains(instruction.src2.value))
+                    break;
+                
+                for (auto& [vr, live_range] : live_ranges)
+                {
+                    if (!table_has_variable_with_vr(table, vr)) continue;
+                    if (live_range.end > label_numbers.at(instruction.src2.value))
+                    {
+                        live_range.end = instruction_number;
+                    }
+                }
+                break;
+
+            default:
+                break;
+        }
+        
         if (instruction.dst.kind == IROperandKind::VIRTUAL_REGISTER)
         {
             update_liverange(instruction.dst, instruction_number);
@@ -43,11 +72,13 @@ void perform_liveness_analysis_on_function(IRFunction& ir_function)
 }
 
 
-void perform_liveness_analysis_on_unit(IRUnit& ir_unit)
+void perform_liveness_analysis_on_unit(IRUnit& ir_unit, sptr<SymbolTable> global_table)
 {
     for (auto& ir_function : ir_unit.ir_functions)
     {
-        perform_liveness_analysis_on_function(ir_function);
+        if (!global_table->child_tables.contains(ir_function.name)) continue; //func doesnt have body 
+        sptr<SymbolTable> current_table = global_table->child_tables.at(ir_function.name);
+        perform_liveness_analysis_on_function(ir_function, current_table);
     }
 }
 

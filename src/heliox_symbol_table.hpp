@@ -57,6 +57,7 @@ namespace hx
 
     VariableSymbol& find_variable_symbol(sptr<SymbolTable> table, const uptr<identifier_literal_expr>& identifier);
 
+    bool table_has_variable_with_vr(sptr<SymbolTable> table, int64_t vr);
 
     inline void print_table(sptr<SymbolTable> table)
     {

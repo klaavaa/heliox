@@ -436,5 +436,28 @@ void InstructionGenerator::visit_conditional(uptr<conditional_statement>& condit
 
 }
 
+void InstructionGenerator::visit_while(uptr<while_statement>& while_s)
+{
+    auto begin_label = IROperand::Label(next_label++);
+    auto end_label = IROperand::Label(next_label++);
+
+    IRInstruction begin_label_inst(IRInstructionType::LABEL, IROperand::None(), IROperand::None(), begin_label);
+    emit_instruction(begin_label_inst, 0, false);
+
+    visit_expression(while_s->condition);
+
+    IRInstruction jmp_not(IRInstructionType::JMP_IF_NOT, IROperand::None(), effective_register, end_label);
+    emit_instruction(jmp_not, 0, false);
+
+    visit_statement(while_s->loop);
+
+    
+    IRInstruction jmp_begin(IRInstructionType::JMP, IROperand::None(), IROperand::None(), begin_label);
+    emit_instruction(jmp_begin, 0, false);
+
+    IRInstruction end_label_inst(IRInstructionType::LABEL, IROperand::None(), IROperand::None(), end_label);
+    emit_instruction(end_label_inst, 0, false);
+
+}
 
 } // namespace hx

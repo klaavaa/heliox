@@ -73,7 +73,7 @@ inline void compile(const std::vector<std::string>& file_paths, const std::strin
         IRUnit ir_unit = instruction_gen.generate_instructions();
 
         // generate live-ranges for virtual registers
-        perform_liveness_analysis_on_unit(ir_unit);
+        perform_liveness_analysis_on_unit(ir_unit, global_table);
         print_live_ranges(ir_unit);
         // preallocate certain registers / stack
 

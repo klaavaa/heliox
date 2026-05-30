@@ -121,10 +121,6 @@ void RegisterAllocator::allocate_registers(IRFunction& ir_function)
 
     for (auto [vr, live_range] : ir_function.live_ranges)
     {
-        if (vr == 15)
-        {
-            std::println("HEJKAJSDKLJ");
-        }
         if (ir_function.virtual_register_locations.contains(vr)) continue;
 
         if (ir_function.register_reservations.contains(vr))
@@ -416,7 +412,6 @@ void RegisterAllocator::preallocate_register(IRFunction& ir_function, const int6
 void RegisterAllocator::preallocate_some_register(IRFunction& ir_function, const int64_t vr)
 {
     if (ir_function.register_reservations.contains(vr)) return;
-    std::println("PREALLOCATING THIS VR TO SOME REG {} ", vr);
     RegisterReservation res = RegisterReservation::SomeRegister();
     ir_function.register_reservations.insert({vr, res});
 }
