@@ -4,6 +4,7 @@
 #include <vector>
 #include <unordered_map>
 #include <map>
+#include <optional>
 #include "heliox_registerdata.hpp"
 #include "heliox_types.hpp"
 
@@ -90,7 +91,19 @@ enum class IRInstructionType
     IDIV,
     IMUL,
 
-    // ==================
+    JMP,
+    JMP_IF,
+    JMP_IF_NOT,
+
+    CMP_EQU,
+    CMP_NEQU,
+    CMP_GT,
+    CMP_LT,
+    CMP_GTE,
+    CMP_LTE,
+
+    LABEL,
+    
 
 };
 
@@ -131,6 +144,7 @@ enum class IROperandKind
     IMMEDIATE_VALUE,
     LITERAL_LOCATION,
     ARG_NUMBER,
+    LABEL
 };
 
 struct IROperand
@@ -158,6 +172,10 @@ struct IROperand
         return {IROperandKind::LITERAL_LOCATION, val};
     }
 
+    static IROperand Label(int64_t val)
+    {
+        return {IROperandKind::LABEL, val};
+    }
 
     IROperandKind kind;
     int64_t value;
@@ -184,14 +202,17 @@ struct LiveRange
 
 struct RegisterReservation
 {
-    static RegisterReservation Stack() { return RegisterReservation{.on_stack = true};}
-    static RegisterReservation Reg(Register reg) { return RegisterReservation{.on_stack = false, .reg = reg};}
+    static RegisterReservation Stack() { return RegisterReservation{.must_be_register=false, .on_stack = true, .reg = std::nullopt};}
+    static RegisterReservation Reg(Register reg) { return RegisterReservation{.must_be_register = false, .on_stack = false, .reg = reg};}
+    static RegisterReservation SomeRegister() { return RegisterReservation{.must_be_register = true, .on_stack = false, .reg = std::nullopt};}
 
+    // force the vr to be some register
+    bool must_be_register = false;
     // force the vr to go to stack
-    bool on_stack;
+    bool on_stack = false;
 
     // register that the vr will always map to
-    Register reg;
+    std::optional<Register> reg = std::nullopt;
     // other registers that will get reserved also (for example for idiv rdx etc.)
     std::vector<Register> non_vr_regs;
 
@@ -277,7 +298,7 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
             break;
 
         case IRInstructionType::REGISTER_ARG:
-            std::println("{}  REGISTER_ARG    <- r{}, arg[{}]", prefix, ir_instruction.src1, ir_instruction.src2);
+            std::println("{}  RGISTER_ARG r{} <- r{}, arg[{}]", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
         case IRInstructionType::STORE_MEM:
             std::println("{}  STORE_MEM [r{}] <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
@@ -301,6 +322,37 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
 
         case IRInstructionType::DEREF:
             std::println("{}  DEREF      r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
+
+        case IRInstructionType::JMP:
+            std::println("{}  JMP             <-    , LB{}", prefix, ir_instruction.src2);
+            break;
+        case IRInstructionType::JMP_IF:
+            std::println("{}  JMP_IF          <- r{}, LB{}", prefix, ir_instruction.src1, ir_instruction.src2);
+            break;
+        case IRInstructionType::JMP_IF_NOT:
+            std::println("{}  JMP_NOT         <- r{}, LB{}", prefix, ir_instruction.src1, ir_instruction.src2);
+            break;
+        case IRInstructionType::LABEL:
+            std::println("{}  LABEL           <-    , LB{}", prefix, ir_instruction.src2);
+            break;
+        case IRInstructionType::CMP_EQU:
+            std::println("{}  CMP_EQU    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+        case IRInstructionType::CMP_NEQU:
+            std::println("{}  CMP_NEQU   r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+        case IRInstructionType::CMP_LT:
+            std::println("{}  CMP_LT     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+        case IRInstructionType::CMP_GT:
+            std::println("{}  CMP_GT     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+        case IRInstructionType::CMP_LTE:
+            std::println("{}  CMP_LTE    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+        case IRInstructionType::CMP_GTE:
+            std::println("{}  CMP_GTE    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
 
         default:

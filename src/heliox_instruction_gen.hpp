@@ -24,6 +24,8 @@ private:
     void register_vr_type(IROperand vr, const type_data& type);
     void register_vr_type(IROperand vr, IROperand from_vr);
 
+    bool has_vr_type(IROperand vr);
+
     const type_data& get_vr_type(IROperand vr) const;
 
     std::string get_module_prefix() const;
@@ -41,7 +43,7 @@ private:
     void visit_return(uptr<return_statement>& return_s) override;
     void visit_variable_declaration(uptr<variable_declaration_statement>& variable_declaration) override;
     void visit_variable_definition(uptr<variable_definition_statement>& variable_definition) override;
-    void visit_conditional(uptr<conditional_statement>& conditional) override{}
+    void visit_conditional(uptr<conditional_statement>& conditional) override;
     void visit_while(uptr<while_statement>& while_s) override{}
     void visit_expression_s(uptr<expression_statement>& expr) override;
     void visit_noop(uptr<noop_statement>& noop) override{}
@@ -59,6 +61,8 @@ private:
 
     IROperand current_register = {IROperandKind::VIRTUAL_REGISTER, 0};
     IROperand effective_register = {IROperandKind::VIRTUAL_REGISTER, 0};
+
+    int64_t next_label = 0;
 };
 
 

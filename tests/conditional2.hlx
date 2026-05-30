@@ -7,27 +7,27 @@ fun main() i32
     
     if (a == b)
     {
-        printf("%d == %d\n", a, b);
+        printf("%d == %d\n\0", a, b);
     }
     if ( a != b)
     {
-        printf("%d != %d\n", a, b);
+        printf("%d != %d\n\0", a, b);
     }
     if ( a > b)
     {
-        printf("%d > %d\n", a, b);
+        printf("%d > %d\n\0", a, b);
     }
     if ( a >= b)
     {
-        printf("%d >= %d\n", a, b);
+        printf("%d >= %d\n\0", a, b);
     }
     if ( a < b)
     {
-        printf("%d < %d\n", a, b);
+        printf("%d < %d\n\0", a, b);
     }
     if ( a <= b)
     {
-        printf("%d <= %d\n", a, b);
+        printf("%d <= %d\n\0", a, b);
     }
 
     return 0;

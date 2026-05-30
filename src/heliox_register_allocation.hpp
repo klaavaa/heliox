@@ -18,6 +18,7 @@ private:
 
     void preallocate_registers(IRFunction& ir_function);
     void preallocate_register(IRFunction& ir_function, const int64_t vr, Register reg, std::vector<Register> non_vr_regs={});
+    void preallocate_some_register(IRFunction& ir_function, const int64_t vr);
     void preallocate_stack(IRFunction& ir_function, const int64_t vr);
 
     void allocate_stack(IRFunction& ir_function, const int64_t vr);
@@ -30,8 +31,11 @@ private:
 
     bool is_spilled(IRFunction& ir_function, IROperand operand);
 
+    type_data get_operand_type(const IRFunction& ir_function, const IROperand operand);
+
     IRUnit& ir_unit;
     std::vector<int64_t> active_virtual_registers;
+    std::vector<int64_t> active_unspillable_virtual_registers;
     std::set<Register> gp_free_registers;
 
 };

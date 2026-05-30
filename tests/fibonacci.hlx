@@ -9,7 +9,7 @@ fun fibonacci(i64 x) i64
 fun main() i64
 {
     
-    printf("%d", fibonacci(25));
+    printf("%d\0", fibonacci(25));
 
     return 0;
 }

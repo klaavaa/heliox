@@ -29,7 +29,6 @@ sptr<SymbolTable> find_submodule_table(sptr<SymbolTable> table, const std::vecto
     sptr<SymbolTable> current_table = table;
     for (const auto &module_name : module_path)
     {
-        std::println("MODULE NAME: {}", module_name);
         if (!current_table->submodule_tables.contains(module_name))
         {
             Logger::error("", HX_MODULE_NOT_FOUND, "Module not found");
@@ -69,10 +68,7 @@ void insert_module(sptr<SymbolTable> table, sptr<Module> module)
 
 FunctionSymbol& find_function_symbol(sptr<SymbolTable> table, const std::string& name, const std::vector<std::string>& module_path, bool find_in_parent_modules)
 {
-    std::println("FINDING FUNCTION {}", name);
     sptr<SymbolTable> submodule_table = find_submodule_table(table, module_path);
-    if (module_path.size())
-        std::println("FOUND MODULE {}", module_path.back());
 
     do
     { 

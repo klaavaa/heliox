@@ -18,7 +18,10 @@ void RegisterAllocator::allocate_stack(IRFunction& ir_function, const int64_t vr
 void RegisterAllocator::allocate_register(IRFunction& ir_function, const int64_t vr, Register reg)
 {
     ir_function.virtual_register_locations.insert({vr, Location::Reg(reg)});
-    active_virtual_registers.push_back(vr);
+    if (ir_function.register_reservations.contains(vr) && ir_function.register_reservations.at(vr).must_be_register)
+        active_unspillable_virtual_registers.push_back(vr);
+    else
+        active_virtual_registers.push_back(vr);
 }
 
 void RegisterAllocator::expire_old_intervals(IRFunction& ir_function, const int64_t current_vr)
@@ -29,6 +32,7 @@ void RegisterAllocator::expire_old_intervals(IRFunction& ir_function, const int6
         {
             return ir_function.live_ranges.at(a).end < ir_function.live_ranges.at(b).end;
         });
+
         
     
     std::erase_if(active_virtual_registers, 
@@ -39,28 +43,48 @@ void RegisterAllocator::expire_old_intervals(IRFunction& ir_function, const int6
         return false;
         });
 
+    std::erase_if(active_unspillable_virtual_registers, 
+        [&ir_function, current_vr](int64_t vr) 
+        {
+        if (ir_function.live_ranges.at(vr).end < ir_function.live_ranges.at(current_vr).start)
+            return true;
+        return false;
+        });
 }
 
 
 void RegisterAllocator::spill(IRFunction& ir_function, const int64_t current_vr)
 {
+    bool must_be_register = ir_function.register_reservations.contains(current_vr) && ir_function.register_reservations.at(current_vr).must_be_register;
+
     if (!active_virtual_registers.size())
     {
+        if (must_be_register)
+        {
+            Logger::not_implemented();
+        }
         allocate_stack(ir_function, current_vr);
         return;
     }
+
     int64_t vr_spill = active_virtual_registers.back();
-    if (ir_function.live_ranges.at(vr_spill).end > ir_function.live_ranges.at(current_vr).end)
+    if ((ir_function.live_ranges.at(vr_spill).end > ir_function.live_ranges.at(current_vr).end) || must_be_register)
     {
         Location spill_location = ir_function.virtual_register_locations.at(vr_spill);
         Register reg = spill_location.reg;
+
         ir_function.virtual_register_locations.insert({current_vr, Location::Reg(reg)});
 
         active_virtual_registers.pop_back();
 
         ir_function.virtual_register_locations.erase(vr_spill);
         allocate_stack(ir_function, vr_spill);
-        active_virtual_registers.push_back(current_vr);
+
+        if (!must_be_register)
+            active_virtual_registers.push_back(current_vr);
+        else
+            active_unspillable_virtual_registers.push_back(current_vr);
+
         return;
     }
 
@@ -75,11 +99,13 @@ std::set<Register> RegisterAllocator::get_pre_reserved_registers(IRFunction& ir_
     for (const auto& [vr, val] : ir_function.register_reservations)
     {
         if (val.on_stack) continue;
+        if (!val.reg.has_value()) continue;
+
         const auto& live_range = ir_function.live_ranges.at(vr);
         if (current_live_range.start > live_range.end || current_live_range.end < live_range.start)
             continue;
         
-        pre_reserved_registers.insert(val.reg);
+        pre_reserved_registers.insert(val.reg.value());
         for (auto r : val.non_vr_regs)
         {
             pre_reserved_registers.insert(r);
@@ -91,9 +117,14 @@ std::set<Register> RegisterAllocator::get_pre_reserved_registers(IRFunction& ir_
 void RegisterAllocator::allocate_registers(IRFunction& ir_function)
 {
     active_virtual_registers.clear();
+    active_unspillable_virtual_registers.clear();
 
     for (auto [vr, live_range] : ir_function.live_ranges)
     {
+        if (vr == 15)
+        {
+            std::println("HEJKAJSDKLJ");
+        }
         if (ir_function.virtual_register_locations.contains(vr)) continue;
 
         if (ir_function.register_reservations.contains(vr))
@@ -102,7 +133,8 @@ void RegisterAllocator::allocate_registers(IRFunction& ir_function)
             {
                 allocate_stack(ir_function, vr);
             }
-            continue;
+            if (!ir_function.register_reservations.at(vr).must_be_register)
+                continue;
         }
 
 
@@ -120,10 +152,10 @@ void RegisterAllocator::allocate_registers(IRFunction& ir_function)
         {
             gp_free_registers.erase(ir_function.virtual_register_locations.at(active_vr).reg);
         }
-
-
-
-        
+        for (int64_t active_unspillable_vr : active_unspillable_virtual_registers)
+        {
+            gp_free_registers.erase(ir_function.virtual_register_locations.at(active_unspillable_vr).reg);
+        }
 
         if (gp_free_registers.size() == 0)
         {
@@ -148,47 +180,107 @@ void RegisterAllocator::cleanup_pass(IRFunction& ir_func)
     int64_t next_vr = ir_func.virtual_register_locations.rbegin()->first + 1;
     for (auto& instruction : ir_func.instructions)
     {
-
-        if (is_spilled(ir_func, instruction.dst) && is_spilled(ir_func, instruction.src1))
+        switch (instruction.type)
         {
-            // mov instruction to temp reg
-            IRInstruction mov(IRInstructionType::MOV, IROperand::Vr(next_vr), instruction.dst, IROperand::None());
-            fixed_instructions.push_back(mov); 
-            // set type for new vr
-            ir_func.virtual_register_types.insert({next_vr, ir_func.virtual_register_types.at(instruction.src1.value)});
+            case IRInstructionType::DEREF:
+                if (is_spilled(ir_func, instruction.dst))
+                {
+                    IRInstruction deref(IRInstructionType::DEREF, IROperand::Vr(next_vr), instruction.src1, IROperand::None());
+                    ir_func.virtual_register_types.insert({next_vr, ir_func.virtual_register_types.at(instruction.dst.value)});
+                    ir_func.virtual_register_locations.insert({next_vr, Location::Reg(g_register_data.gp_scratch_register)});
+                    fixed_instructions.push_back(deref);
 
-            // the instruction using scratch register
-            fixed_instructions.push_back(IRInstruction{instruction.type, IROperand::Vr(next_vr), instruction.src1, IROperand::None()});
+                    IRInstruction mov(IRInstructionType::MOV, instruction.dst, IROperand::Vr(next_vr), IROperand::None());
+                    fixed_instructions.push_back(mov);
 
-            // set new vr location as the scratch register
-            ir_func.virtual_register_locations.insert({next_vr, Location::Reg(g_register_data.gp_scratch_register)});
+                    next_vr++;
+                    continue;
+                }
+                break;
+            case IRInstructionType::STORE_MEM:
+                if (is_spilled(ir_func, instruction.src1))
+                {
+                    IRInstruction mov(IRInstructionType::MOV, IROperand::Vr(next_vr), instruction.src1, IROperand::None());
+                    fixed_instructions.push_back(mov); 
 
-            IRInstruction mov_back(IRInstructionType::MOV, instruction.dst, IROperand::Vr(next_vr), IROperand::None());
-            fixed_instructions.push_back(mov_back); 
-            next_vr++;
-            continue;
-        }
+                    ir_func.virtual_register_types.insert({next_vr, ir_func.virtual_register_types.at(instruction.src1.value)});
+                    ir_func.virtual_register_locations.insert({next_vr, Location::Reg(g_register_data.gp_scratch_register)});
+                    IRInstruction store_mem(IRInstructionType::STORE_MEM, instruction.dst, IROperand::Vr(next_vr), IROperand::None());
+                    fixed_instructions.push_back(store_mem); 
+                    continue;
+                }
+                break;
+            case IRInstructionType::ARG_PUSH:
+                if (ir_func.virtual_register_types.at(instruction.src1.value).byte_size != 8)
+                {
+                    IRInstruction mov(IRInstructionType::MOV, IROperand::Vr(next_vr), instruction.src1, IROperand::None());
+                    ir_func.virtual_register_types.insert({next_vr, ir_func.virtual_register_types.at(instruction.src1.value)});
+                    fixed_instructions.push_back(mov); 
 
-        if (instruction.type == IRInstructionType::ARG_PUSH)
-        {
-            if (ir_func.virtual_register_types.at(instruction.src1.value).byte_size != 8)
+                    IRInstruction arg_push(IRInstructionType::ARG_PUSH, instruction.dst, IROperand::Vr(next_vr), instruction.src2);
+                    fixed_instructions.push_back(arg_push); 
+
+                    ir_func.virtual_register_locations.insert({next_vr, Location::Reg(g_register_data.gp_scratch_register)});
+
+                    next_vr++;
+                    continue;
+                }
+                break;
+            case IRInstructionType::JMP_IF:
+            case IRInstructionType::JMP_IF_NOT:
+            if (is_spilled(ir_func, instruction.src1))
             {
                 IRInstruction mov(IRInstructionType::MOV, IROperand::Vr(next_vr), instruction.src1, IROperand::None());
+                fixed_instructions.push_back(mov);
+
+                IRInstruction jmp_condition(instruction.type, IROperand::None(), IROperand::Vr(next_vr), instruction.src2);
+                fixed_instructions.push_back(jmp_condition);
+
                 ir_func.virtual_register_types.insert({next_vr, ir_func.virtual_register_types.at(instruction.src1.value)});
-                fixed_instructions.push_back(mov); 
-
-                IRInstruction arg_push(IRInstructionType::ARG_PUSH, instruction.dst, IROperand::Vr(next_vr), instruction.src2);
-                fixed_instructions.push_back(arg_push); 
-
                 ir_func.virtual_register_locations.insert({next_vr, Location::Reg(g_register_data.gp_scratch_register)});
-
                 next_vr++;
                 continue;
             }
+            break;
+            default:
+                if (is_spilled(ir_func, instruction.src1) && is_spilled(ir_func, instruction.src2))
+                {
+                    IRInstruction mov(IRInstructionType::MOV, IROperand::Vr(next_vr), instruction.src1, IROperand::None());
+                    fixed_instructions.push_back(mov); 
+
+                    ir_func.virtual_register_types.insert({next_vr, ir_func.virtual_register_types.at(instruction.src1.value)});
+                    ir_func.virtual_register_locations.insert({next_vr, Location::Reg(g_register_data.gp_scratch_register)});
+                   
+                    IRInstruction inst(instruction.type, instruction.dst, IROperand::Vr(next_vr), instruction.src2);
+                    fixed_instructions.push_back(inst);
+                    
+                    next_vr++;
+                    continue;
+                }
+                if (is_spilled(ir_func, instruction.dst) && is_spilled(ir_func, instruction.src1))
+                {
+                    std::println("CLEANING UP {}", (int)instruction.type);
+                    // mov instruction to temp reg
+                    IRInstruction mov(IRInstructionType::MOV, IROperand::Vr(next_vr), instruction.dst, IROperand::None());
+                    fixed_instructions.push_back(mov); 
+                    // set type for new vr
+                    ir_func.virtual_register_types.insert({next_vr, get_operand_type(ir_func, instruction.src1)});
+
+                    // the instruction using scratch register
+                    fixed_instructions.push_back(IRInstruction{instruction.type, IROperand::Vr(next_vr), instruction.src1, IROperand::None()});
+
+                    // set new vr location as the scratch register
+                    ir_func.virtual_register_locations.insert({next_vr, Location::Reg(g_register_data.gp_scratch_register)});
+
+                    IRInstruction mov_back(IRInstructionType::MOV, instruction.dst, IROperand::Vr(next_vr), IROperand::None());
+                    fixed_instructions.push_back(mov_back); 
+                    next_vr++;
+                    continue;
+                    
+                }
         }
 
         fixed_instructions.push_back(instruction);
-
     }
 
     ir_func.instructions = std::move(fixed_instructions);
@@ -232,6 +324,11 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
         case IRInstructionType::IDIV:
             preallocate_register(ir_function, instruction.src1.value, Register::A, {Register::D});
             break;
+        case IRInstructionType::IADD:
+        case IRInstructionType::ISUB:
+        case IRInstructionType::IMUL:
+            preallocate_some_register(ir_function, instruction.src1.value);
+            break;
         case IRInstructionType::RETURN:
             preallocate_register(ir_function, instruction.dst.value, Register::A);
             break;
@@ -247,8 +344,15 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
             else
             {
                 //need to take in codegen consideration the callee saved registers
-                ir_function.virtual_register_locations.insert({instruction.src2.value,
-                     Location::Stack(-16-8 * (instruction.src2.value - (int64_t)g_register_data.register_passed_int_args.size()))});     
+                // push rbp => +8
+                // fcall => +8
+                int64_t base_offset = -16;
+                #ifdef _WIN32
+                // shadow space on windows
+                base_offset -= 32;
+                #endif
+                ir_function.virtual_register_locations.insert({instruction.src1.value,
+                     Location::Stack(base_offset - 8 * (instruction.src2.value - (int64_t)g_register_data.register_passed_int_args.size()))});     
             }
             break;
         case IRInstructionType::MOV_ARG:
@@ -280,10 +384,19 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
             break;
 
         case IRInstructionType::FUNCTION_CALL:
+        {
             first_func_push_arg = true;
             // reserve A for return value and globber caller saved registers
             std::vector non_vr_regs(g_register_data.caller_saved_registers.begin(), g_register_data.caller_saved_registers.end());
             preallocate_register(ir_function, instruction.dst.value, Register::A, non_vr_regs);
+            break;
+        }
+        case IRInstructionType::STORE_MEM:
+            preallocate_some_register(ir_function, instruction.dst.value);
+            break;
+
+        case IRInstructionType::DEREF:
+            preallocate_some_register(ir_function, instruction.src1.value);
             break;
         }
 
@@ -293,15 +406,45 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
 
 void RegisterAllocator::preallocate_register(IRFunction& ir_function, const int64_t vr, Register reg, std::vector<Register> non_vr_regs)
 {
+    if (ir_function.register_reservations.contains(vr)) ir_function.register_reservations.erase(vr);
+
     RegisterReservation res = RegisterReservation::Reg(reg);
     res.non_vr_regs = non_vr_regs;
     ir_function.register_reservations.insert({vr, res});
     ir_function.virtual_register_locations.insert({vr, Location::Reg(reg)});
 }
+void RegisterAllocator::preallocate_some_register(IRFunction& ir_function, const int64_t vr)
+{
+    if (ir_function.register_reservations.contains(vr)) return;
+    std::println("PREALLOCATING THIS VR TO SOME REG {} ", vr);
+    RegisterReservation res = RegisterReservation::SomeRegister();
+    ir_function.register_reservations.insert({vr, res});
+}
+
 void RegisterAllocator::preallocate_stack(IRFunction& ir_function, const int64_t vr)
 {
     RegisterReservation res = RegisterReservation::Stack();
     ir_function.register_reservations.insert({vr, res});
+}
+type_data RegisterAllocator::get_operand_type(const IRFunction& ir_function, const IROperand operand)
+{
+    switch (operand.kind)
+    {
+    case IROperandKind::VIRTUAL_REGISTER:
+        return ir_function.virtual_register_types.at(operand.value);
+    case IROperandKind::LITERAL_LOCATION:
+        if (ir_unit.allocated_literals.at(operand.value).type == LiteralType::STRING)
+        {
+            return {primitive_type::U8, 1};
+        }
+        else
+        {
+            Logger::not_implemented();
+        }
+    default:
+        Logger::not_implemented();
+
+    }
 }
 
 } // namespace hx

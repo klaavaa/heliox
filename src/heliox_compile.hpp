@@ -66,7 +66,7 @@ inline void compile(const std::vector<std::string>& file_paths, const std::strin
         // the imports are handled here by fetching imported symbols from program's global module
         auto global_table = create_global_table_for_translation_unit(tu, program);
 
-        print_table(global_table);
+        //print_table(global_table);
         // generate IR instructions
         InstructionGenerator instruction_gen(std::move(tu), global_table);
         
@@ -74,7 +74,7 @@ inline void compile(const std::vector<std::string>& file_paths, const std::strin
 
         // generate live-ranges for virtual registers
         perform_liveness_analysis_on_unit(ir_unit);
-
+        print_live_ranges(ir_unit);
         // preallocate certain registers / stack
 
         // perform register allocation

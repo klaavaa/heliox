@@ -48,11 +48,11 @@ void CodeGenerator::emit_function(IRFunction& ir_function)
         emit_instruction(instruction);
     }
 
+    registers_to_preserve.clear();
 }
 
 void CodeGenerator::emit_instruction(IRInstruction& instruction)
 {
-
     switch (instruction.type)
     {
     case IRInstructionType::LOAD_IMMEDIATE:
@@ -62,6 +62,15 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         emit("lea", instruction.dst, instruction.src1);
         return;
     case IRInstructionType::MOV:
+        emit("mov", instruction.dst, instruction.src1);
+        return;
+    case IRInstructionType::STORE_MEM:
+        emit_mem_write("mov", instruction.dst, instruction.src1);
+        return;
+    case IRInstructionType::DEREF:
+        emit_mem_read("mov", instruction.dst, instruction.src1);
+        return;
+    case IRInstructionType::REGISTER_ARG:
         emit("mov", instruction.dst, instruction.src1);
         return;
     case IRInstructionType::ARG_PUSH:
@@ -127,6 +136,65 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
     case IRInstructionType::MOV_ARG:
         emit("mov", instruction.dst, instruction.src1);
         return;
+
+    case IRInstructionType::CMP_EQU:
+        emit("cmp", instruction.src1, instruction.src2);
+        emit("sete", instruction.dst);
+        return;
+
+    case IRInstructionType::CMP_NEQU:
+        emit("cmp", instruction.src1, instruction.src2);
+        emit("setne", instruction.dst);
+        return;
+
+    case IRInstructionType::CMP_GT:
+        emit("cmp", instruction.src1, instruction.src2);
+        if (is_unsigned(get_vr_type(instruction.src1)))
+            emit("seta", instruction.dst);
+        else
+            emit("setg", instruction.dst);
+        return;
+
+    case IRInstructionType::CMP_LT:
+        emit("cmp", instruction.src1, instruction.src2);
+        if (is_unsigned(get_vr_type(instruction.src1)))
+            emit("setb", instruction.dst);
+        else
+            emit("setl", instruction.dst);
+        return;
+
+    case IRInstructionType::CMP_GTE:
+        emit("cmp", instruction.src1, instruction.src2);
+        if (is_unsigned(get_vr_type(instruction.src1)))
+            emit("setae", instruction.dst);
+        else
+            emit("setge", instruction.dst);
+        return;
+
+    case IRInstructionType::CMP_LTE:
+        emit("cmp", instruction.src1, instruction.src2);
+        if (is_unsigned(get_vr_type(instruction.src1)))
+            emit("setbe", instruction.dst);
+        else
+            emit("setle", instruction.dst);
+        return;
+
+    case IRInstructionType::JMP:
+        emit("jmp", instruction.src2);
+        return;
+    case IRInstructionType::JMP_IF:
+        emit("test", instruction.src1, instruction.src1);
+        emit("jnz", instruction.src2);
+        return;
+    case IRInstructionType::JMP_IF_NOT:
+        emit("test", instruction.src1, instruction.src1);
+        emit("jz", instruction.src2);
+        return;
+    case IRInstructionType::LABEL:
+        emit_label(instruction.src2);
+        return;
+    default:
+        Logger::not_implemented();
     }
 
 
@@ -148,8 +216,6 @@ void CodeGenerator::save_callee_preserved_registers()
 int64_t CodeGenerator::allignment_to_add_before_call()
 {
     return ((arg_push_count + registers_to_preserve.size()) % 2) * 8;
-    //int64_t total = current_function->total_stack_allocated + 8*(arg_push_count % 2);
-    //return total - ((total + 15) & ~15);
 }
 
 void CodeGenerator::load_callee_preserved_registers()
@@ -159,7 +225,6 @@ void CodeGenerator::load_callee_preserved_registers()
         const Register r = *it;
         emit("pop", get_register(r, 8));
     }
-    registers_to_preserve.clear();
 }
 
 std::string CodeGenerator::get_vr_location(int64_t vr)
@@ -177,25 +242,27 @@ std::string CodeGenerator::get_vr_location(int64_t vr, uint32_t byte_size)
     }
     else // STACK
     {
-        int64_t stack_pos = location.stack;
+        int64_t stack_pos = abs(location.stack);
         char op = '-';
 
         if (location.stack < 0)
         {
             // fix the offset added by preserved registers
-            stack_pos -= registers_to_preserve.size() * 8;
+            stack_pos += registers_to_preserve.size() * 8;
             op = '+';
         }
+
+
         switch (byte_size)
         {
         case 8:
-            return std::format("qword[rbp {} {}]", op, location.stack);
+            return std::format("qword[rbp {} {}]", op, stack_pos);
         case 4:
-            return std::format("dword[rbp {} {}]", op, location.stack);
+            return std::format("dword[rbp {} {}]", op, stack_pos);
         case 2:
-            return std::format("word[rbp  {} {}]", op, location.stack);
+            return std::format("word[rbp  {} {}]", op, stack_pos);
         case 1:
-            return std::format("byte[rbp  {} {}]", op, location.stack);
+            return std::format("byte[rbp  {} {}]", op, stack_pos);
         default:
             Logger::error("", HX_ILLEGAL_REG_SIZE, std::format("tried to get a location of size: {}", byte_size));
         }
@@ -222,8 +289,10 @@ std::string CodeGenerator::get_location(const IROperand operand, uint32_t byte_s
         return std::format("[rel $L{}]", operand.value);
     case IROperandKind::IMMEDIATE_VALUE:
         return std::format("{}", operand.value);
+    case IROperandKind::LABEL:
+        return std::format(".LB{}", operand.value);
     default:
-        Logger::error("", HX_ILLEGAL_LOCATION, "Trying to get an illegal location");
+        Logger::error("", HX_ILLEGAL_LOCATION, std::format("Trying to get an illegal location {}", (int)operand.kind));
     }
 
 }
@@ -240,9 +309,20 @@ void CodeGenerator::emit_data_section()
     }
 }
 
+void CodeGenerator::emit_mem_write(const std::string_view asm_instruction, const IROperand dst, const IROperand src)
+{
+    uint32_t instruction_size = get_vr_type(dst).byte_size;
+    text_section += std::format("\t{} [{}], {}\n", asm_instruction, get_location(dst, 8), get_location(src, instruction_size));
+}
+void CodeGenerator::emit_mem_read(const std::string_view asm_instruction, const IROperand dst, const IROperand src)
+{
+    uint32_t instruction_size = get_vr_type(dst).byte_size;
+
+    text_section += std::format("\t{} {}, [{}]\n", asm_instruction, get_location(dst, instruction_size), get_location(src, 8));
+}
 void CodeGenerator::emit(const std::string_view asm_instruction, const IROperand dst, const IROperand src)
 {
-    uint32_t instruction_size = current_function->virtual_register_types.at(dst.value).byte_size;
+    uint32_t instruction_size = get_vr_type(dst).byte_size;
     text_section += std::format("\t{} {}, {}\n", asm_instruction, get_location(dst, instruction_size), get_location(src, instruction_size));
 }
 void CodeGenerator::emit(const std::string_view asm_instruction, const IROperand src)
@@ -263,4 +343,18 @@ void CodeGenerator::emit(const std::string_view asm_instruction, const std::stri
     text_section += std::format("\t{} {}, {}\n", asm_instruction, dst, src);
 }
 
+void CodeGenerator::emit_jmp(const IROperand label)
+{
+    text_section += std::format("\tjmp {}\n", get_location(label, 0));
+}
+
+void CodeGenerator::emit_label(const IROperand label)
+{
+    text_section += std::format("{}:\n", get_location(label, 0));
+}
+
+type_data CodeGenerator::get_vr_type(const IROperand vr)
+{
+    return current_function->virtual_register_types.at(vr.value);
+}
 } // namespace hx

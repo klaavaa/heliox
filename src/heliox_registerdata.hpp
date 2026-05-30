@@ -178,7 +178,7 @@ inline std::string get_register(Register reg, uint32_t byte_size)
 struct RegisterData
 {
     // R11 SCRATCH REGISTER 
-    std::set<Register> available_general_purpose_registers = {Register::A, Register::B};
+    std::set<Register> available_general_purpose_registers = {Register::A, Register::B, Register::C};
     //std::set<Register> available_general_purpose_registers = {Register::A, Register::B, Register::C,
     //        Register::D, Register::DI, Register::SI, Register::R8, Register::R9, Register::R10,
     //        Register::R12, Register::R13, Register::R14, Register::R15};

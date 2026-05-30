@@ -2,7 +2,7 @@ extern fun printf(u8* str, ...) void;
 
 fun exec(i32 x) i32
 {
-    printf("%d: exec\n", x);
+    printf("%d: exec\n\0", x);
     return 1;
 }
 

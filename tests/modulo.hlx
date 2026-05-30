@@ -7,7 +7,7 @@ fun main() i32
     {
         if (i % 3 == 0)
         {
-            printf("%d\n", i);
+            printf("%d\n\0", i);
         }
         i += 1;
     }
