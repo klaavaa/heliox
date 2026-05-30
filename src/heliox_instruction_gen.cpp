@@ -254,18 +254,54 @@ void InstructionGenerator::emit_implicit_conversion(const ast_node& node, IROper
 
 }
 
-int64_t InstructionGenerator::unwrap_assigment(TokenType op_token, IROperand left_register, IROperand right_register)
+void InstructionGenerator::unwrap_assigment(TokenType op_token, expression& left_side, expression& right_side)
 {
 
-    // maybe do this shit in the parser, problem is that they are all unique ptrs Q_Q
-    Logger::not_implemented();
+    TokenType unwrap_token;
+    switch (op_token)
+    {
+    case TokenType::PLUSEQUALS:
+    {
+        unwrap_token = TokenType::PLUS;
+        break;
+    }
+    case TokenType::MINUSEQUALS:
+    {
+        unwrap_token = TokenType::MINUS;
+        break;
+    }
+    case TokenType::MULEQUALS:
+    {
+        unwrap_token = TokenType::MULTIPLY;
+        break;
+    }
+    case TokenType::DIVEQUALS:
+    {
+        unwrap_token = TokenType::DIVIDE;
+        break;
+    }
+    case TokenType::MODEQUALS:
+    {
+        unwrap_token = TokenType::MODULO;
+        break;
+    }
+
+    default:
+        return;
+    }
+
+    auto binop = std::make_unique<binop_expr>("", 0, 0, std::move(left_side), std::move(right_side), unwrap_token);
+    visit_binop(binop);
+    left_side = std::move(binop->left);
+    right_side = std::move(binop->right);
 
 }
 void InstructionGenerator::emit_assignment(TokenType op_token, expression& left_side, expression& right_side)
 {
     visit_expression(right_side);
-    IROperand right_register = effective_register;
 
+    unwrap_assigment(op_token, left_side, right_side);
+    IROperand right_register = effective_register;
 
     std::visit(
         overloads{
@@ -322,6 +358,9 @@ IRInstructionType InstructionGenerator::get_ir_binop_instruction(TokenType op_to
         break;
     case TokenType::DIVIDE:
         ir_instruction_type = IRInstructionType::IDIV;
+        break;
+    case TokenType::MODULO:
+        ir_instruction_type = IRInstructionType::IMOD;
         break;
     case TokenType::DOUBLE_EQU:
         ir_instruction_type = IRInstructionType::CMP_EQU;
@@ -384,6 +423,7 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
     {
         register_vr_type(current_register, left_register);
     }
+    
     emit_instruction(binop_inst);
 
 }

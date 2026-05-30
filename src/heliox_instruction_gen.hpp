@@ -17,7 +17,7 @@ public:
 private:
     void emit_instruction(const IRInstruction& instruction, int64_t inc = 1, bool set_effective = true);
     void emit_assignment(TokenType op_token, expression& left_side, expression& right_side);
-    int64_t unwrap_assigment(TokenType op_token, IROperand left_register, IROperand right_register);
+    void unwrap_assigment(TokenType op_token, expression& left_side, expression& right_side);
         
     IRInstructionType get_ir_binop_instruction(TokenType op_token, IROperand left_register);
 

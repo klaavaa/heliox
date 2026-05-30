@@ -104,6 +104,12 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         emit("mov", instruction.dst, instruction.src1);
         return;
 
+    case IRInstructionType::IMOD:
+        emit("xor", "rdx", "rdx");
+        emit("cqo");
+        emit("idiv", instruction.src2);
+        emit("mov", get_location(instruction.dst), get_register(Register::D, get_vr_type(instruction.dst).byte_size));
+        return;
     case IRInstructionType::RETURN:
         emit("mov", instruction.dst, instruction.src1);
         emit("mov", "rsp", "rbp");

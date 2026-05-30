@@ -90,6 +90,7 @@ enum class IRInstructionType
     ISUB,
     IDIV,
     IMUL,
+    IMOD,
 
     JMP,
     JMP_IF,
@@ -318,6 +319,9 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
             break;
         case IRInstructionType::IDIV:
             std::println("{}  IDIV       r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+        case IRInstructionType::IMOD:
+            std::println("{}  IMOD       r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
 
         case IRInstructionType::DEREF:

@@ -320,6 +320,9 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
         case IRInstructionType::IDIV:
             preallocate_register(ir_function, instruction.src1.value, Register::A, {Register::D});
             break;
+        case IRInstructionType::IMOD:
+            preallocate_register(ir_function, instruction.src1.value, Register::A, {Register::D});
+            break;
         case IRInstructionType::IADD:
         case IRInstructionType::ISUB:
         case IRInstructionType::IMUL:
