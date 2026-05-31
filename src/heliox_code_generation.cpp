@@ -56,13 +56,13 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
     switch (instruction.type)
     {
     case IRInstructionType::LOAD_IMMEDIATE:
-        emit("mov", instruction.dst, instruction.src1);
+        emit_mov(instruction.dst, instruction.src1);
         return;
     case IRInstructionType::LOAD_MEM_INDEX:
         emit("lea", instruction.dst, instruction.src1);
         return;
     case IRInstructionType::MOV:
-        emit("mov", instruction.dst, instruction.src1);
+        emit_mov(instruction.dst, instruction.src1);
         return;
     case IRInstructionType::STORE_MEM:
         emit_mem_write("mov", instruction.dst, instruction.src1);
@@ -74,7 +74,7 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         emit_lea(instruction.dst, instruction.src1);
         return;
     case IRInstructionType::REGISTER_ARG:
-        emit("mov", instruction.dst, instruction.src1);
+        emit_mov(instruction.dst, instruction.src1);
         return;
     case IRInstructionType::ARG_PUSH:
         arg_push_count += 1;
@@ -90,47 +90,49 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         return;
     case IRInstructionType::IADD:
         emit("add", instruction.src1, instruction.src2);
-        emit("mov", instruction.dst, instruction.src1);
+        emit_mov(instruction.dst, instruction.src1);
         return;
     case IRInstructionType::ISUB:
         emit("sub", instruction.src1, instruction.src2);
-        emit("mov", instruction.dst, instruction.src1);
+        emit_mov(instruction.dst, instruction.src1);
         return;
     case IRInstructionType::IDIV:
         emit("xor", "rdx", "rdx");
-        emit("cqo");
+        if (!is_unsigned(get_vr_type(instruction.src1)))
+            emit("cqo");
         emit("idiv", instruction.src2);
-        emit("mov", instruction.dst, instruction.src1);
+        emit_mov(instruction.dst, instruction.src1);
         return;
     case IRInstructionType::IMUL:
         emit("imul", instruction.src1, instruction.src2);
-        emit("mov", instruction.dst, instruction.src1);
+        emit_mov(instruction.dst, instruction.src1);
         return;
 
     case IRInstructionType::IMOD:
         emit("xor", "rdx", "rdx");
         emit("cqo");
         emit("idiv", instruction.src2);
+        // todo 1 byte op
         emit("mov", get_location(instruction.dst), get_register(Register::D, get_vr_type(instruction.dst).byte_size));
         return;
     case IRInstructionType::BITWISE_AND:
         emit("and", instruction.src1, instruction.src2);
-        emit("mov", instruction.dst, instruction.src1);
+        emit_mov(instruction.dst, instruction.src1);
         return;
     case IRInstructionType::BITWISE_OR:
         emit("or", instruction.src1, instruction.src2);
-        emit("mov", instruction.dst, instruction.src1);
+        emit_mov(instruction.dst, instruction.src1);
         return;
     case IRInstructionType::BITWISE_XOR:
         emit("xor", instruction.src1, instruction.src2);
-        emit("mov", instruction.dst, instruction.src1);
+        emit_mov(instruction.dst, instruction.src1);
         return;
     case IRInstructionType::BITWISE_NOT:
         emit("not", instruction.src1);
-        emit("mov", instruction.dst, instruction.src1);
+        emit_mov(instruction.dst, instruction.src1);
         return;
     case IRInstructionType::RETURN:
-        emit("mov", instruction.dst, instruction.src1);
+        emit_mov(instruction.dst, instruction.src1);
         emit("mov", "rsp", "rbp");
         emit("pop", "rbp");
         load_callee_preserved_registers();
@@ -159,7 +161,7 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         }
 
     case IRInstructionType::MOV_ARG:
-        emit("mov", instruction.dst, instruction.src1);
+        emit_mov(instruction.dst, instruction.src1);
         return;
 
     case IRInstructionType::CMP_EQU:
@@ -396,6 +398,17 @@ void CodeGenerator::emit_lea(const IROperand dst, const IROperand src)
     }
 
     text_section += std::format("\tlea {}, [rbp {} {}]\n", get_location(dst), op, stack_pos);
+}
+
+void CodeGenerator::emit_mov(const IROperand dst, const IROperand src)
+{
+    uint32_t instruction_size = get_vr_type(dst).byte_size;
+    if (instruction_size == 1 && current_function->virtual_register_locations.at(dst.value).kind == LocationKind::REGISTER)
+    {
+        Register reg = current_function->virtual_register_locations.at(dst.value).reg;
+        emit("xor", get_register(reg, 8), get_register(reg, 8));
+    }
+    emit("mov", dst, src);
 }
 
 type_data CodeGenerator::get_vr_type(const IROperand vr)
