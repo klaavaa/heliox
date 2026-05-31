@@ -397,6 +397,9 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
         case IRInstructionType::DEREF:
             preallocate_some_register(ir_function, instruction.src1.value);
             break;
+        case IRInstructionType::ADDR_OF:
+            preallocate_stack(ir_function, instruction.src1.value);
+            break;
         }
 
 

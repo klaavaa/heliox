@@ -182,6 +182,7 @@ struct RegisterData
     std::set<Register> available_general_purpose_registers = {Register::A, Register::B, Register::C,
             Register::D, Register::DI, Register::SI, Register::R8, Register::R9, Register::R10,
             Register::R12, Register::R13, Register::R14, Register::R15};
+
     
     //RegisterBitSet available_xmm_registers = RegisterBitSet(
     //        {Register::XMM0, Register::XMM1, Register::XMM2, Register::XMM3, Register::XMM4, Register::XMM5,
@@ -208,39 +209,39 @@ struct RegisterData
     std::array<Register, 8> register_passed_float_args = {Register::XMM0, Register::XMM1, Register::XMM2, Register::XMM3, 
                                                         Register::XMM4, Register::XMM5, Register::XMM6, Register::XMM7};
 
-    //RegisterBitSet callee_saved_registers = RegisterBitSet({
-    //    Register::B,
-    //    Register::R15,
-    //    Register::R14,
-    //    Register::R13,
-    //    Register::R12});
-    //RegisterBitSet caller_saved_registers = RegisterBitSet({
-    //    Register::A,  
-    //    Register::C,
-    //    Register::D,
-    //    Register::SI,
-    //    Register::DI,
-    //    Register::R8,
-    //    Register::R9,
-    //    Register::R10,
-    //    Register::R11,
-    //    Register::XMM0,
-    //    Register::XMM1,
-    //    Register::XMM2,
-    //    Register::XMM3,
-    //    Register::XMM4,
-    //    Register::XMM5,
-    //    Register::XMM6,
-    //    Register::XMM7,
-    //    Register::XMM8,
-    //    Register::XMM9,
-    //    Register::XMM10,
-    //    Register::XMM11,
-    //    Register::XMM12,
-    //    Register::XMM13,
-    //    Register::XMM14,
-    //    Register::XMM15
-    //    });
+    std::set<Register> callee_saved_registers = {
+        Register::B,
+        Register::R15,
+        Register::R14,
+        Register::R13,
+        Register::R12};
+    std::set<Register> caller_saved_registers = {
+        Register::A,  
+        Register::C,
+        Register::D,
+        Register::SI,
+        Register::DI,
+        Register::R8,
+        Register::R9,
+        Register::R10,
+        Register::R11,
+        Register::XMM0,
+        Register::XMM1,
+        Register::XMM2,
+        Register::XMM3,
+        Register::XMM4,
+        Register::XMM5,
+        Register::XMM6,
+        Register::XMM7,
+        Register::XMM8,
+        Register::XMM9,
+        Register::XMM10,
+        Register::XMM11,
+        Register::XMM12,
+        Register::XMM13,
+        Register::XMM14,
+        Register::XMM15
+        };
 #endif
 };
 

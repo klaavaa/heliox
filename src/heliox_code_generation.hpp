@@ -15,6 +15,7 @@ private:
     type_data get_vr_type(const IROperand vr);
     std::string get_vr_location(int64_t vr);
     std::string get_vr_location(int64_t vr, uint32_t byte_size);
+    std::string get_vr_location_no_type(int64_t vr);
     std::string get_location(const IROperand operand, uint32_t byte_size);
     std::string get_location(const IROperand operand);
     void emit_mem_write(const std::string_view asm_instruction, const IROperand dst, const IROperand src);
@@ -29,6 +30,7 @@ private:
 
     void emit_jmp(const IROperand label);
     void emit_label(const IROperand label);
+    void emit_lea(const IROperand dst, const IROperand src);
 
     void emit_data_section();
 

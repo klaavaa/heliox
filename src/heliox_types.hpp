@@ -109,6 +109,11 @@ struct type_data
         return type_data(type, ptr_depth - 1);
     }
 
+    type_data get_ptr_type() const
+    {
+        return type_data(type, ptr_depth + 1);
+    }
+
     friend bool operator!=(const type_data& left, const type_data& right)
     {
         return !(left == right);

@@ -70,6 +70,9 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
     case IRInstructionType::DEREF:
         emit_mem_read("mov", instruction.dst, instruction.src1);
         return;
+    case IRInstructionType::ADDR_OF:
+        emit_lea(instruction.dst, instruction.src1);
+        return;
     case IRInstructionType::REGISTER_ARG:
         emit("mov", instruction.dst, instruction.src1);
         return;
@@ -333,7 +336,7 @@ void CodeGenerator::emit_data_section()
 
 void CodeGenerator::emit_mem_write(const std::string_view asm_instruction, const IROperand dst, const IROperand src)
 {
-    uint32_t instruction_size = get_vr_type(dst).byte_size;
+    uint32_t instruction_size = get_vr_type(dst).deref().byte_size;
     text_section += std::format("\t{} [{}], {}\n", asm_instruction, get_location(dst, 8), get_location(src, instruction_size));
 }
 void CodeGenerator::emit_mem_read(const std::string_view asm_instruction, const IROperand dst, const IROperand src)
@@ -373,6 +376,26 @@ void CodeGenerator::emit_jmp(const IROperand label)
 void CodeGenerator::emit_label(const IROperand label)
 {
     text_section += std::format("{}:\n", get_location(label, 0));
+}
+
+void CodeGenerator::emit_lea(const IROperand dst, const IROperand src)
+{
+    if (src.kind != IROperandKind::VIRTUAL_REGISTER) Logger::not_implemented();
+    if (current_function->virtual_register_locations.at(src.value).kind != LocationKind::STACK) Logger::not_implemented();
+
+    auto& location = current_function->virtual_register_locations.at(src.value);
+
+    int64_t stack_pos = abs(location.stack);
+    char op = '-';
+
+    if (location.stack < 0)
+    {
+        // fix the offset added by preserved registers
+        stack_pos += registers_to_preserve.size() * 8;
+        op = '+';
+    }
+
+    text_section += std::format("\tlea {}, [rbp {} {}]\n", get_location(dst), op, stack_pos);
 }
 
 type_data CodeGenerator::get_vr_type(const IROperand vr)

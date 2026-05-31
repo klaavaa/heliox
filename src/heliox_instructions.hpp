@@ -85,6 +85,7 @@ enum class IRInstructionType
     REGISTER_ARG,
 
     DEREF,
+    ADDR_OF,
 
     IADD,
     ISUB,
@@ -344,6 +345,9 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
 
         case IRInstructionType::DEREF:
             std::println("{}  DEREF      r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
+        case IRInstructionType::ADDR_OF:
+            std::println("{}  ADDR_OF    r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
 
         case IRInstructionType::JMP:

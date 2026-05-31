@@ -239,7 +239,7 @@ void InstructionGenerator::emit_implicit_conversion(const ast_node& node, IROper
 
     if (!is_implicit_conversion_possible(type_from, type_to))
     {
-        //todo cool text like from i32* to f32 or etc
+        //todo cool error text like from i32* to f32 or etc
         Logger::error(node, HX_IMPLICIT_CONVERSION_NOT_POSSIBLE, "Implicit conversion not possible");
     }
 
@@ -308,6 +308,8 @@ void InstructionGenerator::emit_assignment(TokenType op_token, expression& left_
         [this, op_token, &right_register](uptr<identifier_literal_expr>& identifier)
         {
             const VariableSymbol& var_sym = find_variable_symbol(current_table, identifier);
+            emit_implicit_conversion(*identifier, right_register, var_sym.data_type);
+
             IRInstruction write_var(IRInstructionType::MOV, IROperand::Vr(var_sym.virtual_register), right_register, IROperand::None());
             emit_instruction(write_var, 0);
         },
@@ -319,6 +321,7 @@ void InstructionGenerator::emit_assignment(TokenType op_token, expression& left_
             }
 
             visit_expression(unary->expr);
+            emit_implicit_conversion(*unary, right_register, get_vr_type(effective_register));
             IRInstruction write_mem(IRInstructionType::STORE_MEM, effective_register, right_register, IROperand::None());
             emit_instruction(write_mem, 0, false);
             
@@ -447,6 +450,21 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
 
 void InstructionGenerator::visit_unary(uptr<unary_expr>& unary) 
 {
+    if (unary->op_token == TokenType::BITWISE_AND)
+    {
+        if (!std::holds_alternative<uptr<identifier_literal_expr>>(unary->expr))
+        {
+            Logger::error(*unary, HX_ILLEGAL_ADDR_OF, "Trying to get the address of a non-literal");
+        }
+        auto& identifier_literal = std::get<uptr<identifier_literal_expr>>(unary->expr);
+        VariableSymbol var_sym = find_variable_symbol(current_table, identifier_literal);
+        IROperand var_vr = IROperand::Vr(var_sym.virtual_register);
+        IRInstruction addr_of(IRInstructionType::ADDR_OF, current_register, var_vr, IROperand::None());
+        register_vr_type(current_register, var_sym.data_type.get_ptr_type());
+        emit_instruction(addr_of);
+        return;
+    }
+
     visit_expression(unary->expr);
 
     switch (unary->op_token)
