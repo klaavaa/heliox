@@ -45,6 +45,7 @@ private:
     void visit_variable_definition(uptr<variable_definition_statement>& variable_definition) override;
     void visit_conditional(uptr<conditional_statement>& conditional) override;
     void visit_while(uptr<while_statement>& while_s) override;
+    void visit_for(uptr<for_statement>& for_s) override;
     void visit_expression_s(uptr<expression_statement>& expr) override;
     void visit_noop(uptr<noop_statement>& noop) override{}
     void visit_import(uptr<import_statement>& import_s) override{}

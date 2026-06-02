@@ -72,6 +72,8 @@ namespace hx
             { visit_conditional(conditional);},
            [this](uptr<while_statement>& while_s)
             { visit_while(while_s);},
+           [this](uptr<for_statement>& for_s)
+            { visit_for(for_s);},
            [this](uptr<expression_statement>& expression_s)
             { visit_expression_s(expression_s);},
            [this](uptr<noop_statement>& noop_s)

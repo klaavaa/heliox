@@ -17,6 +17,7 @@ namespace hx {
     struct variable_definition_statement;
     struct conditional_statement;
     struct while_statement;
+    struct for_statement;
     struct expression_statement;
     struct noop_statement;
     struct import_statement;
@@ -30,7 +31,8 @@ namespace hx {
         uptr<while_statement>,
         uptr<expression_statement>,
         uptr<noop_statement>,
-        uptr<import_statement>>;
+        uptr<import_statement>,
+        uptr<for_statement>>;
 
 
     struct import_statement : ast_node
@@ -84,6 +86,16 @@ namespace hx {
             : ast_node(filename, line, position), condition(std::move(condition)), loop(std::move(loop)) {}
 
         expression condition;
+        statement loop;
+    };
+    struct for_statement : ast_node
+    {
+        for_statement(std::string_view filename, uint32_t line, uint32_t position, statement init, expression condition, expression iteration, statement loop)
+            : ast_node(filename, line, position), init(std::move(init)), condition(std::move(condition)), iteration(std::move(iteration)), loop(std::move(loop)) {}
+
+        statement init;
+        expression condition;
+        expression iteration;
         statement loop;
     };
     struct expression_statement : ast_node

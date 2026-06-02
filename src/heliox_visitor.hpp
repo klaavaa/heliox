@@ -35,6 +35,7 @@ namespace hx
         virtual void visit_variable_definition(uptr<variable_definition_statement>& variable_definition) = 0;
         virtual void visit_conditional(uptr<conditional_statement>& conditional) = 0;
         virtual void visit_while(uptr<while_statement>& while_s) = 0;
+        virtual void visit_for(uptr<for_statement>& for_s) = 0;
         virtual void visit_expression_s(uptr<expression_statement>& expr) = 0;
         virtual void visit_noop(uptr<noop_statement>& noop) = 0;
         virtual void visit_import(uptr<import_statement>& import_s) = 0;

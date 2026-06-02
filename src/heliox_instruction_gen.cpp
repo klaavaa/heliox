@@ -679,6 +679,27 @@ void InstructionGenerator::visit_while(uptr<while_statement>& while_s)
 
 }
 
+void InstructionGenerator::visit_for(uptr<for_statement>& for_s)
+{
+    auto begin_label = IROperand::Label(next_label++);
+    auto end_label = IROperand::Label(next_label++);
+    
+    visit_statement(for_s->init);  
+
+    IRInstruction begin_label_inst(IRInstructionType::LABEL, IROperand::None(), IROperand::None(), begin_label);
+    emit_instruction(begin_label_inst, 0, false);
+
+    visit_expression(for_s->condition);
+    IRInstruction jmp_not(IRInstructionType::JMP_IF_NOT, IROperand::None(), effective_register, end_label);
+    emit_instruction(jmp_not, 0, false);
+
+    visit_statement(for_s->loop);
+    visit_expression(for_s->iteration);
+    IRInstruction jmp_begin(IRInstructionType::JMP, IROperand::None(), IROperand::None(), begin_label);
+    emit_instruction(jmp_begin, 0, false);
+    emit_instruction(IRInstruction(IRInstructionType::LABEL, IROperand::None(), IROperand::None(), end_label), 0, false);
+}
+
 void InstructionGenerator::visit_logical_binop(TokenType op_token, expression& left, expression& right)
 {
     if (op_token == TokenType::LOGICAL_AND)

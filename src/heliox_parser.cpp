@@ -449,6 +449,8 @@ statement Parser::parse_keyword_statement()
             return parse_conditional_statement();
         case KeyWord::WHILE:
             return parse_while_statement();
+        case KeyWord::FOR:
+            return parse_for_statement();
     default:
         Logger::error(m_current_token, HX_UNEXPECTED_KEYWORD, "Unexpected keyword in statement");
     }
@@ -492,6 +494,21 @@ uptr<while_statement> Parser::parse_while_statement()
     
     return make_node<while_statement>(std::move(expr), std::move(stat));
 
+}
+uptr<for_statement> Parser::parse_for_statement()
+{
+    eat(TokenType::KEYWORD);
+    eat(TokenType::L_PAREN);
+    statement init = parse_statement();
+    equal_sign_in_current_expression = false;
+    expression condition = parse_expression();
+    equal_sign_in_current_expression = false;
+    eat(TokenType::SEMICOLON);
+    expression iteration = parse_expression();
+    eat(TokenType::R_PAREN);
+
+    statement loop = parse_statement();
+    return make_node<for_statement>(std::move(init), std::move(condition), std::move(iteration), std::move(loop));
 }
 
 statement Parser::parse_type_statement()
