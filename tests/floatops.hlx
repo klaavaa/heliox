@@ -1,0 +1,53 @@
+extern fun printf(u8* str, ...) void;
+
+
+
+fun main() i32
+{
+
+    f32 a = 3.14;
+    f64 b = 1.128 * a;
+    f32 c = 0.0;
+    f64 d = 1.0;
+    f32 e = a+b;
+    f64 f = c*d;
+    f64 g = e/(f + 0.1);
+    f64 h = a-b-c-d-e-f-g;
+
+    if a
+    {
+        printf("1\n\0");
+    }
+    if c 
+    {
+        printf("2\n\0");
+    }
+    if a > b
+    {
+        printf("3\n\0");
+    }
+    if c < d
+    {
+        printf("4\n\0");
+    }
+    if c <= c
+    {
+        printf("5\n\0");
+    }
+    if c >= c
+    {
+        printf("6\n\0");
+    }
+    if a == c 
+    {
+        printf("7\n\0");
+    }
+    if a != c 
+    {
+        printf("8\n\0");
+    }
+
+    printf("%.2f\n%.2f\n%.2f\n%.2f\n%.2f\n%.2f\n%.2f\n%.2f\n\0", a, b, c, d, e, f, g, h);
+
+    return 0;
+}

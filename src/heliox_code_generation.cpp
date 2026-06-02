@@ -127,7 +127,7 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         emit_mov(instruction.dst, instruction.src1);
         return;
     case IRInstructionType::F64DIV:
-        emit("mulsd", instruction.src1, instruction.src2);
+        emit("divsd", instruction.src1, instruction.src2);
         emit_mov(instruction.dst, instruction.src1);
         return;
 
@@ -144,7 +144,7 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         emit_mov(instruction.dst, instruction.src1);
         return;
     case IRInstructionType::F32DIV:
-        emit("mulss", instruction.src1, instruction.src2);
+        emit("divss", instruction.src1, instruction.src2);
         emit_mov(instruction.dst, instruction.src1);
         return;
 
@@ -344,6 +344,13 @@ void CodeGenerator::save_callee_preserved_registers()
         if (!g_register_data.callee_saved_registers.contains(loc.reg)) continue;
         if (registers_to_preserve.contains(loc.reg)) continue;
         registers_to_preserve.insert(loc.reg);
+
+        if (is_xmm_register(loc.reg))
+        {
+            emit("movq", "r11", get_register(loc.reg, 8));
+            emit("push", "r11");
+            return;
+        }
         emit("push", get_register(loc.reg, 8));
     }
 }
@@ -358,6 +365,12 @@ void CodeGenerator::load_callee_preserved_registers()
     for (auto it = registers_to_preserve.rbegin(); it != registers_to_preserve.rend(); it++)
     {
         const Register r = *it;
+        if (is_xmm_register(r))
+        {
+            emit("pop", "r11");
+            emit("movq", get_register(r, 8), "r11");
+            continue;
+        }
         emit("pop", get_register(r, 8));
     }
 }

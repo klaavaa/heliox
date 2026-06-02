@@ -60,6 +60,8 @@ inline std::string get_register(Register reg, uint32_t byte_size)
         case Register::XMM10:
             return "xmm10";
         case Register::XMM11:
+            return "xmm11";
+        case Register::XMM12:
             return "xmm12";
         case Register::XMM13:
             return "xmm13";
@@ -217,7 +219,7 @@ inline std::string get_register(Register reg, uint32_t byte_size)
             return "r15b";
         }
     default:
-        Logger::error("", HX_ILLEGAL_REG_SIZE, std::format("tried to get a register of size: {}", byte_size));
+        Logger::error("", HX_ILLEGAL_REG_SIZE, std::format("tried to get a register of size: {} ({})", byte_size, (int)reg));
     }
 }
 
@@ -239,7 +241,7 @@ struct RegisterData
 
     
     const std::set<Register> available_xmm_registers = { Register::XMM0, Register::XMM1, Register::XMM2, Register::XMM3, Register::XMM4, Register::XMM5,
-            Register::XMM6, Register::XMM7, Register::XMM8, Register::XMM9, Register::XMM10, Register::XMM11,
+            Register::XMM6, Register::XMM7, Register::XMM8, Register::XMM9, Register::XMM10,
             Register::XMM12, Register::XMM13, Register::XMM14, Register::XMM15};
     
     const std::set<Register> available_registers;
@@ -253,8 +255,10 @@ struct RegisterData
     const std::array<Register, 4> register_passed_int_args = {Register::C, Register::D, Register::R8, Register::R9};
     const std::array<Register, 4> register_passed_float_args = {Register::XMM0, Register::XMM1, Register::XMM2, Register::XMM3}; 
 
-    const std::set<Register> callee_saved_registers = {Register::B, Register::DI, Register::SI, Register::R12, Register::R13, Register::R14, Register::R15};
-    const std::set<Register> caller_saved_registers = {Register::A, Register::C, Register::D, Register::R8, Register::R9, Register::R10};
+    const std::set<Register> callee_saved_registers = {Register::B, Register::DI, Register::SI, Register::R12, Register::R13, Register::R14, Register::R15, 
+        Register::XMM6, Register::XMM7, Register::XMM8, Register::XMM9, Register::XMM10, Register::XMM11, Register::XMM12, Register::XMM13, Register::XMM14, Register::XMM15};
+    const std::set<Register> caller_saved_registers = {Register::A, Register::C, Register::D, Register::R8, Register::R9, Register::R10, 
+        Register::XMM0, Register::XMM1, Register::XMM2, Register::XMM3, Register::XMM4, Register::XMM5};
 
 #endif
 
