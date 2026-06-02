@@ -263,7 +263,9 @@ void RegisterAllocator::cleanup_pass(IRFunction& ir_func)
                 first_func_push_arg = false;
                 } while (false);
 
-                if (ir_func.virtual_register_types.at(instruction.src1.value).byte_size != 8)
+                if (ir_func.virtual_register_types.at(instruction.src1.value).byte_size != 8 || 
+                    (ir_func.virtual_register_locations.at(instruction.src1.value).kind == LocationKind::REGISTER
+                     && is_xmm_register(ir_func.virtual_register_locations.at(instruction.src1.value).reg)))
                 {
                     IRInstruction mov(IRInstructionType::MOV, IROperand::Vr(next_vr), instruction.src1, IROperand::None());
                     ir_func.virtual_register_types.insert({next_vr, ir_func.virtual_register_types.at(instruction.src1.value)});
@@ -428,6 +430,13 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
                 register_pushed_argc++;
             break;
             }
+        case IRInstructionType::MOV_VARARG:
+            if (instruction.src2.value < (int64_t)g_register_data.register_passed_int_args.size())
+            {
+                preallocate_register(ir_function, instruction.dst.value, g_register_data.register_passed_int_args.at(instruction.src2.value));
+                break;
+            }
+            else goto inst_mov_arg_push;
         case IRInstructionType::MOV_ARG:
             if (!is_integer_type(ir_function.virtual_register_types.at(instruction.src1.value)))
             {

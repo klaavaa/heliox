@@ -138,7 +138,10 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     {
         size_t arg_index = arg_vregs.size() -  1 - i;
         IROperand arg_vreg = arg_vregs[arg_index];
-        IRInstruction push_arg_instruction(IRInstructionType::MOV_ARG, current_register, arg_vreg, {IROperandKind::ARG_NUMBER, (int64_t)arg_index});
+        IRInstructionType mov_type;
+        if (arg_index < func_symbol.parameter_types.size()) mov_type = IRInstructionType::MOV_ARG;
+        else mov_type = IRInstructionType::MOV_VARARG;
+        IRInstruction push_arg_instruction(mov_type, current_register, arg_vreg, {IROperandKind::ARG_NUMBER, (int64_t)arg_index});
         register_vr_type(current_register, arg_vreg);
         emit_instruction(push_arg_instruction);
     }

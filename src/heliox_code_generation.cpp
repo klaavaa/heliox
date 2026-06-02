@@ -166,6 +166,7 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         return;
         }
 
+    case IRInstructionType::MOV_VARARG:
     case IRInstructionType::MOV_ARG:
         emit_mov(instruction.dst, instruction.src1);
         return;
@@ -364,14 +365,14 @@ void CodeGenerator::emit_mem_write(const IROperand dst, const IROperand src)
 {
     type_data type = get_vr_type(dst).deref();
     uint32_t instruction_size = type.byte_size;
-    std::string mov_inst = get_mov_inst(type);
+    std::string mov_inst = get_mov_inst(type, dst);
     text_section += std::format("\t{} [{}], {}\n", mov_inst, get_location(dst, 8), get_location(src, instruction_size));
 }
 void CodeGenerator::emit_mem_read(const IROperand dst, const IROperand src)
 {
     type_data type = get_vr_type(dst);
     uint32_t instruction_size = get_vr_type(dst).byte_size;
-    std::string mov_inst = get_mov_inst(type);
+    std::string mov_inst = get_mov_inst(type, dst);
     text_section += std::format("\t{} {}, [{}]\n", mov_inst, get_location(dst, instruction_size), get_location(src, 8));
 }
 void CodeGenerator::emit(const std::string_view asm_instruction, const IROperand dst, const IROperand src)
@@ -431,39 +432,34 @@ void CodeGenerator::emit_mov(const IROperand dst, const IROperand src)
 {
     type_data vr_type = get_vr_type(dst);
     uint32_t instruction_size = vr_type.byte_size;
-    if (is_float_type(vr_type))
-    {
-        if (instruction_size == 8)
-        {
-            emit("movsd", dst, src);
-        }
-        else
-        {
-            emit("movss", dst, src);
-        }
-        return;
-    }
+    std::string mov_inst = get_mov_inst(vr_type, dst);
 
     if (instruction_size == 1 && current_function->virtual_register_locations.at(dst.value).kind == LocationKind::REGISTER)
     {
         Register reg = current_function->virtual_register_locations.at(dst.value).reg;
         emit("xor", get_register(reg, 8), get_register(reg, 8));
     }
-    emit("mov", dst, src);
+    emit(mov_inst, dst, src);
 }
 
-std::string CodeGenerator::get_mov_inst(type_data type)
+std::string CodeGenerator::get_mov_inst(type_data type, IROperand dst)
 {
     uint32_t instruction_size = type.byte_size;
     if (is_float_type(type))
     {
-        if (instruction_size == 8)
+        if (is_xmm_register(current_function->virtual_register_locations.at(dst.value).reg))
         {
+        if (instruction_size == 8)
             return "movsd";
+        else
+            return "movss";
         }
         else
         {
-            return "movss";
+        if (instruction_size == 8)
+            return "movq";
+        else
+            return "movd";
         }
     }
     return "mov";

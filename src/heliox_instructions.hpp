@@ -83,6 +83,7 @@ enum class IRInstructionType
 
     // function argument  src1 = arg to push, src2 = arg index
     MOV_ARG,
+    MOV_VARARG,
     ARG_PUSH,
     REGISTER_ARG,
 
@@ -309,6 +310,9 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
 
         case IRInstructionType::MOV_ARG:
             std::println("{}  MOV_ARG    r{}  <- r{}, arg[{}]", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+        case IRInstructionType::MOV_VARARG:
+            std::println("{}  MOV_VARARG r{}  <- r{}, arg[{}]", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
 
         case IRInstructionType::RETURN:

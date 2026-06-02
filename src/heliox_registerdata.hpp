@@ -22,6 +22,17 @@ enum class RegisterSize
     BIT64
 };
 
+inline bool is_gp_register(Register reg)
+{
+    return reg >= Register::A && reg <= Register::R15;
+}
+
+inline bool is_xmm_register(Register reg)
+{
+    return reg >= Register::XMM0 && reg <= Register::XMM15;
+}
+
+
 inline std::string get_register(Register reg, uint32_t byte_size)
 {
     switch (reg)
