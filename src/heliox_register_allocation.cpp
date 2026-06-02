@@ -248,16 +248,19 @@ void RegisterAllocator::cleanup_pass(IRFunction& ir_func)
                 }
                 break;
             case IRInstructionType::FUNCTION_CALL:
+                {
                 // insert pushes in reverse order
+                bool first_push = true;
                 for (size_t i = 0; i < arg_pushes.size(); i++)
                 {
                     size_t j = arg_pushes.size() - 1 - i;
                     auto& inst = arg_pushes[j];
-                    if (i == 0)
+                    if (inst.type == IRInstructionType::ARG_PUSH && first_push)
                     {
                         inst.src2.value %= 2;
                         if (!inst.src2.value)
                             inst.src2 = IROperand::None();
+                        first_push = false;
                     }
                     else
                         inst.src2 = IROperand::None();
@@ -265,6 +268,7 @@ void RegisterAllocator::cleanup_pass(IRFunction& ir_func)
                 }
                 arg_pushes.clear();
                 break;
+                }
             case IRInstructionType::ARG_PUSH:
                 if (ir_func.virtual_register_types.at(instruction.src1.value).byte_size != 8 || 
                     (ir_func.virtual_register_locations.at(instruction.src1.value).kind == LocationKind::REGISTER
