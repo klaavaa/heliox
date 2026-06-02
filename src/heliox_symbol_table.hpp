@@ -28,10 +28,13 @@ namespace hx
         bool has_varargs;
         std::vector<std::string> module_path;
 
+        bool imported_function;
+
         std::string_view filename;
         uint32_t line_number;
         uint32_t position;
     };
+
 
     struct SymbolTable
     {
@@ -45,10 +48,10 @@ namespace hx
     };
 
     void insert_variable_symbol(sptr<SymbolTable> table, const std::string& name, int64_t virtual_register, const type_data& data_type, std::string_view filename, uint32_t line_number, uint32_t position);
-    void insert_function_symbol(sptr<SymbolTable> table, const std::string& name, const type_data& return_type, const std::vector<type_data>& parameter_types, bool has_varargs, const std::vector<std::string>& module_path, std::string_view filename, uint32_t line_number, uint32_t position);
+    void insert_function_symbol(sptr<SymbolTable> table, const std::string& name, const type_data& return_type, const std::vector<type_data>& parameter_types, bool has_varargs, const std::vector<std::string>& module_path, bool imported_function, std::string_view filename, uint32_t line_number, uint32_t position);
     sptr<SymbolTable> find_submodule_table(sptr<SymbolTable> table, const std::vector<std::string>& module_path);
     sptr<SymbolTable> get_or_create_submodule_table(sptr<SymbolTable> table, const std::string& module_name);
-    void insert_module(sptr<SymbolTable> table, sptr<Module> module);
+    void insert_module(sptr<SymbolTable> table, sptr<Module> module, bool is_import);
     FunctionSymbol& find_function_symbol(sptr<SymbolTable> table, const std::string& name, const std::vector<std::string>& module_path, bool find_in_parent_modules);
     sptr<SymbolTable> add_child_table(sptr<SymbolTable> parent, const std::string& name);
     sptr<SymbolTable> get_compound_table(sptr<SymbolTable> current_table);
@@ -58,6 +61,8 @@ namespace hx
     VariableSymbol& find_variable_symbol(sptr<SymbolTable> table, const uptr<identifier_literal_expr>& identifier);
 
     bool table_has_variable_with_vr(sptr<SymbolTable> table, int64_t vr);
+
+    std::vector<std::string> table_get_all_imported_functions(sptr<SymbolTable> table, std::string module_path);
 
     inline void print_table(sptr<SymbolTable> table)
     {

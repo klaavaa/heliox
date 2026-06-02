@@ -15,7 +15,7 @@ void RegisterAllocator::allocate_stack(IRFunction& ir_function, const int64_t vr
     ir_function.virtual_register_locations.insert({vr, Location::Stack(ir_function.total_stack_allocated)});
 }
 
-void RegisterAllocator::allocate_register(IRFunction& ir_function, const int64_t vr, Register reg)
+void RegisterAllocator::allocate_register(IRFunction& ir_function, const int64_t vr, Register reg, std::vector<int64_t>& active_virtual_registers, std::vector<int64_t>& active_unspillable_virtual_registers)
 {
     ir_function.virtual_register_locations.insert({vr, Location::Reg(reg)});
     if (ir_function.register_reservations.contains(vr) && ir_function.register_reservations.at(vr).must_be_register)
@@ -27,33 +27,33 @@ void RegisterAllocator::allocate_register(IRFunction& ir_function, const int64_t
 void RegisterAllocator::expire_old_intervals(IRFunction& ir_function, const int64_t current_vr)
 {
     // sort active in order of increasing end point
-    std::sort(active_virtual_registers.begin(), active_virtual_registers.end(), 
+    std::sort(gp_active_virtual_registers.begin(), gp_active_virtual_registers.end(), 
         [ir_function](int64_t a, int64_t b)
         {
             return ir_function.live_ranges.at(a).end < ir_function.live_ranges.at(b).end;
         });
-
-        
     
-    std::erase_if(active_virtual_registers, 
-        [&ir_function, current_vr](int64_t vr) 
+    std::sort(xmm_active_virtual_registers.begin(), xmm_active_virtual_registers.end(), 
+        [ir_function](int64_t a, int64_t b)
         {
+            return ir_function.live_ranges.at(a).end < ir_function.live_ranges.at(b).end;
+        });
+        
+    auto erase_lambda = [&ir_function, current_vr](int64_t vr) {
         if (ir_function.live_ranges.at(vr).end < ir_function.live_ranges.at(current_vr).start)
             return true;
         return false;
-        });
+    };
 
-    std::erase_if(active_unspillable_virtual_registers, 
-        [&ir_function, current_vr](int64_t vr) 
-        {
-        if (ir_function.live_ranges.at(vr).end < ir_function.live_ranges.at(current_vr).start)
-            return true;
-        return false;
-        });
+    std::erase_if(gp_active_virtual_registers, erase_lambda);
+    std::erase_if(xmm_active_virtual_registers, erase_lambda);
+
+    std::erase_if(gp_active_unspillable_virtual_registers, erase_lambda);
+
 }
 
 
-void RegisterAllocator::spill(IRFunction& ir_function, const int64_t current_vr)
+void RegisterAllocator::spill(IRFunction& ir_function, const int64_t current_vr, std::vector<int64_t>& active_virtual_registers, std::vector<int64_t>& active_unspillable_virtual_registers)
 {
     bool must_be_register = ir_function.register_reservations.contains(current_vr) && ir_function.register_reservations.at(current_vr).must_be_register;
 
@@ -116,8 +116,10 @@ std::set<Register> RegisterAllocator::get_pre_reserved_registers(IRFunction& ir_
 
 void RegisterAllocator::allocate_registers(IRFunction& ir_function)
 {
-    active_virtual_registers.clear();
-    active_unspillable_virtual_registers.clear();
+    gp_active_virtual_registers.clear();
+    gp_active_unspillable_virtual_registers.clear();
+
+    xmm_active_virtual_registers.clear();
 
     for (auto [vr, live_range] : ir_function.live_ranges)
     {
@@ -135,31 +137,65 @@ void RegisterAllocator::allocate_registers(IRFunction& ir_function)
 
 
         // erases pre-reserved registers from the available register pool
-        auto gp_pre_reserved_registers = get_pre_reserved_registers(ir_function, vr);
+        auto pre_reserved_registers = get_pre_reserved_registers(ir_function, vr);
+        std::set<Register> free_registers;
+        std::set_difference(g_register_data.available_registers.begin(), g_register_data.available_registers.end(),
+         pre_reserved_registers.begin(), pre_reserved_registers.end(), std::inserter(free_registers, free_registers.end()));
+
+        xmm_free_registers.clear(); 
         gp_free_registers.clear();
-        std::set_difference(g_register_data.available_general_purpose_registers.begin(), g_register_data.available_general_purpose_registers.end(),
-         gp_pre_reserved_registers.begin(), gp_pre_reserved_registers.end(), std::inserter(gp_free_registers, gp_free_registers.end()));
+
+        auto it = free_registers.lower_bound(Register::XMM0);
+        gp_free_registers.insert(free_registers.begin(), it);
+        xmm_free_registers.insert(it, free_registers.end());
 
 
         expire_old_intervals(ir_function, vr);
 
         // erases currently reserved registers from the available register pool
-        for (int64_t active_vr : active_virtual_registers)
+        for (int64_t gp_active_vr : gp_active_virtual_registers)
         {
-            gp_free_registers.erase(ir_function.virtual_register_locations.at(active_vr).reg);
+            gp_free_registers.erase(ir_function.virtual_register_locations.at(gp_active_vr).reg);
         }
-        for (int64_t active_unspillable_vr : active_unspillable_virtual_registers)
+        for (int64_t gp_active_unspillable_vr : gp_active_unspillable_virtual_registers)
         {
-            gp_free_registers.erase(ir_function.virtual_register_locations.at(active_unspillable_vr).reg);
+            gp_free_registers.erase(ir_function.virtual_register_locations.at(gp_active_unspillable_vr).reg);
         }
 
+        for (int64_t xmm_active_vr : xmm_active_virtual_registers)
+        {
+            xmm_free_registers.erase(ir_function.virtual_register_locations.at(xmm_active_vr).reg);
+        }
+        for (int64_t xmm_active_unspillable_vr : xmm_active_unspillable_virtual_registers)
+        {
+            xmm_free_registers.erase(ir_function.virtual_register_locations.at(xmm_active_unspillable_vr).reg);
+        }
+
+        type_data vr_type = get_operand_type(ir_function, IROperand::Vr(vr));
+        if (is_integer_type(vr_type))
+        { 
         if (gp_free_registers.size() == 0)
         {
-            spill(ir_function, vr);
+            spill(ir_function, vr, gp_active_virtual_registers, gp_active_unspillable_virtual_registers);
             continue;
         }
         Register reg = *gp_free_registers.begin();
-        allocate_register(ir_function, vr, reg);
+        allocate_register(ir_function, vr, reg, gp_active_virtual_registers, gp_active_unspillable_virtual_registers);
+        }
+        else if (is_float_type(vr_type))
+        {
+        if (xmm_free_registers.size() == 0)
+        {
+            spill(ir_function, vr, xmm_active_virtual_registers, xmm_active_unspillable_virtual_registers);
+            continue;
+        }
+        Register reg = *xmm_free_registers.begin();
+        allocate_register(ir_function, vr, reg, xmm_active_virtual_registers, xmm_active_unspillable_virtual_registers);
+        }
+        else
+        {
+            Logger::not_implemented();
+        }
     }
 
 
@@ -174,8 +210,10 @@ void RegisterAllocator::cleanup_pass(IRFunction& ir_func)
     if (ir_func.instructions.empty()) return;
     std::vector<IRInstruction> fixed_instructions;
     int64_t next_vr = ir_func.virtual_register_locations.rbegin()->first + 1;
-    for (auto& instruction : ir_func.instructions)
+    bool first_func_push_arg = true;
+    for (size_t i = 0; i < ir_func.instructions.size(); i++)
     {
+        auto& instruction = ir_func.instructions[i];
         switch (instruction.type)
         {
             case IRInstructionType::DEREF:
@@ -206,7 +244,25 @@ void RegisterAllocator::cleanup_pass(IRFunction& ir_func)
                     continue;
                 }
                 break;
+            case IRInstructionType::FUNCTION_CALL:
+                first_func_push_arg = true;
+                break;
             case IRInstructionType::ARG_PUSH:
+                do{ 
+                if (!first_func_push_arg) break;
+                size_t push_count = 1; 
+                for (size_t j = i+1; j < ir_func.instructions.size(); j++)
+                {
+                    if (ir_func.instructions[j].type != IRInstructionType::ARG_PUSH) break;
+                    push_count++;
+                }
+                if (push_count % 2)
+                {
+                    instruction.src2 = IROperand::Immediate(1);
+                }
+                first_func_push_arg = false;
+                } while (false);
+
                 if (ir_func.virtual_register_types.at(instruction.src1.value).byte_size != 8)
                 {
                     IRInstruction mov(IRInstructionType::MOV, IROperand::Vr(next_vr), instruction.src1, IROperand::None());
@@ -310,8 +366,8 @@ bool RegisterAllocator::is_spilled(IRFunction& ir_function, IROperand operand)
 
 void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
 {
-    // used for stack aligment stuff
-    bool first_func_push_arg = true;
+
+    int64_t register_pushed_argc = 0; 
 
     for (auto& instruction : ir_function.instructions)
     {
@@ -329,19 +385,35 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
             preallocate_some_register(ir_function, instruction.src1.value);
             break;
         case IRInstructionType::RETURN:
-            preallocate_register(ir_function, instruction.dst.value, Register::A);
+            if (is_float_type(get_operand_type(ir_function, instruction.src1)))
+            {
+                preallocate_register(ir_function, instruction.src1.value, Register::XMM0);
+            }
+            else
+            {
+                preallocate_register(ir_function, instruction.dst.value, Register::A);
+            }
             break;
         case IRInstructionType::REGISTER_ARG:
+            {
             if (!is_integer_type(ir_function.virtual_register_types.at(instruction.src1.value)))
             {
-                Logger::not_implemented();
+
+                if (instruction.src2.value < (int64_t)g_register_data.register_passed_float_args.size())
+                {
+                    preallocate_register(ir_function, instruction.src1.value, g_register_data.register_passed_float_args.at(instruction.src2.value));
+                    break;
+                }
+
+                goto inst_register_arg_push; 
             }
             if (instruction.src2.value < (int64_t)g_register_data.register_passed_int_args.size())
             {
                 preallocate_register(ir_function, instruction.src1.value, g_register_data.register_passed_int_args.at(instruction.src2.value));
+                break;
             }
-            else
-            {
+
+            inst_register_arg_push:
                 //need to take in codegen consideration the callee saved registers
                 // push rbp => +8
                 // fcall => +8
@@ -351,43 +423,45 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
                 base_offset -= 32;
                 #endif
                 ir_function.virtual_register_locations.insert({instruction.src1.value,
-                     Location::Stack(base_offset - 8 * (instruction.src2.value - (int64_t)g_register_data.register_passed_int_args.size()))});     
-            }
+                     Location::Stack(base_offset - 8 * register_pushed_argc)});     
+
+                register_pushed_argc++;
             break;
+            }
         case IRInstructionType::MOV_ARG:
             if (!is_integer_type(ir_function.virtual_register_types.at(instruction.src1.value)))
             {
-                Logger::not_implemented();
+                if (instruction.src2.value < (int64_t)g_register_data.register_passed_float_args.size())
+                {
+                    preallocate_register(ir_function, instruction.dst.value, g_register_data.register_passed_float_args.at(instruction.src2.value));
+                    break;
+                }
+                goto inst_mov_arg_push;
             }
             if (instruction.src2.value < (int64_t)g_register_data.register_passed_int_args.size())
             {
                 preallocate_register(ir_function, instruction.dst.value, g_register_data.register_passed_int_args.at(instruction.src2.value));
+                break;
             }
-            else // push the arguments on the stack (already in reverse order from IR)
-            {
-                ir_function.live_ranges.erase(instruction.dst.value);
-                instruction.type = IRInstructionType::ARG_PUSH;
-                instruction.dst = IROperand::None();
-                int64_t pushed_argi = instruction.src2.value + 1 - (int64_t)g_register_data.register_passed_int_args.size();
-                if (first_func_push_arg && ((instruction.src2.value + 1 - (int64_t)g_register_data.register_passed_int_args.size()) % 2 == 1))
-                {
-                    instruction.src2 = IROperand::Immediate(1);
-                }
-                else
-                {
-                    instruction.src2 = IROperand::None();
-                }
-                first_func_push_arg = false;
-
-            }
+        inst_mov_arg_push:
+            ir_function.live_ranges.erase(instruction.dst.value);
+            instruction.type = IRInstructionType::ARG_PUSH;
+            instruction.dst = IROperand::None();
+            instruction.src2 = IROperand::None();
             break;
 
         case IRInstructionType::FUNCTION_CALL:
         {
-            first_func_push_arg = true;
             // reserve A for return value and globber caller saved registers
             std::vector non_vr_regs(g_register_data.caller_saved_registers.begin(), g_register_data.caller_saved_registers.end());
-            preallocate_register(ir_function, instruction.dst.value, Register::A, non_vr_regs);
+            if (is_float_type(get_operand_type(ir_function, instruction.dst)))
+            {
+                preallocate_register(ir_function, instruction.dst.value, Register::XMM0, non_vr_regs);
+            }
+            else
+            {
+                preallocate_register(ir_function, instruction.dst.value, Register::A, non_vr_regs);
+            }
             break;
         }
         case IRInstructionType::STORE_MEM:

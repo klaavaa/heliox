@@ -10,13 +10,14 @@
 
 namespace hx 
 {
-Parser::Parser(uptr<Lexer> lex)
+Parser::Parser(std::vector<Token>& tokens)
 	:
-	m_lexer(std::move(lex)),
-    m_current_token(m_lexer->get_next()),
+    m_tokens(tokens),
+    m_current_token(tokens[0]),
     global_module(std::make_shared<Module>()),
     m_current_module(global_module)
 {
+    m_current_token_index++;
 }
 
 uptr<TranslationUnit> Parser::parse_translation_unit()
@@ -93,7 +94,19 @@ void Parser::parse_module()
                 }
                 case KeyWord::STRUCT:
                 {
-                    Logger::error(m_current_token, HX_TODO, "TODO: STRUCT");
+                    eat(TokenType::KEYWORD);
+                    uptr<identifier_literal_expr> struct_name = parse_identifier_literal();
+                    std::vector<uptr<variable_declaration_statement>> declarations;
+                    eat(TokenType::L_BRACE);
+                    while (m_current_token.type != TokenType::R_BRACE)
+                    {
+                        declarations.push_back(parse_variable_declaration());
+                        eat(TokenType::SEMICOLON);
+                    }
+                    eat(TokenType::R_BRACE);
+                    eat(TokenType::SEMICOLON);
+                    
+                    m_current_module->structs.push_back(std::make_unique<struct_declaration>(std::move(declarations)));
                     break;
                 }
                 default:
@@ -221,21 +234,24 @@ expression Parser::parse_identifier()
 {
     uptr<identifier_literal_expr> identifier = parse_identifier_literal();
     // check if identifier is a primitive type, if it is, explicit casting is in order
-    auto primitive_opt = get_primitive_type_from_string(identifier->name);
-    if (primitive_opt.has_value())
+    // TODO EXPLICIT CONVERSION
+    /*
+    auto primitive_type = get_primitive_type_from_string(identifier->name);
+    uint32_t ptr_depth = 0;
+    while (m_current_token.type == TokenType::MULTIPLY)
     {
-        uint32_t ptr_depth = 0;
-        while (m_current_token.type == TokenType::MULTIPLY)
-        {
-            ptr_depth++;
-            eat(TokenType::MULTIPLY);
-        }
-        type_data conversion_type(primitive_opt.value(), ptr_depth);
+        ptr_depth++;
+        eat(TokenType::MULTIPLY);
+    }
+    if (!(primitive_type == primitive_type::USER_DEFINED_STRUCT && ptr_depth == 0))
+    {
+        type_data conversion_type(primitive_type, ptr_depth);
         eat(TokenType::L_PAREN); 
         expression expr = parse_expression();
         eat(TokenType::R_PAREN);
         return make_node<explicit_conversion_expr>(conversion_type, std::move(expr));
     }
+    */
 
     // check if its a function call 
     if (m_current_token.type == TokenType::L_PAREN)
@@ -367,12 +383,7 @@ expression Parser::parse_expression()
 
 type_data Parser::parse_type()
 {
-    std::optional<primitive_type> pt = get_primitive_type_from_string(m_current_token.value);
-    if (!pt.has_value())
-    {
-        // TODO OWN TYPES 
-        Logger::error(m_current_token, HX_NOT_PRIMITIVE_TYPE, "Expected a primitive type");
-    }
+    primitive_type pt = get_primitive_type_from_string(m_current_token.value);
     eat(TokenType::IDENTIFIER);
      
     uint32_t ptr_depth = 0;
@@ -381,7 +392,7 @@ type_data Parser::parse_type()
         ptr_depth++;
         eat(TokenType::MULTIPLY);
     }
-    return type_data(pt.value(), ptr_depth);
+    return type_data(pt, ptr_depth);
 
 }
 
@@ -409,7 +420,13 @@ statement Parser::parse_statement()
         default:
             if (m_current_token.type == TokenType::IDENTIFIER)
             {
-                if (get_primitive_type_from_string(m_current_token.value).has_value())
+                size_t index_to_peek_next = 0;
+                while (peek_next(index_to_peek_next).type == TokenType::MULTIPLY)
+                {
+                    index_to_peek_next += 1;
+                }
+                if (peek_next(index_to_peek_next).type == TokenType::IDENTIFIER &&
+                    ((peek_next(index_to_peek_next + 1).type == TokenType::EQU) || (peek_next(index_to_peek_next + 1).type == TokenType::SEMICOLON)))
                 {
                     return parse_type_statement();
                 }
@@ -527,7 +544,12 @@ void Parser::eat(TokenType token_type)
     relevant_line = m_current_token.line; 
     relevant_position = m_current_token.position;
 
-    m_current_token = m_lexer->get_next();
+    m_current_token = m_tokens[m_current_token_index++];
+}
+
+Token Parser::peek_next(size_t peek_amount)
+{
+    return m_tokens[m_current_token_index + peek_amount];
 }
 
 }

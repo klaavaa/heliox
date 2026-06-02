@@ -14,13 +14,13 @@ void insert_variable_symbol(sptr<SymbolTable> table, const std::string& name, in
     table->variable_symbols.insert({name, symbol});
 }
 
-void insert_function_symbol(sptr<SymbolTable> table, const std::string &name, const type_data &return_type, const std::vector<type_data> &parameter_types, bool has_varargs, const std::vector<std::string> &module_path, std::string_view filename, uint32_t line_number, uint32_t position)
+void insert_function_symbol(sptr<SymbolTable> table, const std::string &name, const type_data &return_type, const std::vector<type_data> &parameter_types, bool has_varargs, const std::vector<std::string> &module_path, bool imported_function, std::string_view filename, uint32_t line_number, uint32_t position)
 {
     if (table->function_symbols.contains(name))
     {
         Logger::error(filename, line_number, position, HX_SYMBOL_REDEFINITION, "Function with this name already exists");
     }
-    FunctionSymbol symbol{return_type, parameter_types, has_varargs, module_path, filename, line_number, position};
+    FunctionSymbol symbol{return_type, parameter_types, has_varargs, module_path, imported_function, filename, line_number, position};
     table->function_symbols.insert({name, symbol});
 }
 
@@ -52,17 +52,17 @@ sptr<SymbolTable> get_or_create_submodule_table(sptr<SymbolTable> table, const s
     return submodule_table;
 }
 
-void insert_module(sptr<SymbolTable> table, sptr<Module> module)
+void insert_module(sptr<SymbolTable> table, sptr<Module> module, bool is_import)
 {
     sptr<SymbolTable> submodule_table = get_or_create_submodule_table(table, module->name);
     for (auto& func : module->functions)
     {
         insert_function_symbol(submodule_table, func->identifier->name, func->type, func->get_parameter_type_data(),
-            func->has_varargs, module->get_module_path(), func->filename, func->line_number, func->position);
+            func->has_varargs, module->get_module_path(), is_import, func->filename, func->line_number, func->position);
     }
     for (const auto& [name, submodule] : module->submodules)
     {
-        insert_module(submodule_table, submodule);
+        insert_module(submodule_table, submodule, is_import);
     }
 }
 
@@ -115,14 +115,14 @@ sptr<SymbolTable> get_compound_table(sptr<SymbolTable> current_table)
 sptr<SymbolTable> create_global_table_for_translation_unit(const uptr<TranslationUnit>& tu, const uptr<Program>& program)
 {
     sptr<SymbolTable> global_table = std::make_shared<SymbolTable>();
-    insert_module(global_table, tu->global_module);
+    insert_module(global_table, tu->global_module, false);
     for (const auto& import : tu->imports)
     {
         std::vector<std::string> module_path = import->module_path->module_path;
         module_path.push_back(import->module_path->name);
 
         sptr<Module> module = program->global_module->find_submodule(module_path);
-        insert_module(global_table, module);
+        insert_module(global_table, module, true);
     }
     return global_table;
 }
@@ -135,4 +135,22 @@ bool table_has_variable_with_vr(sptr<SymbolTable> table, int64_t vr)
     }
     return false;
 }
+std::vector<std::string> table_get_all_imported_functions(sptr<SymbolTable> table, std::string module_path)
+{
+    std::vector<std::string> function_names;
+    for (auto& [name, sym] : table->function_symbols)
+    {
+        if (sym.imported_function)
+        {
+            function_names.push_back(module_path + name);
+        }
+    }
+    for (auto& [name, subtable] : table->submodule_tables)
+    {
+        std::vector<std::string> v = table_get_all_imported_functions(subtable, module_path + name + ".");
+        function_names.insert(function_names.end(), v.begin(), v.end());
+    }
+    return function_names;
+}
+
 } // namespace hx

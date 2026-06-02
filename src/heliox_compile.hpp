@@ -48,8 +48,9 @@ inline void compile(const std::vector<std::string>& file_paths, const std::strin
     {
         std::println("{}", get_string_from_token_type(tok.type));
     } */
-
-    Parser parser = Parser(std::make_unique<Lexer>(text, file_path));
+    Lexer lexer(text, file_path);
+    std::vector<Token> tokens = lexer.tokenize();
+    Parser parser = Parser(tokens);
 
     uptr<TranslationUnit> tu = parser.parse_translation_unit(); 
     translation_units.push_back(std::move(tu));
@@ -66,7 +67,7 @@ inline void compile(const std::vector<std::string>& file_paths, const std::strin
         // the imports are handled here by fetching imported symbols from program's global module
         auto global_table = create_global_table_for_translation_unit(tu, program);
 
-        //print_table(global_table);
+        print_table(global_table);
         // generate IR instructions
         InstructionGenerator instruction_gen(std::move(tu), global_table);
         

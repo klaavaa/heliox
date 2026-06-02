@@ -61,14 +61,20 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
     case IRInstructionType::LOAD_MEM_INDEX:
         emit("lea", instruction.dst, instruction.src1);
         return;
+    case IRInstructionType::LOAD_FLOAT64:
+        emit("movsd", instruction.dst, instruction.src1);
+        return;
+    case IRInstructionType::LOAD_FLOAT32:
+        emit("movss", instruction.dst, instruction.src1);
+        return;
     case IRInstructionType::MOV:
         emit_mov(instruction.dst, instruction.src1);
         return;
     case IRInstructionType::STORE_MEM:
-        emit_mem_write("mov", instruction.dst, instruction.src1);
+        emit_mem_write(instruction.dst, instruction.src1);
         return;
     case IRInstructionType::DEREF:
-        emit_mem_read("mov", instruction.dst, instruction.src1);
+        emit_mem_read(instruction.dst, instruction.src1);
         return;
     case IRInstructionType::ADDR_OF:
         emit_lea(instruction.dst, instruction.src1);
@@ -220,6 +226,14 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
     case IRInstructionType::LABEL:
         emit_label(instruction.src2);
         return;
+
+    case IRInstructionType::CONVERT_F32_TO_F64:
+        emit("cvtss2sd", instruction.dst, instruction.src1);
+        return;
+    case IRInstructionType::CONVERT_F64_TO_F32:
+        emit("cvtsd2ss", instruction.dst, instruction.src1);
+        return;
+
     default:
         Logger::not_implemented();
     }
@@ -329,23 +343,36 @@ void CodeGenerator::emit_data_section()
     data_section += "section .data\n";
     for (auto& [key, literal] : ir_unit.allocated_literals)
     {
-        if (literal.type == LiteralType::STRING)
+        switch (literal.type)
         {
+        case LiteralType::STRING:
             data_section += std::format("\t$L{} db {}\n", key, literal.value);
+            break;
+        case LiteralType::FLOAT64:
+            data_section += std::format("\t$L{} dq {}\n", key, literal.value);
+            break;
+        case LiteralType::FLOAT32:
+            data_section += std::format("\t$L{} dw {}\n", key, literal.value);
+            break;
+        default:
+            break;
         }
     }
 }
 
-void CodeGenerator::emit_mem_write(const std::string_view asm_instruction, const IROperand dst, const IROperand src)
+void CodeGenerator::emit_mem_write(const IROperand dst, const IROperand src)
 {
-    uint32_t instruction_size = get_vr_type(dst).deref().byte_size;
-    text_section += std::format("\t{} [{}], {}\n", asm_instruction, get_location(dst, 8), get_location(src, instruction_size));
+    type_data type = get_vr_type(dst).deref();
+    uint32_t instruction_size = type.byte_size;
+    std::string mov_inst = get_mov_inst(type);
+    text_section += std::format("\t{} [{}], {}\n", mov_inst, get_location(dst, 8), get_location(src, instruction_size));
 }
-void CodeGenerator::emit_mem_read(const std::string_view asm_instruction, const IROperand dst, const IROperand src)
+void CodeGenerator::emit_mem_read(const IROperand dst, const IROperand src)
 {
+    type_data type = get_vr_type(dst);
     uint32_t instruction_size = get_vr_type(dst).byte_size;
-
-    text_section += std::format("\t{} {}, [{}]\n", asm_instruction, get_location(dst, instruction_size), get_location(src, 8));
+    std::string mov_inst = get_mov_inst(type);
+    text_section += std::format("\t{} {}, [{}]\n", mov_inst, get_location(dst, instruction_size), get_location(src, 8));
 }
 void CodeGenerator::emit(const std::string_view asm_instruction, const IROperand dst, const IROperand src)
 {
@@ -402,13 +429,44 @@ void CodeGenerator::emit_lea(const IROperand dst, const IROperand src)
 
 void CodeGenerator::emit_mov(const IROperand dst, const IROperand src)
 {
-    uint32_t instruction_size = get_vr_type(dst).byte_size;
+    type_data vr_type = get_vr_type(dst);
+    uint32_t instruction_size = vr_type.byte_size;
+    if (is_float_type(vr_type))
+    {
+        if (instruction_size == 8)
+        {
+            emit("movsd", dst, src);
+        }
+        else
+        {
+            emit("movss", dst, src);
+        }
+        return;
+    }
+
     if (instruction_size == 1 && current_function->virtual_register_locations.at(dst.value).kind == LocationKind::REGISTER)
     {
         Register reg = current_function->virtual_register_locations.at(dst.value).reg;
         emit("xor", get_register(reg, 8), get_register(reg, 8));
     }
     emit("mov", dst, src);
+}
+
+std::string CodeGenerator::get_mov_inst(type_data type)
+{
+    uint32_t instruction_size = type.byte_size;
+    if (is_float_type(type))
+    {
+        if (instruction_size == 8)
+        {
+            return "movsd";
+        }
+        else
+        {
+            return "movss";
+        }
+    }
+    return "mov";
 }
 
 type_data CodeGenerator::get_vr_type(const IROperand vr)

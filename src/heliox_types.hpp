@@ -68,9 +68,9 @@ constexpr uint32_t get_ptr_byte_size()
     return 8;
 }
 
-inline std::optional<primitive_type> get_primitive_type_from_string(std::string_view type_name)
+inline primitive_type get_primitive_type_from_string(std::string_view type_name)
 {
-    if (!primitive_type_map.count(type_name)) return std::nullopt;
+    if (!primitive_type_map.count(type_name)) return primitive_type::USER_DEFINED_STRUCT;
     return {primitive_type_map.at(type_name)}; 
 }
 

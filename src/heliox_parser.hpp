@@ -11,7 +11,7 @@ class Parser
 {
 
 public:
-    Parser(uptr<Lexer> lex);
+    Parser(std::vector<Token>& tokens);
     
     uptr<TranslationUnit> parse_translation_unit();
 
@@ -45,6 +45,7 @@ private:
 
 
 	void eat(TokenType token_type);
+    Token peek_next(size_t peek_amount = 0);
      
     // creates the node with source location information
     template<typename T, typename... Args>
@@ -54,7 +55,8 @@ private:
     }
 
 private:
-    uptr<Lexer> m_lexer;
+    std::vector<Token>& m_tokens;    
+    size_t m_current_token_index = 0;
     Token m_current_token;
 
     sptr<Module> global_module;

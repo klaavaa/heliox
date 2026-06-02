@@ -23,8 +23,8 @@ private:
 
     void allocate_stack(IRFunction& ir_function, const int64_t vr);
     void push_stack(IRFunction& ir_function, const int64_t vr);
-    void spill(IRFunction& ir_function, const int64_t current_vr);
-    void allocate_register(IRFunction& ir_function, const int64_t vr, Register reg);
+    void spill(IRFunction& ir_function, const int64_t current_vr, std::vector<int64_t>& active_virtual_registers, std::vector<int64_t>& active_unspillable_registers);
+    void allocate_register(IRFunction& ir_function, const int64_t vr, Register reg, std::vector<int64_t>& active_virtual_registers, std::vector<int64_t>& active_unspillable_virtual_registers);
     void expire_old_intervals(IRFunction& ir_function, const int64_t current_vr);
 
     std::set<Register> get_pre_reserved_registers(IRFunction& ir_function, int64_t current_vr);
@@ -34,10 +34,14 @@ private:
     type_data get_operand_type(const IRFunction& ir_function, const IROperand operand);
 
     IRUnit& ir_unit;
-    std::vector<int64_t> active_virtual_registers;
-    std::vector<int64_t> active_unspillable_virtual_registers;
-    std::set<Register> gp_free_registers;
+    std::vector<int64_t> gp_active_virtual_registers;
+    std::vector<int64_t> gp_active_unspillable_virtual_registers;
+    std::set<Register>   gp_free_registers;
 
+    std::set<Register>   xmm_free_registers;
+    std::vector<int64_t> xmm_active_virtual_registers;
+    std::vector<int64_t> xmm_active_unspillable_virtual_registers;
+     
 };
 
 } // namespace hx

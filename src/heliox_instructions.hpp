@@ -71,6 +71,8 @@ enum class IRInstructionType
 
     LOAD_IMMEDIATE,
     LOAD_MEM_INDEX,
+    LOAD_FLOAT32,
+    LOAD_FLOAT64,
 
     STORE_MEM,
     
@@ -111,6 +113,8 @@ enum class IRInstructionType
 
     LABEL,
     
+    CONVERT_F64_TO_F32,
+    CONVERT_F32_TO_F64,
 
 };
 
@@ -135,6 +139,8 @@ struct Location
 enum class LiteralType
 {
     STRING,
+    FLOAT32,
+    FLOAT64,
     FUNCTION_NAME,
 };
 
@@ -253,6 +259,23 @@ struct IRUnit
         return id;
     }
 
+    size_t allocate_float64_literal(const std::string& value)
+    {
+        size_t id = allocated_literals.size();
+        double val = std::stod(value);
+        std::string parsed_val = std::to_string(*reinterpret_cast<int64_t*>(&val));
+        allocated_literals.insert({id, AllocatedLiteral{LiteralType::FLOAT64, parsed_val}});
+        return id;
+    }
+    size_t allocate_float32_literal(const std::string& value)
+    {
+        size_t id = allocated_literals.size();
+        float val = std::stof(value);
+        std::string parsed_val = std::to_string(*reinterpret_cast<int64_t*>(&val));
+        allocated_literals.insert({id, AllocatedLiteral{LiteralType::FLOAT32, parsed_val}});
+        return id;
+    }
+
     size_t allocate_function_name(const std::string& value)
     {
         size_t id = allocated_literals.size();
@@ -296,6 +319,12 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
             break;
         case IRInstructionType::LOAD_IMMEDIATE:
             std::println("{}  LOAD_INT   r{}  <- {}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
+        case IRInstructionType::LOAD_FLOAT32:
+            std::println("{}  LOAD_F32   r{}  <- {}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
+        case IRInstructionType::LOAD_FLOAT64:
+            std::println("{}  LOAD_F64   r{}  <- {}", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
         case IRInstructionType::MOV:
             std::println("{}  MOV        r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
@@ -381,6 +410,12 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
             std::println("{}  CMP_GTE    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
 
+        case IRInstructionType::CONVERT_F32_TO_F64:
+            std::println("{}  F32_TO_F64 r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
+        case IRInstructionType::CONVERT_F64_TO_F32:
+            std::println("{}  F64_TO_F32 r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
         default:
             std::println("instruction {} not implemented yet", static_cast<int>(ir_instruction.type));
             break;

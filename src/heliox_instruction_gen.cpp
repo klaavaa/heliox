@@ -11,6 +11,17 @@ InstructionGenerator::InstructionGenerator(uptr<TranslationUnit> _translation_un
 IRUnit InstructionGenerator::generate_instructions()
 {
     visit_module(translation_unit->global_module);
+    
+    
+    auto all_imported_func_names = table_get_all_imported_functions(global_table, "");
+
+    for (const auto& fname : all_imported_func_names)
+    {
+        IRFunction ir_func;
+        ir_func.name = fname;
+        ir_func.is_extern = true;
+        ir_unit.ir_functions.push_back(ir_func);
+    }
 
     return ir_unit;
 }
@@ -188,6 +199,14 @@ void InstructionGenerator::visit_int_literal(uptr<int_literal_expr>& int_literal
     emit_instruction(load_int);
 }
 
+void InstructionGenerator::visit_float_literal(uptr<float_literal_expr>& float_literal)
+{
+    int64_t literal_location = (int64_t)ir_unit.allocate_float64_literal(float_literal->value);
+    IRInstruction load_float(IRInstructionType::LOAD_FLOAT64, current_register, IROperand::Literal(literal_location), IROperand::None());
+    register_vr_type(current_register, type_data{primitive_type::F64, 0});
+    emit_instruction(load_float);
+}
+
 void InstructionGenerator::visit_identifier_literal(uptr<identifier_literal_expr>& identifier_literal)
 {
     const VariableSymbol& var_sym = find_variable_symbol(current_table, identifier_literal);
@@ -226,11 +245,14 @@ void InstructionGenerator::visit_variable_definition(uptr<variable_definition_st
     if (get_vr_type(expression_vr) != get_vr_type(effective_register))
     {
         emit_implicit_conversion(*variable_definition, expression_vr, get_vr_type(effective_register));
+        expression_vr = effective_register;
     }
 
     const VariableSymbol& var_symbol = find_variable_symbol(current_table, variable_definition->declaration->var_identifier);
+
     IRInstruction store(IRInstructionType::MOV, IROperand::Vr(var_symbol.virtual_register), expression_vr, IROperand::None());
     emit_instruction(store, 0, false);
+
 }
 
 void InstructionGenerator::emit_implicit_conversion(const ast_node& node, IROperand vr, const type_data type_to)
@@ -243,10 +265,28 @@ void InstructionGenerator::emit_implicit_conversion(const ast_node& node, IROper
         Logger::error(node, HX_IMPLICIT_CONVERSION_NOT_POSSIBLE, "Implicit conversion not possible");
     }
 
+    effective_register = vr;
     if (is_integer_type(type_from))
     {
         // todo: not sure if this is the best way to go about this
         // current_function.virtual_register_types.at(vr.value) = type_to;
+        return;
+    }
+    else if (is_float_type(type_from))
+    {
+        
+        if (type_to.byte_size == 8 && type_from.byte_size == 4)
+        {
+            IRInstruction conversion(IRInstructionType::CONVERT_F32_TO_F64, current_register, vr, IROperand::None());
+            register_vr_type(current_register, {primitive_type::F64, 0});
+            emit_instruction(conversion);
+        }
+        else if (type_to.byte_size == 4 && type_from.byte_size == 8)
+        {
+            IRInstruction conversion(IRInstructionType::CONVERT_F64_TO_F32, current_register, vr, IROperand::None());
+            register_vr_type(current_register, {primitive_type::F32, 0});
+            emit_instruction(conversion);
+        }
         return;
     }
 
@@ -310,7 +350,7 @@ void InstructionGenerator::emit_assignment(TokenType op_token, expression& left_
             const VariableSymbol& var_sym = find_variable_symbol(current_table, identifier);
             emit_implicit_conversion(*identifier, right_register, var_sym.data_type);
 
-            IRInstruction write_var(IRInstructionType::MOV, IROperand::Vr(var_sym.virtual_register), right_register, IROperand::None());
+            IRInstruction write_var(IRInstructionType::MOV, IROperand::Vr(var_sym.virtual_register), effective_register, IROperand::None());
             emit_instruction(write_var, 0);
         },
         [this, op_token, &right_register](uptr<unary_expr>& unary) 
@@ -321,8 +361,10 @@ void InstructionGenerator::emit_assignment(TokenType op_token, expression& left_
             }
 
             visit_expression(unary->expr);
-            emit_implicit_conversion(*unary, right_register, get_vr_type(effective_register));
-            IRInstruction write_mem(IRInstructionType::STORE_MEM, effective_register, right_register, IROperand::None());
+            IROperand left_side = effective_register;
+
+            emit_implicit_conversion(*unary, right_register, get_vr_type(left_side).deref());
+            IRInstruction write_mem(IRInstructionType::STORE_MEM, left_side, effective_register, IROperand::None());
             emit_instruction(write_mem, 0, false);
             
         },

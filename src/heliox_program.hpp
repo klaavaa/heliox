@@ -14,6 +14,7 @@ namespace hx
             : name(name), parent_module(parent_module) {}
 
         std::vector<uptr<function>> functions;
+        std::vector<uptr<struct_declaration>> structs;
         std::string name;
 
         sptr<Module> parent_module;
