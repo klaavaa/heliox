@@ -447,20 +447,20 @@ std::string CodeGenerator::get_mov_inst(type_data type, IROperand dst)
     uint32_t instruction_size = type.byte_size;
     if (is_float_type(type))
     {
-        if (is_xmm_register(current_function->virtual_register_locations.at(dst.value).reg))
+        if (current_function->virtual_register_locations.at(dst.value).kind == LocationKind::REGISTER)
         {
+            if (is_gp_register(current_function->virtual_register_locations.at(dst.value).reg))
+            {
+                if (instruction_size == 8)
+                    return "movq";
+                else
+                    return "movd";
+            }
+        }
         if (instruction_size == 8)
             return "movsd";
         else
             return "movss";
-        }
-        else
-        {
-        if (instruction_size == 8)
-            return "movq";
-        else
-            return "movd";
-        }
     }
     return "mov";
 }
