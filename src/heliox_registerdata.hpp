@@ -294,7 +294,6 @@ struct RegisterData
         Register::XMM8,
         Register::XMM9,
         Register::XMM10,
-        Register::XMM11,
         Register::XMM12,
         Register::XMM13,
         Register::XMM14,

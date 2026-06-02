@@ -25,12 +25,26 @@ void perform_liveness_analysis_on_function(IRFunction& ir_function, sptr<SymbolT
 
     std::unordered_map<int64_t, size_t> label_numbers;
 
+    std::vector<IROperand> arg_vrs;
+
     for (const auto& instruction : ir_function.instructions)
     {
         auto& live_ranges = ir_function.live_ranges;
 
         switch (instruction.type)
         {
+            case IRInstructionType::MOV_ARG:
+            case IRInstructionType::MOV_VARARG:
+                arg_vrs.push_back(instruction.dst);
+                break;
+            case IRInstructionType::FUNCTION_CALL: 
+                for (auto vr : arg_vrs)
+                {
+                    update_liverange(vr, instruction_number);
+                }
+                arg_vrs.clear();
+                break;
+
             case IRInstructionType::LABEL:
                 label_numbers.insert({instruction.src2.value, instruction_number});
                 break;
