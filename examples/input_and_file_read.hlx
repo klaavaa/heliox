@@ -13,8 +13,8 @@ fun main(i64 argc, u8** argv) i32
     srand(time(0));
     i32 input = 0;
     printf("If you guess the number right from 1 to 3,\nI will print this file!\n\0");
-    i32 random = rand() % 3 + 1;
-    while (input != random)
+    i32 random = 1;
+    while input != random
     {
         random = rand() % 3 + 1;
         scanf("%d\0", &input);
@@ -24,7 +24,7 @@ fun main(i64 argc, u8** argv) i32
     }
     u32* fptr = fopen("examples/input_and_file_read.hlx\0", "r\0");
     u8* buf =  malloc(8);
-    while (fgets(buf, 8, fptr) != 0)
+    while fgets(buf, 8, fptr) != 0
     {
         printf("%s\0", buf);
     }
