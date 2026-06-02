@@ -211,6 +211,9 @@ void RegisterAllocator::cleanup_pass(IRFunction& ir_func)
     std::vector<IRInstruction> fixed_instructions;
     int64_t next_vr = ir_func.virtual_register_locations.rbegin()->first + 1;
     bool first_func_push_arg = true;
+    
+    std::vector<IRInstruction> arg_pushes;
+
     for (size_t i = 0; i < ir_func.instructions.size(); i++)
     {
         auto& instruction = ir_func.instructions[i];
@@ -245,41 +248,43 @@ void RegisterAllocator::cleanup_pass(IRFunction& ir_func)
                 }
                 break;
             case IRInstructionType::FUNCTION_CALL:
-                first_func_push_arg = true;
+                // insert pushes in reverse order
+                for (size_t i = 0; i < arg_pushes.size(); i++)
+                {
+                    size_t j = arg_pushes.size() - 1 - i;
+                    auto& inst = arg_pushes[j];
+                    if (i == 0)
+                    {
+                        inst.src2.value %= 2;
+                        if (!inst.src2.value)
+                            inst.src2 = IROperand::None();
+                    }
+                    else
+                        inst.src2 = IROperand::None();
+                    fixed_instructions.push_back(arg_pushes[j]);
+                }
+                arg_pushes.clear();
                 break;
             case IRInstructionType::ARG_PUSH:
-                do{ 
-                if (!first_func_push_arg) break;
-                size_t push_count = 1; 
-                for (size_t j = i+1; j < ir_func.instructions.size(); j++)
-                {
-                    if (ir_func.instructions[j].type != IRInstructionType::ARG_PUSH) break;
-                    push_count++;
-                }
-                if (push_count % 2)
-                {
-                    instruction.src2 = IROperand::Immediate(1);
-                }
-                first_func_push_arg = false;
-                } while (false);
-
                 if (ir_func.virtual_register_types.at(instruction.src1.value).byte_size != 8 || 
                     (ir_func.virtual_register_locations.at(instruction.src1.value).kind == LocationKind::REGISTER
                      && is_xmm_register(ir_func.virtual_register_locations.at(instruction.src1.value).reg)))
                 {
                     IRInstruction mov(IRInstructionType::MOV, IROperand::Vr(next_vr), instruction.src1, IROperand::None());
                     ir_func.virtual_register_types.insert({next_vr, ir_func.virtual_register_types.at(instruction.src1.value)});
-                    fixed_instructions.push_back(mov); 
 
                     IRInstruction arg_push(IRInstructionType::ARG_PUSH, instruction.dst, IROperand::Vr(next_vr), instruction.src2);
-                    fixed_instructions.push_back(arg_push); 
-
+                    
+                    // to be reverted
+                    arg_pushes.push_back(arg_push);
+                    arg_pushes.push_back(mov); 
                     ir_func.virtual_register_locations.insert({next_vr, Location::Reg(g_register_data.gp_scratch_register)});
 
                     next_vr++;
                     continue;
                 }
-                break;
+                arg_pushes.push_back(instruction);
+                continue;
             case IRInstructionType::JMP_IF:
             case IRInstructionType::JMP_IF_NOT:
             if (is_spilled(ir_func, instruction.src1))
@@ -370,6 +375,11 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
 {
 
     int64_t register_pushed_argc = 0; 
+   
+    int64_t int_argc = 0;
+    int64_t float_argc = 0;
+    
+    int64_t pushed_argc = 0;
 
     for (auto& instruction : ir_function.instructions)
     {
@@ -431,13 +441,16 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
             break;
             }
         case IRInstructionType::MOV_VARARG:
+#ifdef _WIN32
             if (instruction.src2.value < (int64_t)g_register_data.register_passed_int_args.size())
             {
                 preallocate_register(ir_function, instruction.dst.value, g_register_data.register_passed_int_args.at(instruction.src2.value));
                 break;
             }
             else goto inst_mov_arg_push;
+#endif
         case IRInstructionType::MOV_ARG:
+#ifdef _WIN32
             if (!is_integer_type(ir_function.virtual_register_types.at(instruction.src1.value)))
             {
                 if (instruction.src2.value < (int64_t)g_register_data.register_passed_float_args.size())
@@ -452,15 +465,37 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
                 preallocate_register(ir_function, instruction.dst.value, g_register_data.register_passed_int_args.at(instruction.src2.value));
                 break;
             }
+#else
+            if (!is_integer_type(ir_function.virtual_register_types.at(instruction.src1.value)))
+            {
+                if (float_argc < (int64_t)g_register_data.register_passed_float_args.size())
+                {
+                    preallocate_register(ir_function, instruction.dst.value, g_register_data.register_passed_float_args.at(float_argc));
+                    float_argc++;
+                    break;
+                }
+                goto inst_mov_arg_push;
+            }
+            if (int_argc < (int64_t)g_register_data.register_passed_int_args.size())
+            {
+                preallocate_register(ir_function, instruction.dst.value, g_register_data.register_passed_int_args.at(int_argc));
+                int_argc++;
+                break;
+            }
+#endif
         inst_mov_arg_push:
             ir_function.live_ranges.erase(instruction.dst.value);
             instruction.type = IRInstructionType::ARG_PUSH;
             instruction.dst = IROperand::None();
-            instruction.src2 = IROperand::None();
+            pushed_argc++;
+            instruction.src2 = IROperand::Immediate(pushed_argc);
             break;
 
         case IRInstructionType::FUNCTION_CALL:
         {
+            float_argc = 0;
+            int_argc = 0;
+            pushed_argc = 0;
             // reserve A for return value and globber caller saved registers
             std::vector non_vr_regs(g_register_data.caller_saved_registers.begin(), g_register_data.caller_saved_registers.end());
             if (is_float_type(get_operand_type(ir_function, instruction.dst)))

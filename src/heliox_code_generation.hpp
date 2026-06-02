@@ -31,7 +31,7 @@ private:
     void emit_label(const IROperand label);
     void emit_lea(const IROperand dst, const IROperand src);
     void emit_mov(const IROperand dst, const IROperand src);
-    std::string get_mov_inst(type_data type, IROperand dst);
+    std::string get_mov_inst(type_data type, IROperand dst, IROperand src);
 
     void emit_data_section();
 
@@ -39,6 +39,10 @@ private:
 
     void save_callee_preserved_registers();
     void load_callee_preserved_registers();
+    
+    bool is_op_on_stack(IROperand op);
+    bool is_op_on_gp_reg(IROperand op);
+    bool is_op_on_xmm_reg(IROperand op);
 
     IRUnit& ir_unit;
     IRFunction* current_function;

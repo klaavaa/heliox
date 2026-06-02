@@ -365,14 +365,14 @@ void CodeGenerator::emit_mem_write(const IROperand dst, const IROperand src)
 {
     type_data type = get_vr_type(dst).deref();
     uint32_t instruction_size = type.byte_size;
-    std::string mov_inst = get_mov_inst(type, dst);
+    std::string mov_inst = get_mov_inst(type, dst, src);
     text_section += std::format("\t{} [{}], {}\n", mov_inst, get_location(dst, 8), get_location(src, instruction_size));
 }
 void CodeGenerator::emit_mem_read(const IROperand dst, const IROperand src)
 {
     type_data type = get_vr_type(dst);
     uint32_t instruction_size = get_vr_type(dst).byte_size;
-    std::string mov_inst = get_mov_inst(type, dst);
+    std::string mov_inst = get_mov_inst(type, dst, src);
     text_section += std::format("\t{} {}, [{}]\n", mov_inst, get_location(dst, instruction_size), get_location(src, 8));
 }
 void CodeGenerator::emit(const std::string_view asm_instruction, const IROperand dst, const IROperand src)
@@ -432,7 +432,7 @@ void CodeGenerator::emit_mov(const IROperand dst, const IROperand src)
 {
     type_data vr_type = get_vr_type(dst);
     uint32_t instruction_size = vr_type.byte_size;
-    std::string mov_inst = get_mov_inst(vr_type, dst);
+    std::string mov_inst = get_mov_inst(vr_type, dst, src);
 
     if (instruction_size == 1 && current_function->virtual_register_locations.at(dst.value).kind == LocationKind::REGISTER)
     {
@@ -442,25 +442,34 @@ void CodeGenerator::emit_mov(const IROperand dst, const IROperand src)
     emit(mov_inst, dst, src);
 }
 
-std::string CodeGenerator::get_mov_inst(type_data type, IROperand dst)
+std::string CodeGenerator::get_mov_inst(type_data type, IROperand dst, IROperand src)
 {
     uint32_t instruction_size = type.byte_size;
     if (is_float_type(type))
     {
-        if (current_function->virtual_register_locations.at(dst.value).kind == LocationKind::REGISTER)
+
+
+        if (is_op_on_xmm_reg(dst))
         {
-            if (is_gp_register(current_function->virtual_register_locations.at(dst.value).reg))
-            {
-                if (instruction_size == 8)
-                    return "movq";
-                else
-                    return "movd";
-            }
-        }
         if (instruction_size == 8)
             return "movsd";
         else
             return "movss";
+        }
+
+        if (src.kind != IROperandKind::VIRTUAL_REGISTER)
+            return "mov";
+        
+    
+        if (!is_op_on_xmm_reg(src))
+        {
+            return "mov"; 
+        }
+
+        if (instruction_size == 8)
+            return "movq";
+        else
+            return "movd";
     }
     return "mov";
 }
@@ -469,4 +478,21 @@ type_data CodeGenerator::get_vr_type(const IROperand vr)
 {
     return current_function->virtual_register_types.at(vr.value);
 }
+
+bool CodeGenerator::is_op_on_stack(IROperand op)
+{
+    return current_function->virtual_register_locations.at(op.value).kind == LocationKind::STACK;
+}
+bool CodeGenerator::is_op_on_gp_reg(IROperand op)
+{
+    return current_function->virtual_register_locations.at(op.value).kind == LocationKind::REGISTER &&
+        is_gp_register(current_function->virtual_register_locations.at(op.value).reg);
+}
+bool CodeGenerator::is_op_on_xmm_reg(IROperand op)
+{
+    return current_function->virtual_register_locations.at(op.value).kind == LocationKind::REGISTER &&
+        is_xmm_register(current_function->virtual_register_locations.at(op.value).reg);
+}
+
+
 } // namespace hx
