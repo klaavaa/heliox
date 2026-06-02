@@ -6,7 +6,6 @@ fun swap(i32* a, i32* b) void
     i32 temp = *a;
     *a = *b;
     *b = temp;
-    return;
 }
 
 fun main() i32

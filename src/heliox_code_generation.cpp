@@ -48,6 +48,11 @@ void CodeGenerator::emit_function(IRFunction& ir_function)
         emit_instruction(instruction);
     }
 
+    text_section += std::format(".ret.{}:\n", ir_function.name);
+    emit("mov", "rsp", "rbp");
+    emit("pop", "rbp");
+    load_callee_preserved_registers();
+    emit("ret");
     registers_to_preserve.clear();
 }
 
@@ -173,10 +178,7 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         return;
     case IRInstructionType::RETURN:
         emit_mov(instruction.dst, instruction.src1);
-        emit("mov", "rsp", "rbp");
-        emit("pop", "rbp");
-        load_callee_preserved_registers();
-        emit("ret");
+        emit("jmp", std::format(".ret.{}", current_function->name));
         return;
 
     case IRInstructionType::FUNCTION_CALL:
