@@ -1,0 +1,29 @@
+extern fun printf(u8* str, ...) void;
+
+
+fun swap(i32* a, i32* b) void 
+{
+    i32 temp = *a;
+    *a = *b;
+    *b = temp;
+    return;
+}
+
+fun main() i32
+{
+    i32 x = 10;
+    i32 y = 20;
+
+    i32* ptr = &x;
+
+    *ptr = 100;
+
+    printf("x = %d\ny = %d\n*ptr = %d\n\0", x, y, *ptr);
+    printf("&x == ptr => %d\n\0", &x == ptr);
+
+    swap(&x, &y);
+    printf("x = %d\ny = %d\n*ptr = %d\n\0", x, y, *ptr);
+    printf("&x == ptr => %d\n\0", &x == ptr);
+
+    return y;
+}
