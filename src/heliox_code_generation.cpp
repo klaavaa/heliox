@@ -113,6 +113,40 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         emit("imul", instruction.src1, instruction.src2);
         emit_mov(instruction.dst, instruction.src1);
         return;
+    
+    case IRInstructionType::F64ADD:
+        emit("addsd", instruction.src1, instruction.src2);
+        emit_mov(instruction.dst, instruction.src1);
+        return;
+    case IRInstructionType::F64SUB:
+        emit("subsd", instruction.src1, instruction.src2);
+        emit_mov(instruction.dst, instruction.src1);
+        return;
+    case IRInstructionType::F64MUL:
+        emit("mulsd", instruction.src1, instruction.src2);
+        emit_mov(instruction.dst, instruction.src1);
+        return;
+    case IRInstructionType::F64DIV:
+        emit("mulsd", instruction.src1, instruction.src2);
+        emit_mov(instruction.dst, instruction.src1);
+        return;
+
+    case IRInstructionType::F32ADD:
+        emit("addss", instruction.src1, instruction.src2);
+        emit_mov(instruction.dst, instruction.src1);
+        return;
+    case IRInstructionType::F32SUB:
+        emit("subss", instruction.src1, instruction.src2);
+        emit_mov(instruction.dst, instruction.src1);
+        return;
+    case IRInstructionType::F32MUL:
+        emit("mulss", instruction.src1, instruction.src2);
+        emit_mov(instruction.dst, instruction.src1);
+        return;
+    case IRInstructionType::F32DIV:
+        emit("mulss", instruction.src1, instruction.src2);
+        emit_mov(instruction.dst, instruction.src1);
+        return;
 
     case IRInstructionType::IMOD:
         emit("xor", "rdx", "rdx");

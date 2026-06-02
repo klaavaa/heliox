@@ -96,6 +96,16 @@ enum class IRInstructionType
     IMUL,
     IMOD,
 
+    F64ADD,
+    F64SUB,
+    F64DIV,
+    F64MUL,
+
+    F32ADD,
+    F32SUB,
+    F32DIV,
+    F32MUL,
+
     BITWISE_AND,
     BITWISE_OR,
     BITWISE_XOR,
@@ -358,6 +368,38 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
             break;
         case IRInstructionType::IDIV:
             std::println("{}  IDIV       r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+
+        case IRInstructionType::F64ADD:
+            std::println("{}  F64ADD     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+
+            break;
+        case IRInstructionType::F64SUB:
+            std::println("{}  F64SUB     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+
+            break;
+        case IRInstructionType::F64MUL:
+            std::println("{}  F64MUL     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+
+            break;
+        case IRInstructionType::F64DIV:
+            std::println("{}  F64DIV     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+
+        case IRInstructionType::F32ADD:
+            std::println("{}  F32ADD     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+
+            break;
+        case IRInstructionType::F32SUB:
+            std::println("{}  F32SUB     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+
+            break;
+        case IRInstructionType::F32MUL:
+            std::println("{}  F32MUL     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+
+            break;
+        case IRInstructionType::F32DIV:
+            std::println("{}  F32DIV     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
         case IRInstructionType::IMOD:
             std::println("{}  IMOD       r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);

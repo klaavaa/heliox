@@ -138,10 +138,19 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     {
         IROperand arg_vreg = arg_vregs[i];
         IRInstructionType mov_type;
+        effective_register = arg_vreg;
         if (i < func_symbol.parameter_types.size()) mov_type = IRInstructionType::MOV_ARG;
-        else mov_type = IRInstructionType::MOV_VARARG;
-        IRInstruction push_arg_instruction(mov_type, current_register, arg_vreg, {IROperandKind::ARG_NUMBER, (int64_t)i});
-        register_vr_type(current_register, arg_vreg);
+        else
+        {
+            mov_type = IRInstructionType::MOV_VARARG;
+            type_data vararg_type = get_vr_type(arg_vreg);
+            if (is_float_type(vararg_type) && vararg_type.byte_size == 4)
+            {
+                emit_implicit_conversion(*function_call, arg_vreg, type_data{primitive_type::F64, 0});
+            }
+        }
+        IRInstruction push_arg_instruction(mov_type, current_register, effective_register, {IROperandKind::ARG_NUMBER, (int64_t)i});
+        register_vr_type(current_register, effective_register);
         emit_instruction(push_arg_instruction);
     }
 
@@ -381,12 +390,47 @@ IRInstructionType InstructionGenerator::get_ir_binop_instruction(TokenType op_to
     const auto& data_type = get_vr_type(left_register);
     IRInstructionType ir_instruction_type;
     // FLOAT OPERATIONS
-    if (!is_integer_type(data_type))
+    if (is_float_type(data_type))
     {
+        if (data_type.byte_size == 4)
+        {
+            switch (op_token)
+            {
+            case TokenType::PLUS:
+                ir_instruction_type = IRInstructionType::F32ADD;
+                break;
+            case TokenType::MINUS:
+                ir_instruction_type = IRInstructionType::F32SUB;
+                break;
+            case TokenType::MULTIPLY:
+                ir_instruction_type = IRInstructionType::F32MUL;
+                break;
+            case TokenType::DIVIDE:
+                ir_instruction_type = IRInstructionType::F32DIV;
+                break;
+            default:
+                goto unknown_binop_operator;
+            }
+        }
+        else
+        {
         switch (op_token)
         {
+        case TokenType::PLUS:
+            ir_instruction_type = IRInstructionType::F64ADD;
+            break;
+        case TokenType::MINUS:
+            ir_instruction_type = IRInstructionType::F64SUB;
+            break;
+        case TokenType::MULTIPLY:
+            ir_instruction_type = IRInstructionType::F64MUL;
+            break;
+        case TokenType::DIVIDE:
+            ir_instruction_type = IRInstructionType::F64DIV;
+            break;
         default:
             goto unknown_binop_operator;
+        }
         }
         return ir_instruction_type;
     }
@@ -479,10 +523,9 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
         emit_implicit_conversion(*binop, right_register, get_vr_type(left_register));
     }
 
-
     IRInstructionType instruction_type = get_ir_binop_instruction(binop->op_token, left_register);
 
-    IRInstruction binop_inst(instruction_type, current_register, left_register, right_register);
+    IRInstruction binop_inst(instruction_type, current_register, left_register, effective_register);
     if (!has_vr_type(current_register))
     {
         register_vr_type(current_register, left_register);

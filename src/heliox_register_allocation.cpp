@@ -257,6 +257,7 @@ void RegisterAllocator::cleanup_pass(IRFunction& ir_func)
                     auto& inst = arg_pushes[j];
                     if (inst.type == IRInstructionType::ARG_PUSH && first_push)
                     {
+                        // this whole thing is to just decide if we need to align the stack before the call
                         inst.src2.value %= 2;
                         if (!inst.src2.value)
                             inst.src2 = IROperand::None();
