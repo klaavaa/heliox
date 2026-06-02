@@ -115,12 +115,26 @@ enum class IRInstructionType
     JMP_IF,
     JMP_IF_NOT,
 
-    CMP_EQU,
-    CMP_NEQU,
-    CMP_GT,
-    CMP_LT,
-    CMP_GTE,
-    CMP_LTE,
+    ICMP_EQU,
+    ICMP_NEQU,
+    ICMP_GT,
+    ICMP_LT,
+    ICMP_GTE,
+    ICMP_LTE,
+
+    F32CMP_EQU,
+    F32CMP_NEQU,
+    F32CMP_GT,
+    F32CMP_LT,
+    F32CMP_GTE,
+    F32CMP_LTE,
+
+    F64CMP_EQU,
+    F64CMP_NEQU,
+    F64CMP_GT,
+    F64CMP_LT,
+    F64CMP_GTE,
+    F64CMP_LTE,
 
     LABEL,
     
@@ -437,23 +451,61 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
         case IRInstructionType::LABEL:
             std::println("{}  LABEL           <-    , LB{}", prefix, ir_instruction.src2);
             break;
-        case IRInstructionType::CMP_EQU:
-            std::println("{}  CMP_EQU    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+        case IRInstructionType::ICMP_EQU:
+            std::println("{}  ICMP_EQU    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
-        case IRInstructionType::CMP_NEQU:
-            std::println("{}  CMP_NEQU   r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+        case IRInstructionType::ICMP_NEQU:
+            std::println("{}  ICMP_NEQU   r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
-        case IRInstructionType::CMP_LT:
-            std::println("{}  CMP_LT     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+        case IRInstructionType::ICMP_LT:
+            std::println("{}  ICMP_LT     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
-        case IRInstructionType::CMP_GT:
-            std::println("{}  CMP_GT     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+        case IRInstructionType::ICMP_GT:
+            std::println("{}  ICMP_GT     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
-        case IRInstructionType::CMP_LTE:
-            std::println("{}  CMP_LTE    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+        case IRInstructionType::ICMP_LTE:
+            std::println("{}  ICMP_LTE    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
-        case IRInstructionType::CMP_GTE:
-            std::println("{}  CMP_GTE    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+        case IRInstructionType::ICMP_GTE:
+            std::println("{}  ICMP_GTE    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+
+        case IRInstructionType::F32CMP_EQU:
+            std::println("{}  F32CMP_EQU    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+        case IRInstructionType::F32CMP_NEQU:
+            std::println("{}  F32CMP_NEQU   r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+        case IRInstructionType::F32CMP_LT:
+            std::println("{}  F32CMP_LT     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+        case IRInstructionType::F32CMP_GT:
+            std::println("{}  F32CMP_GT     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+        case IRInstructionType::F32CMP_LTE:
+            std::println("{}  F32CMP_LTE    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+        case IRInstructionType::F32CMP_GTE:
+            std::println("{}  F32CMP_GTE    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+
+        case IRInstructionType::F64CMP_EQU:
+            std::println("{}  F64CMP_EQU    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+        case IRInstructionType::F64CMP_NEQU:
+            std::println("{}  F64CMP_NEQU   r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+        case IRInstructionType::F64CMP_LT:
+            std::println("{}  F64CMP_LT     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+        case IRInstructionType::F64CMP_GT:
+            std::println("{}  F64CMP_GT     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+        case IRInstructionType::F64CMP_LTE:
+            std::println("{}  F64CMP_LTE    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+        case IRInstructionType::F64CMP_GTE:
+            std::println("{}  F64CMP_GTE    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
 
         case IRInstructionType::CONVERT_F32_TO_F64:

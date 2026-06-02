@@ -408,6 +408,30 @@ IRInstructionType InstructionGenerator::get_ir_binop_instruction(TokenType op_to
             case TokenType::DIVIDE:
                 ir_instruction_type = IRInstructionType::F32DIV;
                 break;
+            case TokenType::DOUBLE_EQU:
+                ir_instruction_type = IRInstructionType::F32CMP_EQU;
+                register_vr_type(current_register, type_data{primitive_type::I8, 0});
+                break;
+            case TokenType::NEQU:
+                ir_instruction_type = IRInstructionType::F32CMP_NEQU;
+                register_vr_type(current_register, type_data{primitive_type::I8, 0});
+                break;
+            case TokenType::LT:
+                ir_instruction_type = IRInstructionType::F32CMP_LT;
+                register_vr_type(current_register, type_data{primitive_type::I8, 0});
+                break;
+            case TokenType::GT:
+                ir_instruction_type = IRInstructionType::F32CMP_GT;
+                register_vr_type(current_register, type_data{primitive_type::I8, 0});
+                break;
+            case TokenType::LTE:
+                ir_instruction_type = IRInstructionType::F32CMP_LTE;
+                register_vr_type(current_register, type_data{primitive_type::I8, 0});
+                break;
+            case TokenType::GTE:
+                ir_instruction_type = IRInstructionType::F32CMP_GTE;
+                register_vr_type(current_register, type_data{primitive_type::I8, 0});
+                break;
             default:
                 goto unknown_binop_operator;
             }
@@ -428,6 +452,32 @@ IRInstructionType InstructionGenerator::get_ir_binop_instruction(TokenType op_to
         case TokenType::DIVIDE:
             ir_instruction_type = IRInstructionType::F64DIV;
             break;
+
+        case TokenType::DOUBLE_EQU:
+            ir_instruction_type = IRInstructionType::F64CMP_EQU;
+            register_vr_type(current_register, type_data{primitive_type::I8, 0});
+            break;
+        case TokenType::NEQU:
+            ir_instruction_type = IRInstructionType::F64CMP_NEQU;
+            register_vr_type(current_register, type_data{primitive_type::I8, 0});
+            break;
+        case TokenType::LT:
+            ir_instruction_type = IRInstructionType::F64CMP_LT;
+            register_vr_type(current_register, type_data{primitive_type::I8, 0});
+            break;
+        case TokenType::GT:
+            ir_instruction_type = IRInstructionType::F64CMP_GT;
+            register_vr_type(current_register, type_data{primitive_type::I8, 0});
+            break;
+        case TokenType::LTE:
+            ir_instruction_type = IRInstructionType::F64CMP_LTE;
+            register_vr_type(current_register, type_data{primitive_type::I8, 0});
+            break;
+        case TokenType::GTE:
+            ir_instruction_type = IRInstructionType::F64CMP_GTE;
+            register_vr_type(current_register, type_data{primitive_type::I8, 0});
+            break;
+
         default:
             goto unknown_binop_operator;
         }
@@ -454,27 +504,27 @@ IRInstructionType InstructionGenerator::get_ir_binop_instruction(TokenType op_to
         ir_instruction_type = IRInstructionType::IMOD;
         break;
     case TokenType::DOUBLE_EQU:
-        ir_instruction_type = IRInstructionType::CMP_EQU;
+        ir_instruction_type = IRInstructionType::ICMP_EQU;
         register_vr_type(current_register, type_data{primitive_type::I8, 0});
         break;
     case TokenType::NEQU:
-        ir_instruction_type = IRInstructionType::CMP_NEQU;
+        ir_instruction_type = IRInstructionType::ICMP_NEQU;
         register_vr_type(current_register, type_data{primitive_type::I8, 0});
         break;
     case TokenType::LT:
-        ir_instruction_type = IRInstructionType::CMP_LT;
+        ir_instruction_type = IRInstructionType::ICMP_LT;
         register_vr_type(current_register, type_data{primitive_type::I8, 0});
         break;
     case TokenType::GT:
-        ir_instruction_type = IRInstructionType::CMP_GT;
+        ir_instruction_type = IRInstructionType::ICMP_GT;
         register_vr_type(current_register, type_data{primitive_type::I8, 0});
         break;
     case TokenType::LTE:
-        ir_instruction_type = IRInstructionType::CMP_LTE;
+        ir_instruction_type = IRInstructionType::ICMP_LTE;
         register_vr_type(current_register, type_data{primitive_type::I8, 0});
         break;
     case TokenType::GTE:
-        ir_instruction_type = IRInstructionType::CMP_GTE;
+        ir_instruction_type = IRInstructionType::ICMP_GTE;
         register_vr_type(current_register, type_data{primitive_type::I8, 0});
         break;
     case TokenType::BITWISE_AND:

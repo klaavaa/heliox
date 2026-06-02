@@ -31,6 +31,7 @@ private:
     void emit_label(const IROperand label);
     void emit_lea(const IROperand dst, const IROperand src);
     void emit_mov(const IROperand dst, const IROperand src);
+    void emit_test(const IROperand src);
     std::string get_mov_inst(type_data type, IROperand dst, IROperand src);
 
     void emit_data_section();

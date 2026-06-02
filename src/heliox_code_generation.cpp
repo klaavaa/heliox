@@ -205,17 +205,17 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         emit_mov(instruction.dst, instruction.src1);
         return;
 
-    case IRInstructionType::CMP_EQU:
+    case IRInstructionType::ICMP_EQU:
         emit("cmp", instruction.src1, instruction.src2);
         emit("sete", instruction.dst);
         return;
 
-    case IRInstructionType::CMP_NEQU:
+    case IRInstructionType::ICMP_NEQU:
         emit("cmp", instruction.src1, instruction.src2);
         emit("setne", instruction.dst);
         return;
 
-    case IRInstructionType::CMP_GT:
+    case IRInstructionType::ICMP_GT:
         emit("cmp", instruction.src1, instruction.src2);
         if (is_unsigned(get_vr_type(instruction.src1)))
             emit("seta", instruction.dst);
@@ -223,7 +223,7 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
             emit("setg", instruction.dst);
         return;
 
-    case IRInstructionType::CMP_LT:
+    case IRInstructionType::ICMP_LT:
         emit("cmp", instruction.src1, instruction.src2);
         if (is_unsigned(get_vr_type(instruction.src1)))
             emit("setb", instruction.dst);
@@ -231,7 +231,7 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
             emit("setl", instruction.dst);
         return;
 
-    case IRInstructionType::CMP_GTE:
+    case IRInstructionType::ICMP_GTE:
         emit("cmp", instruction.src1, instruction.src2);
         if (is_unsigned(get_vr_type(instruction.src1)))
             emit("setae", instruction.dst);
@@ -239,7 +239,7 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
             emit("setge", instruction.dst);
         return;
 
-    case IRInstructionType::CMP_LTE:
+    case IRInstructionType::ICMP_LTE:
         emit("cmp", instruction.src1, instruction.src2);
         if (is_unsigned(get_vr_type(instruction.src1)))
             emit("setbe", instruction.dst);
@@ -247,15 +247,74 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
             emit("setle", instruction.dst);
         return;
 
+    case IRInstructionType::F32CMP_EQU:
+        emit("ucomiss", instruction.src1, instruction.src2);
+        emit("sete", instruction.dst);
+        return;
+
+    case IRInstructionType::F32CMP_NEQU:
+        emit("ucomiss", instruction.src1, instruction.src2);
+        emit("setne", instruction.dst);
+        return;
+
+    case IRInstructionType::F32CMP_LT:
+        emit("ucomiss", instruction.src1, instruction.src2);
+        emit("setb", instruction.dst);
+        return;
+
+    case IRInstructionType::F32CMP_GT:
+        emit("ucomiss", instruction.src1, instruction.src2);
+        emit("seta", instruction.dst);
+        return;
+
+    case IRInstructionType::F32CMP_LTE:
+        emit("ucomiss", instruction.src1, instruction.src2);
+        emit("setbe", instruction.dst);
+        return;
+
+    case IRInstructionType::F32CMP_GTE:
+        emit("ucomiss", instruction.src1, instruction.src2);
+        emit("setae", instruction.dst);
+        return;
+
+    case IRInstructionType::F64CMP_EQU:
+        emit("ucomisd", instruction.src1, instruction.src2);
+        emit("sete", instruction.dst);
+        return;
+
+    case IRInstructionType::F64CMP_NEQU:
+        emit("ucomisd", instruction.src1, instruction.src2);
+        emit("setne", instruction.dst);
+        return;
+
+    case IRInstructionType::F64CMP_LT:
+        emit("ucomisd", instruction.src1, instruction.src2);
+        emit("setb", instruction.dst);
+        return;
+
+    case IRInstructionType::F64CMP_GT:
+        emit("ucomisd", instruction.src1, instruction.src2);
+        emit("seta", instruction.dst);
+        return;
+
+    case IRInstructionType::F64CMP_LTE:
+        emit("ucomisd", instruction.src1, instruction.src2);
+        emit("setbe", instruction.dst);
+        return;
+
+    case IRInstructionType::F64CMP_GTE:
+        emit("ucomisd", instruction.src1, instruction.src2);
+        emit("setae", instruction.dst);
+        return;
     case IRInstructionType::JMP:
         emit("jmp", instruction.src2);
         return;
     case IRInstructionType::JMP_IF:
-        emit("test", instruction.src1, instruction.src1);
+        emit_test(instruction.src1);
         emit("jnz", instruction.src2);
         return;
     case IRInstructionType::JMP_IF_NOT:
-        emit("test", instruction.src1, instruction.src1);
+        emit_test(instruction.src1);
         emit("jz", instruction.src2);
         return;
     case IRInstructionType::LABEL:
@@ -475,6 +534,25 @@ void CodeGenerator::emit_mov(const IROperand dst, const IROperand src)
     }
     emit(mov_inst, dst, src);
 }
+
+void CodeGenerator::emit_test(const IROperand src)
+{
+    if (is_op_on_gp_reg(src))
+    {
+        emit("test", src, src);
+    }
+    else
+    {
+        type_data vr_type = get_vr_type(src);
+        uint32_t instruction_size = vr_type.byte_size;
+        emit("pxor", "xmm11", "xmm11");
+        if (instruction_size == 8)
+            emit("ucomisd", get_location(src), "xmm11");
+        else
+            emit("ucomiss", get_location(src), "xmm11");
+    }
+}
+
 
 std::string CodeGenerator::get_mov_inst(type_data type, IROperand dst, IROperand src)
 {
