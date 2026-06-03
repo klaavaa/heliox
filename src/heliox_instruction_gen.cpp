@@ -629,6 +629,25 @@ void InstructionGenerator::visit_unary(uptr<unary_expr>& unary)
         emit_instruction(bitwise_not);
         break;
     }
+    case TokenType::NOT:
+    {
+        auto zero_label = IROperand::Label(next_label++);    
+        auto end_label = IROperand::Label(next_label++);    
+        IRInstruction jmp_if(IRInstructionType::JMP_IF, IROperand::None(), effective_register, zero_label);
+        emit_instruction(jmp_if, 0, false);
+        IRInstruction mov_one(IRInstructionType::MOV, current_register, IROperand::Immediate(1), IROperand::None());
+        emit_instruction(mov_one);
+        IRInstruction jmp(IRInstructionType::JMP, IROperand::None(), IROperand::None(), end_label);
+        emit_instruction(jmp, 0, false);
+        IRInstruction zero_label_inst(IRInstructionType::LABEL, IROperand::None(), IROperand::None(), zero_label);
+        emit_instruction(zero_label_inst, 0, false);
+        IRInstruction mov_zero(IRInstructionType::MOV, effective_register, IROperand::Immediate(0), IROperand::None());
+        emit_instruction(mov_zero, 0, false);
+        IRInstruction end_label_inst(IRInstructionType::LABEL, IROperand::None(), IROperand::None(), end_label);
+        emit_instruction(end_label_inst, 0, false);
+        register_vr_type(effective_register, type_data(primitive_type::I8, 0)); 
+        break;
+    }
     default:
         Logger::error(*unary, HX_UNKNOWN_OPERATOR, "Unknown unary operator");
     }

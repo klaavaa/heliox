@@ -150,11 +150,11 @@ inline void compile(const std::vector<std::string>& file_paths, const std::strin
         output_executable = flags.output_file;
     }
 
-    #ifdef _WIN32
+#ifdef _WIN32
     std::system(std::format("gcc {} -o {}", object_files, output_executable).c_str());
-    #else
+#else
     std::system(std::format("gcc -no-pie {} -o {}", object_files, output_executable).c_str());
-    #endif
+#endif
 }
 }
 

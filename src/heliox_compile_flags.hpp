@@ -15,7 +15,7 @@ struct CompileFlags
 
 };
 
-CompileFlags& get_compile_flags()
+inline CompileFlags& get_compile_flags()
 {
     static CompileFlags flags;
     return flags;

@@ -1,11 +1,9 @@
-#include <iostream>
-#include <map>
 #include <string>
 #include <print>
 #include "heliox_compile_flags.hpp"
 #include "heliox_timer.hpp"
 #include "heliox_compile.hpp"
-#include "heliox_symbol_table.hpp"
+
 #if !defined(_WIN32) && !defined(__linux__)
 #error "Unsupported platform"
 #endif
