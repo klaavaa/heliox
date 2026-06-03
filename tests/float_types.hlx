@@ -1,0 +1,13 @@
+extern fun printf(u8* str, ...) void;
+
+fun add_floats(f64 a, f64 b, f64 c, f32 d, f64 e, f32 f, f64 g) f32
+{
+    return a + b+c+d+e+f+g;
+}
+
+
+fun main() i32
+{
+    printf("%.2f\n\0", add_floats(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0));
+    return 0;
+}
