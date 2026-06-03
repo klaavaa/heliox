@@ -48,8 +48,11 @@ private:
 	void eat(TokenType token_type);
     Token peek_next(size_t peek_amount = 0);
      
+
     // creates the node with source location information
     template<typename T, typename... Args>
+    requires std::derived_from<T, ast_node>
+
     uptr<T> make_node(Args&&... args)
     {
         return std::make_unique<T>(m_current_token.filename, relevant_line, relevant_position, std::forward<Args>(args)...);

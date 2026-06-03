@@ -53,7 +53,9 @@ namespace hx
             [this](uptr<unary_expr>& unary)
             {visit_unary(unary);},
             [this](uptr<explicit_conversion_expr>& explicit_conversion)
-            {visit_explicit_conversion(explicit_conversion);}
+            {visit_explicit_conversion(explicit_conversion);},
+            [this](uptr<noop_expression>& noop)
+            {visit_noop_e(noop);}
             }, expr);
     }
 
@@ -77,7 +79,7 @@ namespace hx
            [this](uptr<expression_statement>& expression_s)
             { visit_expression_s(expression_s);},
            [this](uptr<noop_statement>& noop_s)
-            { visit_noop(noop_s); },
+            { visit_noop_s(noop_s); },
            [this](uptr<import_statement>& import_s)
             { visit_import(import_s); }
             }, stat);

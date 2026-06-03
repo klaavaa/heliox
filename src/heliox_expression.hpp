@@ -18,6 +18,7 @@ struct function_call_expr;
 struct binop_expr;
 struct unary_expr;
 struct explicit_conversion_expr;
+struct noop_expression;
 
 using expression = std::variant<
     uptr<int_literal_expr>,
@@ -27,7 +28,8 @@ using expression = std::variant<
     uptr<function_call_expr>,
     uptr<binop_expr>,
     uptr<unary_expr>,
-    uptr<explicit_conversion_expr>
+    uptr<explicit_conversion_expr>,
+    uptr<noop_expression>
     >;
 
 
@@ -99,6 +101,12 @@ struct explicit_conversion_expr : ast_node
 
     type_data type_info;
     expression expr;
+};
+
+struct noop_expression : ast_node
+{
+    noop_expression(std::string_view filename, uint32_t line, uint32_t position)
+        : ast_node(filename, line, position) {}
 };
 
 }

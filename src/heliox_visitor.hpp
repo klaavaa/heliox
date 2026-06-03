@@ -28,6 +28,7 @@ namespace hx
         virtual void visit_unary(uptr<unary_expr>& unary) = 0;
         virtual void visit_function_call(uptr<function_call_expr>& function_call) = 0; 
         virtual void visit_explicit_conversion(uptr<explicit_conversion_expr>& explicit_conversion) = 0;
+        virtual void visit_noop_e(uptr<noop_expression>& noop) = 0;
 
         virtual void visit_compound(uptr<compound_statement>& compound) = 0; 
         virtual void visit_return(uptr<return_statement>& return_s) = 0;
@@ -37,7 +38,7 @@ namespace hx
         virtual void visit_while(uptr<while_statement>& while_s) = 0;
         virtual void visit_for(uptr<for_statement>& for_s) = 0;
         virtual void visit_expression_s(uptr<expression_statement>& expr) = 0;
-        virtual void visit_noop(uptr<noop_statement>& noop) = 0;
+        virtual void visit_noop_s(uptr<noop_statement>& noop) = 0;
         virtual void visit_import(uptr<import_statement>& import_s) = 0;
 
     protected:

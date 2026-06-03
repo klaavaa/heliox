@@ -692,6 +692,7 @@ void InstructionGenerator::visit_for(uptr<for_statement>& for_s)
     auto begin_label = IROperand::Label(next_label++);
     auto end_label = IROperand::Label(next_label++);
     
+    current_table = get_compound_table(current_table);
     visit_statement(for_s->init);  
 
     IRInstruction begin_label_inst(IRInstructionType::LABEL, IROperand::None(), IROperand::None(), begin_label);
@@ -706,6 +707,7 @@ void InstructionGenerator::visit_for(uptr<for_statement>& for_s)
     IRInstruction jmp_begin(IRInstructionType::JMP, IROperand::None(), IROperand::None(), begin_label);
     emit_instruction(jmp_begin, 0, false);
     emit_instruction(IRInstruction(IRInstructionType::LABEL, IROperand::None(), IROperand::None(), end_label), 0, false);
+    current_table = current_table->parent_table;
 }
 
 void InstructionGenerator::visit_logical_binop(TokenType op_token, expression& left, expression& right)

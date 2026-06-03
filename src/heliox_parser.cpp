@@ -500,11 +500,32 @@ uptr<for_statement> Parser::parse_for_statement()
     eat(TokenType::KEYWORD);
     eat(TokenType::L_PAREN);
     statement init = parse_statement();
+    if (std::holds_alternative<uptr<compound_statement>>(init))
+    {
+        eat(TokenType::SEMICOLON);
+    }
+
     equal_sign_in_current_expression = false;
-    expression condition = parse_expression();
+    expression condition;
+    if (m_current_token.type == TokenType::SEMICOLON)
+    {
+        condition = make_node<int_literal_expr>("1");
+    }
+    else
+    {
+        condition = parse_expression();
+    }
     equal_sign_in_current_expression = false;
     eat(TokenType::SEMICOLON);
-    expression iteration = parse_expression();
+    expression iteration;
+    if (m_current_token.type == TokenType::R_PAREN)
+    {
+        iteration = make_node<noop_expression>();
+    }
+    else
+    {
+        iteration = parse_expression();
+    }
     eat(TokenType::R_PAREN);
 
     statement loop = parse_statement();

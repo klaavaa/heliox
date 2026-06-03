@@ -47,7 +47,8 @@ private:
     void visit_while(uptr<while_statement>& while_s) override;
     void visit_for(uptr<for_statement>& for_s) override;
     void visit_expression_s(uptr<expression_statement>& expr) override;
-    void visit_noop(uptr<noop_statement>& noop) override{}
+    void visit_noop_s(uptr<noop_statement>& noop) override{}
+    void visit_noop_e(uptr<noop_expression>& noop) override{}
     void visit_import(uptr<import_statement>& import_s) override{}
 
     void emit_implicit_conversion(const ast_node& node, IROperand vr, const type_data type_to);
