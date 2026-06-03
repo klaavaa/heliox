@@ -349,10 +349,10 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
             std::println("{}  LOAD_INT   r{}  <- {}", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
         case IRInstructionType::LOAD_FLOAT32:
-            std::println("{}  LOAD_F32   r{}  <- {}", prefix, ir_instruction.dst, ir_instruction.src1);
+            std::println("{}  LOAD_F32   r{}  <- idx[{}]", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
         case IRInstructionType::LOAD_FLOAT64:
-            std::println("{}  LOAD_F64   r{}  <- {}", prefix, ir_instruction.dst, ir_instruction.src1);
+            std::println("{}  LOAD_F64   r{}  <- idx[{}]", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
         case IRInstructionType::MOV:
             std::println("{}  MOV        r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);

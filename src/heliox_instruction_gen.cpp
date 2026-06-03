@@ -84,6 +84,8 @@ void InstructionGenerator::visit_function(uptr<function>& func)
     current_function.name = get_module_prefix() + func->identifier->name;
     current_function.is_extern = func->is_extern;
 
+    current_function_node = func.get();
+
     if (current_function.is_extern)
     {
         ir_unit.ir_functions.push_back(std::move(current_function));
@@ -92,7 +94,7 @@ void InstructionGenerator::visit_function(uptr<function>& func)
 
     current_table = add_child_table(global_table, current_function.name);
     
-
+    
     for (size_t i = 0; i < func->params.size(); i++)
     {
         const auto& param = func->params[i];
@@ -138,8 +140,12 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     {
         IROperand arg_vreg = arg_vregs[i];
         IRInstructionType mov_type;
-        effective_register = arg_vreg;
-        if (i < func_symbol.parameter_types.size()) mov_type = IRInstructionType::MOV_ARG;
+
+        if (i < func_symbol.parameter_types.size())
+        {
+             mov_type = IRInstructionType::MOV_ARG;
+             emit_implicit_conversion(*function_call, arg_vreg, func_symbol.parameter_types[i]);
+        }
         else
         {
             mov_type = IRInstructionType::MOV_VARARG;
@@ -231,8 +237,10 @@ void InstructionGenerator::visit_return(uptr<return_statement>& return_s)
 {
     // todo check current function return type
     visit_expression(return_s->return_expression);
+    emit_implicit_conversion(*return_s, effective_register, current_function_node->type);
     IRInstruction return_inst(IRInstructionType::RETURN, current_register, effective_register, IROperand::None());
     register_vr_type(current_register, effective_register);
+    
     emit_instruction(return_inst);
 }
 

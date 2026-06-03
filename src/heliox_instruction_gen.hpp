@@ -61,6 +61,7 @@ private:
 
     IRUnit ir_unit;
     IRFunction current_function;
+    function* current_function_node;
 
     IROperand current_register = {IROperandKind::VIRTUAL_REGISTER, 0};
     IROperand effective_register = {IROperandKind::VIRTUAL_REGISTER, 0};

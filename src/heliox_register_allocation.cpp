@@ -404,7 +404,7 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
         case IRInstructionType::RETURN:
             if (is_float_type(get_operand_type(ir_function, instruction.src1)))
             {
-                preallocate_register(ir_function, instruction.src1.value, Register::XMM0);
+                preallocate_register(ir_function, instruction.dst.value, Register::XMM0);
             }
             else
             {
