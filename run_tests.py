@@ -41,7 +41,8 @@ def main():
         "conditional1" : 9,
         "conditional2" : 0,
         "factorial": 0,
-        "fibonacci": 0,
+        "fibonacci1": 0,
+        "fibonacci2": 0,
         "while1": 10,
         "command_line_args": 0,
         "modulo": 0,
@@ -55,11 +56,12 @@ def main():
 
     
     expected_outputs = {
-        "print": "argc: 1\n\tthis is the number 10 -> 10",
+        "print": "argc: 1\n\tthis is the number 10 -> 10\n",
         "operators1": "div: 14 / 3 = 4\nmul: 4 * 3 = 12\nsub: 12 - 3 = 9\nadd: 14 + 9 = 23\n",
         "conditional2" : "4 != 8\n4 < 8\n4 <= 8\n",
-        "factorial": "479001600",
-        "fibonacci": "75025",
+        "factorial": "479001600\n",
+        "fibonacci1": "75025\n",
+        "fibonacci2": "75025\n",
         "while1": "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n",
         "command_line_args": "0: ./command_line_args\n1: first\n2: second\n3: third\n4: fourth\n",
         "modulo": "0\n3\n6\n9\n12\n15\n18\n",
