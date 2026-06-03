@@ -31,4 +31,5 @@ void Logger::warning(Token& token, int warning_code, std::string_view info)
 }
 
 
+
 } //namespace hx

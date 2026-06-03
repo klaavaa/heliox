@@ -33,8 +33,6 @@ void create_assembly_file(const std::string& file_path, const std::string& assem
 
 
 	std::string output_file = file_path;
-	output_file.append(".asm");
-
 
 	std::ofstream s_file;
 	

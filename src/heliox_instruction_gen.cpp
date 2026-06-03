@@ -237,7 +237,8 @@ void InstructionGenerator::visit_return(uptr<return_statement>& return_s)
 {
     // todo check current function return type
     visit_expression(return_s->return_expression);
-    emit_implicit_conversion(*return_s, effective_register, current_function_node->type);
+    if (current_function_node->type.byte_size != 0)
+        emit_implicit_conversion(*return_s, effective_register, current_function_node->type);
     IRInstruction return_inst(IRInstructionType::RETURN, current_register, effective_register, IROperand::None());
     register_vr_type(current_register, effective_register);
     

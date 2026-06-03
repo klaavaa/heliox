@@ -13,8 +13,8 @@ double timeit(fn<ret, param...> func, param&... elements)
 	auto start = std::chrono::high_resolution_clock::now();
 	func(elements...);
 	auto elapsed = std::chrono::high_resolution_clock::now() - start;
-	long long microseconds = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
-	return static_cast<double>(microseconds) * 0.000001;
+	long long milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+	return static_cast<double>(milliseconds);
 
 }
 

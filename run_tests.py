@@ -18,11 +18,7 @@ class CompileData:
     nasm_format = ""
 
 def compile_test(test: str) -> bool:
-    if subprocess.run(["../build/heliox",  f"{test}.hlx"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
-        return False
-    if subprocess.run(["nasm", CompileData.nasm_format, f"{test}.asm", "-o", f"{test}.o"]).returncode != 0: 
-        return False
-    if subprocess.run(["gcc", "-no-pie", f"{test}.o", "-o", f"{test}"]).returncode != 0:
+    if subprocess.run(["../build/heliox", "-o", f"{test}",  f"{test}.hlx"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
         return False
     return True
 

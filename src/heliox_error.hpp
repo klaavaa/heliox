@@ -54,6 +54,16 @@ public:
 	[[noreturn]] static void error(const Token& token, int error_code,std::string_view info);	
 	[[noreturn]] static void error(const ast_node& node, int error_code, std::string_view info);
 
+
+	template<typename... Args>
+	[[noreturn]] static void pre_compile_error(std::string_view info, Args&&... args)
+	{
+		auto formatted_info = std::vformat(info, std::make_format_args(std::forward<Args>(args)...));
+		std::println(stderr, "error: {}", formatted_info);
+		exit(-1);
+	}
+
+
 	static void warning(Token& token, int warning_code,std::string_view info);
 
 	[[noreturn]] static void not_implemented(std::source_location location = std::source_location::current())
