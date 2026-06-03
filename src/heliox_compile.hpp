@@ -124,7 +124,7 @@ inline void compile(const std::vector<std::string>& file_paths, const std::strin
         #ifdef _WIN32
         std::system(std::format("nasm -fwin64 {}.asm -o {}", file_path, output_path).c_str());
         #else
-        std::system(std::format("nasm -felf64 {}.asm -o {}", asm_file_path, output_path).c_str());
+        std::system(std::format("nasm -felf64 {}.asm -o {}", file_path, output_path).c_str());
         #endif
 
     }
