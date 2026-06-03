@@ -140,7 +140,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     {
         IROperand arg_vreg = arg_vregs[i];
         IRInstructionType mov_type;
-
+        effective_register = arg_vreg;
         if (i < func_symbol.parameter_types.size())
         {
              mov_type = IRInstructionType::MOV_ARG;
