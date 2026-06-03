@@ -1,9 +1,9 @@
 REQUIREMENTS:
-NASM (netwide assembler)
-gcc or other linker
+NASM (netwide assembler) https://www.nasm.us/
+gcc
 
 x64 bit arcitechture.
 
-The program generates nasm x64 assembly that can be linked with gcc or other way.
+The program generates nasm x64 assembly that gets linked with gcc.
 
 
