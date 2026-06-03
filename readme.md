@@ -8,36 +8,30 @@
 
 ## Usage
 
-Before using Heliox, make sure to read the `REQUIREMENTS` file for necessary tools.
+Before using Heliox, read the `REQUIREMENTS` file for necessary tools.
 
-### Build and Run
+### Build
 
-After building, the compiled binary will be found in the `build` folder.
+After building, the compiled binary will be in the `build` folder.
 
 #### Linux
 ```bash
 # Build the project
 ./build.sh
-
-# Generate a binary from a heliox file
-./heliox [file].hlx
-nasm -felf64 [file].asm -o [file].o
-gcc -no-pie [file].o -o [file]
-
-# Run the binary
-./[file]
 ```
 
 #### Windows
 ```bash
 # Build the project
 ./build.bat
-
-# Generate a binary from a heliox file
-./heliox.exe [file].hlx
-nasm -fwin64 [file].asm -o [file].o
-gcc -no-pie [file].o -o [file].exe
-
-# Run the binary
-./[file].exe
 ```
+---
+```bash
+# run --help for compiler options
+./heliox --help
+```
+---
+The `tests` and `examples` folders contain example heliox code.
+
+
+
