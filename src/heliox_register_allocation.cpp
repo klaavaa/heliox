@@ -344,8 +344,8 @@ void RegisterAllocator::cleanup_pass(IRFunction& ir_func)
                         scratch = g_register_data.gp_scratch_register;
                     }
                     // mov instruction to temp reg
-                    IRInstruction mov(IRInstructionType::MOV, IROperand::Vr(next_vr), instruction.dst, IROperand::None());
-                    fixed_instructions.push_back(mov); 
+                    //IRInstruction mov(IRInstructionType::MOV, IROperand::Vr(next_vr), instruction.dst, IROperand::None());
+                    //fixed_instructions.push_back(mov); 
                     // set type for new vr
                     ir_func.virtual_register_types.insert({next_vr, get_operand_type(ir_func, instruction.src1)});
 

@@ -337,10 +337,10 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         return;
 
     case IRInstructionType::CONVERT_F32_TO_F64:
-        emit("cvtss2sd", instruction.dst, instruction.src1);
+        emit("cvtss2sd", get_location(instruction.dst), get_location(instruction.src1, 4));
         return;
     case IRInstructionType::CONVERT_F64_TO_F32:
-        emit("cvtsd2ss", instruction.dst, instruction.src1);
+        emit("cvtsd2ss", get_location(instruction.dst), get_location(instruction.src1, 8));
         return;
 
     default:
