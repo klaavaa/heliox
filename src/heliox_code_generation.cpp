@@ -421,7 +421,10 @@ std::string CodeGenerator::get_vr_location(int64_t vr, uint32_t byte_size)
 
 std::string CodeGenerator::get_location(const IROperand operand)
 {
-    uint32_t instruction_size = current_function->virtual_register_types.at(operand.value).byte_size;
+    // we dont care about this instruciton size unless we're given a virtual register
+    uint32_t instruction_size{};
+    if (operand.kind == IROperandKind::VIRTUAL_REGISTER)
+        instruction_size = current_function->virtual_register_types.at(operand.value).byte_size;
     return get_location(operand, instruction_size);
 }
 

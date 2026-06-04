@@ -12,7 +12,7 @@
 int main(int argc, char** argv)
 {
      
-    std::vector<std::string> file_paths;// = {"../example.hlx"};
+    std::vector<std::string> file_paths; // = {"../example.hlx"};
 
     for (int i = 1; i < argc; i++)
     {
