@@ -51,6 +51,9 @@ private:
     void visit_noop_e(uptr<noop_expression>& noop) override{}
     void visit_import(uptr<import_statement>& import_s) override{}
 
+    void visit_break(uptr<break_statement>& break_s) override;
+    void visit_continue(uptr<continue_statement>& continue_s) override;
+
     void emit_implicit_conversion(const ast_node& node, IROperand vr, const type_data type_to);
 
     void visit_logical_binop(TokenType op_token, expression& left, expression& right);
@@ -68,6 +71,8 @@ private:
     IROperand effective_register = {IROperandKind::VIRTUAL_REGISTER, 0};
 
     int64_t next_label = 0;
+    IROperand loop_continue_label = IROperand::None();
+    IROperand loop_break_label = IROperand::None();
 };
 
 

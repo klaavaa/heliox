@@ -21,6 +21,8 @@ namespace hx {
     struct expression_statement;
     struct noop_statement;
     struct import_statement;
+    struct break_statement;
+    struct continue_statement;
 
     using statement = std::variant<
         uptr<compound_statement>,
@@ -32,7 +34,10 @@ namespace hx {
         uptr<expression_statement>,
         uptr<noop_statement>,
         uptr<import_statement>,
-        uptr<for_statement>>;
+        uptr<for_statement>,
+        uptr<break_statement>,
+        uptr<continue_statement>
+        >;
 
 
     struct import_statement : ast_node
@@ -115,4 +120,15 @@ namespace hx {
             : ast_node(filename, line, position), statements(std::move(statements)) {}
         std::vector<statement> statements;
     };
+    struct break_statement : ast_node
+    {
+        break_statement(std::string_view filename, uint32_t line, uint32_t position)
+            : ast_node(filename, line, position) {}
+    };
+    struct continue_statement : ast_node
+    {
+        continue_statement(std::string_view filename, uint32_t line, uint32_t position)
+            : ast_node(filename, line, position) {}
+    };
+
 }

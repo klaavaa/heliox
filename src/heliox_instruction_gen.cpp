@@ -688,6 +688,14 @@ void InstructionGenerator::visit_while(uptr<while_statement>& while_s)
     auto begin_label = IROperand::Label(next_label++);
     auto end_label = IROperand::Label(next_label++);
 
+    auto previous_continue_label = loop_continue_label;
+    auto previous_break_label = loop_break_label;
+
+    loop_continue_label = begin_label;
+    loop_break_label = end_label;
+
+    current_table = get_compound_table(current_table);
+
     IRInstruction begin_label_inst(IRInstructionType::LABEL, IROperand::None(), IROperand::None(), begin_label);
     emit_instruction(begin_label_inst, 0, false);
 
@@ -705,13 +713,25 @@ void InstructionGenerator::visit_while(uptr<while_statement>& while_s)
     IRInstruction end_label_inst(IRInstructionType::LABEL, IROperand::None(), IROperand::None(), end_label);
     emit_instruction(end_label_inst, 0, false);
 
+    loop_continue_label = previous_continue_label;
+    loop_break_label = previous_break_label;
+
+    current_table = current_table->parent_table;
 }
 
 void InstructionGenerator::visit_for(uptr<for_statement>& for_s)
 {
+
     auto begin_label = IROperand::Label(next_label++);
+    auto iteration_label = IROperand::Label(next_label++);
     auto end_label = IROperand::Label(next_label++);
     
+    auto previous_continue_label = loop_continue_label;
+    auto previous_break_label = loop_break_label;
+
+    loop_continue_label = iteration_label;
+    loop_break_label = end_label;
+
     current_table = get_compound_table(current_table);
     visit_statement(for_s->init);  
 
@@ -723,11 +743,32 @@ void InstructionGenerator::visit_for(uptr<for_statement>& for_s)
     emit_instruction(jmp_not, 0, false);
 
     visit_statement(for_s->loop);
+    IRInstruction iteration_label_inst(IRInstructionType::LABEL, IROperand::None(), IROperand::None(), iteration_label);
+    emit_instruction(iteration_label_inst, 0, false);
+
     visit_expression(for_s->iteration);
     IRInstruction jmp_begin(IRInstructionType::JMP, IROperand::None(), IROperand::None(), begin_label);
     emit_instruction(jmp_begin, 0, false);
     emit_instruction(IRInstruction(IRInstructionType::LABEL, IROperand::None(), IROperand::None(), end_label), 0, false);
+
+    loop_continue_label = previous_continue_label;
+    loop_break_label = previous_break_label;
+
     current_table = current_table->parent_table;
+}
+
+void InstructionGenerator::visit_break(uptr<break_statement>& break_s) 
+{
+    if (loop_break_label.kind == IROperandKind::NONE) Logger::error(*break_s, HX_STATEMENT_NOT_IN_LOOP, "break statement not inside a loop");
+    IRInstruction jmp(IRInstructionType::JMP, IROperand::None(), IROperand::None(), loop_break_label);
+    emit_instruction(jmp, 0, false);
+}
+
+void InstructionGenerator::visit_continue(uptr<continue_statement>& continue_s)
+{
+    if (loop_continue_label.kind == IROperandKind::NONE) Logger::error(*continue_s, HX_STATEMENT_NOT_IN_LOOP, "continue statement not inside a loop");
+    IRInstruction jmp(IRInstructionType::JMP, IROperand::None(), IROperand::None(), loop_continue_label);
+    emit_instruction(jmp, 0, false);
 }
 
 void InstructionGenerator::visit_logical_binop(TokenType op_token, expression& left, expression& right)

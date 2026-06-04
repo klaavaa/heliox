@@ -81,7 +81,11 @@ namespace hx
            [this](uptr<noop_statement>& noop_s)
             { visit_noop_s(noop_s); },
            [this](uptr<import_statement>& import_s)
-            { visit_import(import_s); }
+            { visit_import(import_s); },
+           [this](uptr<break_statement>& break_s)
+            { visit_break(break_s); },
+           [this](uptr<continue_statement>& continue_s)
+            { visit_continue(continue_s); }
             }, stat);
     }
     

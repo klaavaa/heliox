@@ -451,6 +451,10 @@ statement Parser::parse_keyword_statement()
             return parse_while_statement();
         case KeyWord::FOR:
             return parse_for_statement();
+        case KeyWord::BREAK:
+            return parse_break_statement();
+        case KeyWord::CONTINUE:
+            return parse_continue_statement();
     default:
         Logger::error(m_current_token, HX_UNEXPECTED_KEYWORD, "Unexpected keyword in statement");
     }
@@ -530,6 +534,21 @@ uptr<for_statement> Parser::parse_for_statement()
 
     statement loop = parse_statement();
     return make_node<for_statement>(std::move(init), std::move(condition), std::move(iteration), std::move(loop));
+}
+
+uptr<break_statement> Parser::parse_break_statement()
+{
+    eat(TokenType::KEYWORD);
+    eat(TokenType::SEMICOLON);
+    return make_node<break_statement>();
+}
+
+
+uptr<continue_statement> Parser::parse_continue_statement()
+{
+    eat(TokenType::KEYWORD);
+    eat(TokenType::SEMICOLON);
+    return make_node<continue_statement>();
 }
 
 statement Parser::parse_type_statement()

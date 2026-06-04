@@ -43,7 +43,8 @@ private:
     uptr<conditional_statement> parse_conditional_statement();
     uptr<while_statement> parse_while_statement();
     uptr<for_statement> parse_for_statement();
-
+    uptr<break_statement> parse_break_statement();
+    uptr<continue_statement> parse_continue_statement();
 
 	void eat(TokenType token_type);
     Token peek_next(size_t peek_amount = 0);

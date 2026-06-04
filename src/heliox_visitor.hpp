@@ -40,6 +40,8 @@ namespace hx
         virtual void visit_expression_s(uptr<expression_statement>& expr) = 0;
         virtual void visit_noop_s(uptr<noop_statement>& noop) = 0;
         virtual void visit_import(uptr<import_statement>& import_s) = 0;
+        virtual void visit_break(uptr<break_statement>& break_s) = 0;
+        virtual void visit_continue(uptr<continue_statement>& continue_s) = 0;
 
     protected:
         std::vector<std::string> current_module_path;
