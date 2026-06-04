@@ -49,6 +49,7 @@ void RegisterAllocator::expire_old_intervals(IRFunction& ir_function, const int6
     std::erase_if(xmm_active_virtual_registers, erase_lambda);
 
     std::erase_if(gp_active_unspillable_virtual_registers, erase_lambda);
+    std::erase_if(xmm_active_unspillable_virtual_registers, erase_lambda);
 
 }
 
@@ -309,11 +310,21 @@ void RegisterAllocator::cleanup_pass(IRFunction& ir_func)
             default:
                 if (is_spilled(ir_func, instruction.src1) && is_spilled(ir_func, instruction.src2))
                 {
+                    Register scratch;
+                    if (is_float_type(get_operand_type(ir_func, instruction.src1)))
+                    {
+                        scratch = g_register_data.xmm_scratch_register;
+                    }
+                    else
+                    {
+                        scratch = g_register_data.gp_scratch_register;
+                    }
+
                     IRInstruction mov(IRInstructionType::MOV, IROperand::Vr(next_vr), instruction.src1, IROperand::None());
                     fixed_instructions.push_back(mov); 
 
                     ir_func.virtual_register_types.insert({next_vr, ir_func.virtual_register_types.at(instruction.src1.value)});
-                    ir_func.virtual_register_locations.insert({next_vr, Location::Reg(g_register_data.gp_scratch_register)});
+                    ir_func.virtual_register_locations.insert({next_vr, Location::Reg(scratch)});
                    
                     IRInstruction inst(instruction.type, instruction.dst, IROperand::Vr(next_vr), instruction.src2);
                     fixed_instructions.push_back(inst);
@@ -323,7 +334,15 @@ void RegisterAllocator::cleanup_pass(IRFunction& ir_func)
                 }
                 if (is_spilled(ir_func, instruction.dst) && is_spilled(ir_func, instruction.src1))
                 {
-                    std::println("CLEANING UP {}", (int)instruction.type);
+                    Register scratch;
+                    if (is_float_type(get_operand_type(ir_func, instruction.src1)))
+                    {
+                        scratch = g_register_data.xmm_scratch_register;
+                    }
+                    else
+                    {
+                        scratch = g_register_data.gp_scratch_register;
+                    }
                     // mov instruction to temp reg
                     IRInstruction mov(IRInstructionType::MOV, IROperand::Vr(next_vr), instruction.dst, IROperand::None());
                     fixed_instructions.push_back(mov); 
@@ -334,7 +353,7 @@ void RegisterAllocator::cleanup_pass(IRFunction& ir_func)
                     fixed_instructions.push_back(IRInstruction{instruction.type, IROperand::Vr(next_vr), instruction.src1, IROperand::None()});
 
                     // set new vr location as the scratch register
-                    ir_func.virtual_register_locations.insert({next_vr, Location::Reg(g_register_data.gp_scratch_register)});
+                    ir_func.virtual_register_locations.insert({next_vr, Location::Reg(scratch)});
 
                     IRInstruction mov_back(IRInstructionType::MOV, instruction.dst, IROperand::Vr(next_vr), IROperand::None());
                     fixed_instructions.push_back(mov_back); 
@@ -399,6 +418,14 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
         case IRInstructionType::IADD:
         case IRInstructionType::ISUB:
         case IRInstructionType::IMUL:
+        case IRInstructionType::F32ADD:
+        case IRInstructionType::F64ADD:
+        case IRInstructionType::F32SUB:
+        case IRInstructionType::F64SUB:
+        case IRInstructionType::F32MUL:
+        case IRInstructionType::F64MUL:
+        case IRInstructionType::F32DIV:
+        case IRInstructionType::F64DIV:
             preallocate_some_register(ir_function, instruction.src1.value);
             break;
         case IRInstructionType::RETURN:
