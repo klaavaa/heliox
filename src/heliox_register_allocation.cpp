@@ -557,12 +557,15 @@ type_data RegisterAllocator::get_operand_type(const IRFunction& ir_function, con
     case IROperandKind::VIRTUAL_REGISTER:
         return ir_function.virtual_register_types.at(operand.value);
     case IROperandKind::LITERAL_LOCATION:
-        if (ir_unit.allocated_literals.at(operand.value).type == LiteralType::STRING)
+        switch (ir_unit.allocated_literals.at(operand.value).type)
         {
+        case LiteralType::STRING:
             return {primitive_type::U8, 1};
-        }
-        else
-        {
+        case LiteralType::FLOAT64:
+            return {primitive_type::F64, 0};
+        case LiteralType::FLOAT32:
+            return {primitive_type::F64, 0};
+        default:
             Logger::not_implemented();
         }
     default:
