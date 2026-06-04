@@ -560,8 +560,13 @@ void CodeGenerator::emit_mov(const IROperand dst, const IROperand src)
 
     if (instruction_size == 1 && current_function->virtual_register_locations.at(dst.value).kind == LocationKind::REGISTER)
     {
+        // this is kinda stupid maybe but i wanted to make it work quickly
+        // (basically don't xor the 1 byte reg if the dst and src are the same)
+        if (get_location(src, 1) != get_location(dst, 1))
+        {
         Register reg = current_function->virtual_register_locations.at(dst.value).reg;
         emit("xor", get_register(reg, 8), get_register(reg, 8));
+        }
     }
     emit(mov_inst, dst, src);
 }
