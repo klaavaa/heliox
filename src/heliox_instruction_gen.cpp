@@ -545,6 +545,14 @@ IRInstructionType InstructionGenerator::get_ir_binop_instruction(TokenType op_to
     case TokenType::BITWISE_XOR:
         ir_instruction_type = IRInstructionType::BITWISE_XOR;
         break;
+
+    case TokenType::SHIFT_LEFT:
+        ir_instruction_type = IRInstructionType::SHIFT_LEFT;
+        break;
+    case TokenType::SHIFT_RIGHT:
+        ir_instruction_type = IRInstructionType::SHIFT_RIGHT;
+        break;
+
     default:
         goto unknown_binop_operator;
     }

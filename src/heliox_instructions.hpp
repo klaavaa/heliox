@@ -111,6 +111,9 @@ enum class IRInstructionType
     BITWISE_XOR,
     BITWISE_NOT,
 
+    SHIFT_LEFT,
+    SHIFT_RIGHT,
+
     JMP,
     JMP_IF,
     JMP_IF_NOT,
@@ -430,6 +433,13 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
             break;
         case IRInstructionType::BITWISE_NOT:
             std::println("{}  BIT_NOT    r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
+
+        case IRInstructionType::SHIFT_LEFT:
+            std::println("{}  SHFT_LEFT  r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+        case IRInstructionType::SHIFT_RIGHT:
+            std::println("{}  SHFT_RIGHT r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
 
         case IRInstructionType::DEREF:

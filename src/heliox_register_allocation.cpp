@@ -523,6 +523,10 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
         case IRInstructionType::ADDR_OF:
             preallocate_stack(ir_function, instruction.src1.value);
             break;
+        case IRInstructionType::SHIFT_LEFT:
+        case IRInstructionType::SHIFT_RIGHT:
+            preallocate_register(ir_function, instruction.src2.value, Register::C);
+            break;
         }
 
 
