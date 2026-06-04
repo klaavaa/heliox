@@ -176,6 +176,19 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         emit("not", instruction.src1);
         emit_mov(instruction.dst, instruction.src1);
         return;
+
+    case IRInstructionType::SHIFT_LEFT:
+        emit("shl", get_location(instruction.src1), get_location(instruction.src2, 1));
+        emit_mov(instruction.dst, instruction.src1);
+        return;
+    case IRInstructionType::SHIFT_RIGHT:
+        if (is_unsigned(get_vr_type(instruction.src1)))
+            emit("shr", get_location(instruction.src1), get_location(instruction.src2, 1));
+        else 
+            emit("sar", get_location(instruction.src1), get_location(instruction.src2, 1));
+        emit_mov(instruction.dst, instruction.src1);
+        return; 
+
     case IRInstructionType::RETURN:
         emit_mov(instruction.dst, instruction.src1);
         emit("jmp", std::format(".ret.{}", current_function->name));
