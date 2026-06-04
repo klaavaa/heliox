@@ -81,6 +81,7 @@ inline void compile(const std::vector<std::string>& file_paths, const std::strin
         InstructionGenerator instruction_gen(std::move(tu), global_table);
         
         IRUnit ir_unit = instruction_gen.generate_instructions();
+        //print_ir_unit(ir_unit);
 
         // generate live-ranges for virtual registers
         perform_liveness_analysis_on_unit(ir_unit, global_table);

@@ -103,7 +103,7 @@ std::set<Register> RegisterAllocator::get_pre_reserved_registers(IRFunction& ir_
         if (!val.reg.has_value()) continue;
 
         const auto& live_range = ir_function.live_ranges.at(vr);
-        if (current_live_range.start > live_range.end || current_live_range.end < live_range.start)
+        if (current_live_range.start >= live_range.end || current_live_range.end <= live_range.start)
             continue;
         
         pre_reserved_registers.insert(val.reg.value());
