@@ -1,5 +1,4 @@
 #pragma once
-#include <string>
 #include <cstdint>
 #include <print>
 #include <source_location>

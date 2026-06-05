@@ -211,7 +211,6 @@ void RegisterAllocator::cleanup_pass(IRFunction& ir_func)
     if (ir_func.instructions.empty()) return;
     std::vector<IRInstruction> fixed_instructions;
     int64_t next_vr = ir_func.virtual_register_locations.rbegin()->first + 1;
-    bool first_func_push_arg = true;
     
     std::vector<IRInstruction> arg_pushes;
 
@@ -553,6 +552,8 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
         case IRInstructionType::SHIFT_LEFT:
         case IRInstructionType::SHIFT_RIGHT:
             preallocate_register(ir_function, instruction.src2.value, Register::C);
+            break;
+        default:
             break;
         }
 

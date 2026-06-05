@@ -1,4 +1,5 @@
 #include "heliox_instruction_gen.hpp"
+#include "heliox_operator.hpp"
 
 namespace hx
 {
@@ -226,7 +227,7 @@ void InstructionGenerator::visit_float_literal(uptr<float_literal_expr>& float_l
 
 void InstructionGenerator::visit_identifier_literal(uptr<identifier_literal_expr>& identifier_literal)
 {
-    const VariableSymbol& var_sym = find_variable_symbol(current_table, identifier_literal);
+    const VariableSymbol var_sym = find_variable_symbol(current_table, identifier_literal);
     
     IRInstruction mov(IRInstructionType::MOV, current_register, IROperand::Vr(var_sym.virtual_register), IROperand::None());
     register_vr_type(current_register, mov.src1);
@@ -268,7 +269,7 @@ void InstructionGenerator::visit_variable_definition(uptr<variable_definition_st
         expression_vr = effective_register;
     }
 
-    const VariableSymbol& var_symbol = find_variable_symbol(current_table, variable_definition->declaration->var_identifier);
+    const VariableSymbol var_symbol = find_variable_symbol(current_table, variable_definition->declaration->var_identifier);
 
     IRInstruction store(IRInstructionType::MOV, IROperand::Vr(var_symbol.virtual_register), expression_vr, IROperand::None());
     emit_instruction(store, 0, false);
@@ -367,7 +368,7 @@ void InstructionGenerator::emit_assignment(TokenType op_token, expression& left_
         overloads{
         [this, op_token, &right_register](uptr<identifier_literal_expr>& identifier)
         {
-            const VariableSymbol& var_sym = find_variable_symbol(current_table, identifier);
+            const VariableSymbol var_sym = find_variable_symbol(current_table, identifier);
             emit_implicit_conversion(*identifier, right_register, var_sym.data_type);
 
             IRInstruction write_var(IRInstructionType::MOV, IROperand::Vr(var_sym.virtual_register), effective_register, IROperand::None());

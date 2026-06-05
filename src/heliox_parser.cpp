@@ -46,7 +46,7 @@ void Parser::parse_module()
             {
                 case KeyWord::FUN:
                 case KeyWord::EXTERN:
-                    m_current_module->insert_function(std::move(parse_function()));
+                    m_current_module->insert_function(parse_function());
                     break;
                 case KeyWord::MODULE:
                 {
@@ -358,10 +358,10 @@ expression Parser::parse_expression_from_primary(expression primary, uint32_t mi
         eat(op);
         expression rhs = parse_unary();
         
-        while (is_valid_binary_operator(m_current_token.type) 
-             && get_binop_precedence_level(m_current_token.type) > op_precedence
+        while ( ((is_valid_binary_operator(m_current_token.type))
+             && (get_binop_precedence_level(m_current_token.type) > op_precedence))
              || (get_binop_associativity(m_current_token.type) == op_associativity::RIGHT_TO_LEFT
-                &&  get_binop_precedence_level(m_current_token.type) == op_precedence))
+             && (get_binop_precedence_level(m_current_token.type) == op_precedence)))
         {
             uint32_t new_precedence = op_precedence;
             if (get_binop_precedence_level(m_current_token.type) > op_precedence)

@@ -3,7 +3,6 @@
 #include "heliox_expression.hpp"
 #include "heliox_statement.hpp"
 #include "heliox_token.hpp"
-#include "heliox_lexer.hpp"
 #include "heliox_program.hpp"
 
 namespace hx {

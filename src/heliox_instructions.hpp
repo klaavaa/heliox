@@ -243,9 +243,9 @@ struct LiveRange
 
 struct RegisterReservation
 {
-    static RegisterReservation Stack() { return RegisterReservation{.must_be_register=false, .on_stack = true, .reg = std::nullopt};}
-    static RegisterReservation Reg(Register reg) { return RegisterReservation{.must_be_register = false, .on_stack = false, .reg = reg};}
-    static RegisterReservation SomeRegister() { return RegisterReservation{.must_be_register = true, .on_stack = false, .reg = std::nullopt};}
+    static RegisterReservation Stack() { return RegisterReservation{.must_be_register=false, .on_stack = true, .reg = std::nullopt, .non_vr_regs={}};}
+    static RegisterReservation Reg(Register reg) { return RegisterReservation{.must_be_register = false, .on_stack = false, .reg = reg, .non_vr_regs={}};}
+    static RegisterReservation SomeRegister() { return RegisterReservation{.must_be_register = true, .on_stack = false, .reg = std::nullopt,.non_vr_regs={}};}
 
     // force the vr to be some register
     bool must_be_register = false;

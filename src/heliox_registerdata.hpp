@@ -1,5 +1,4 @@
 #pragma once
-#include <print>
 #include <array> 
 #include <vector>
 #include <set>
@@ -109,6 +108,8 @@ inline std::string get_register(Register reg, uint32_t byte_size)
             return "r14";
         case Register::R15:
             return "r15";
+        default:
+            Logger::not_implemented();
         }
     case 4:
         switch (reg)
@@ -145,6 +146,8 @@ inline std::string get_register(Register reg, uint32_t byte_size)
             return "r14d";
         case Register::R15:
             return "r15d";
+        default:
+            Logger::not_implemented();
         }
     case 2:
         switch (reg)
@@ -181,6 +184,8 @@ inline std::string get_register(Register reg, uint32_t byte_size)
             return "r14w";
         case Register::R15:
             return "r15w";
+        default:
+            Logger::not_implemented();
         }
     case 1:
         switch (reg)
@@ -217,6 +222,8 @@ inline std::string get_register(Register reg, uint32_t byte_size)
             return "r14b";
         case Register::R15:
             return "r15b";
+        default:
+            Logger::not_implemented();
         }
     default:
         Logger::error("", HX_ILLEGAL_REG_SIZE, std::format("tried to get a register of size: {} ({})", byte_size, (int)reg));

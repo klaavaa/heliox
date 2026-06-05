@@ -2,7 +2,6 @@
 #include "heliox_error.hpp"
 #include "heliox_keywords.hpp"
 
-#include <print>
 
 
 namespace hx {
@@ -403,7 +402,6 @@ Token Lexer::make_identifier()
         [body](const auto& other)
         {return (body == other.first); }) != keywords.end())
     {
-        body;
         return Token(TokenType::KEYWORD, body, m_filename, m_line_number, start_position);
     }
         

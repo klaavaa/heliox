@@ -20,7 +20,7 @@
 
 namespace hx  
 {
-inline void compile(const std::vector<std::string>& file_paths, const std::string& output_path)
+inline void compile(const std::vector<std::string>& file_paths)
 {
     const CompileFlags& flags = get_compile_flags();
     

@@ -125,8 +125,8 @@ struct type_data
     }
 
    primitive_type type; 
-   uint32_t byte_size;
    uint32_t ptr_depth;
+   uint32_t byte_size;
 };
 
 inline bool is_integer_type(const type_data td) 

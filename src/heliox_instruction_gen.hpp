@@ -2,7 +2,6 @@
 #include "heliox_visitor.hpp"
 #include "heliox_symbol_table.hpp"
 #include "heliox_instructions.hpp"
-#include "heliox_operator.hpp"
 
 namespace hx
 {
@@ -38,7 +37,7 @@ private:
     void visit_binop(uptr<binop_expr>& binop) override;
     void visit_unary(uptr<unary_expr>& unary) override;
     void visit_function_call(uptr<function_call_expr>& function_call) override;
-    void visit_explicit_conversion(uptr<explicit_conversion_expr>& explicit_conversion) override{}
+    void visit_explicit_conversion(uptr<explicit_conversion_expr>& explicit_conversion) override {}
     void visit_compound(uptr<compound_statement>& compound) override;
     void visit_return(uptr<return_statement>& return_s) override;
     void visit_variable_declaration(uptr<variable_declaration_statement>& variable_declaration) override;
@@ -47,9 +46,9 @@ private:
     void visit_while(uptr<while_statement>& while_s) override;
     void visit_for(uptr<for_statement>& for_s) override;
     void visit_expression_s(uptr<expression_statement>& expr) override;
-    void visit_noop_s(uptr<noop_statement>& noop) override{}
-    void visit_noop_e(uptr<noop_expression>& noop) override{}
-    void visit_import(uptr<import_statement>& import_s) override{}
+    void visit_noop_s([[maybe_unused]]uptr<noop_statement>& noop) override {}
+    void visit_noop_e([[maybe_unused]]uptr<noop_expression>& noop) override{}
+    void visit_import([[maybe_unused]]uptr<import_statement>& import_s) override{}
 
     void visit_break(uptr<break_statement>& break_s) override;
     void visit_continue(uptr<continue_statement>& continue_s) override;

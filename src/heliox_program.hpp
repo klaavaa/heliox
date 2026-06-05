@@ -85,7 +85,7 @@ namespace hx
     }
 
     
-    inline void merge_modules(sptr<Module> parent, sptr<Module> to, sptr<Module> from)
+    inline void merge_modules(sptr<Module> to, sptr<Module> from)
     {
         to->functions.insert(to->functions.end(), std::make_move_iterator(from->functions.begin()), std::make_move_iterator(from->functions.end()));
 
@@ -93,7 +93,7 @@ namespace hx
         {
             if (to->submodules.contains(name))
             {
-                merge_modules(to, to->submodules.at(name), submodule);
+                merge_modules(to->submodules.at(name), submodule);
             }
             else
             {
@@ -125,7 +125,7 @@ namespace hx
                {
                     if (global_module->submodules.contains(name))
                     {
-                        merge_modules(nullptr, global_module->submodules.at(name), module);
+                        merge_modules(global_module->submodules.at(name), module);
                     }
 
                     else
