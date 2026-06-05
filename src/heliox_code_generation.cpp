@@ -221,16 +221,19 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         return;
 
     case IRInstructionType::ICMP_EQU:
+        emit_clear_register(instruction.dst);
         emit("cmp", instruction.src1, instruction.src2);
         emit("sete", instruction.dst);
         return;
 
     case IRInstructionType::ICMP_NEQU:
+        emit_clear_register(instruction.dst);
         emit("cmp", instruction.src1, instruction.src2);
         emit("setne", instruction.dst);
         return;
 
     case IRInstructionType::ICMP_GT:
+        emit_clear_register(instruction.dst);
         emit("cmp", instruction.src1, instruction.src2);
         if (is_unsigned(get_vr_type(instruction.src1)))
             emit("seta", instruction.dst);
@@ -239,6 +242,7 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         return;
 
     case IRInstructionType::ICMP_LT:
+        emit_clear_register(instruction.dst);
         emit("cmp", instruction.src1, instruction.src2);
         if (is_unsigned(get_vr_type(instruction.src1)))
             emit("setb", instruction.dst);
@@ -247,6 +251,7 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         return;
 
     case IRInstructionType::ICMP_GTE:
+        emit_clear_register(instruction.dst);
         emit("cmp", instruction.src1, instruction.src2);
         if (is_unsigned(get_vr_type(instruction.src1)))
             emit("setae", instruction.dst);
@@ -255,6 +260,7 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         return;
 
     case IRInstructionType::ICMP_LTE:
+        emit_clear_register(instruction.dst);
         emit("cmp", instruction.src1, instruction.src2);
         if (is_unsigned(get_vr_type(instruction.src1)))
             emit("setbe", instruction.dst);
@@ -263,64 +269,77 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         return;
 
     case IRInstructionType::F32CMP_EQU:
+        emit_clear_register(instruction.dst);
         emit("ucomiss", instruction.src1, instruction.src2);
         emit("sete", instruction.dst);
         return;
 
     case IRInstructionType::F32CMP_NEQU:
+        emit_clear_register(instruction.dst);
         emit("ucomiss", instruction.src1, instruction.src2);
         emit("setne", instruction.dst);
         return;
 
     case IRInstructionType::F32CMP_LT:
+        emit_clear_register(instruction.dst);
         emit("ucomiss", instruction.src1, instruction.src2);
         emit("setb", instruction.dst);
         return;
 
     case IRInstructionType::F32CMP_GT:
+        emit_clear_register(instruction.dst);
         emit("ucomiss", instruction.src1, instruction.src2);
         emit("seta", instruction.dst);
         return;
 
     case IRInstructionType::F32CMP_LTE:
+        emit_clear_register(instruction.dst);
         emit("ucomiss", instruction.src1, instruction.src2);
         emit("setbe", instruction.dst);
         return;
 
     case IRInstructionType::F32CMP_GTE:
+        emit_clear_register(instruction.dst);
         emit("ucomiss", instruction.src1, instruction.src2);
         emit("setae", instruction.dst);
         return;
 
     case IRInstructionType::F64CMP_EQU:
+        emit_clear_register(instruction.dst);
         emit("ucomisd", instruction.src1, instruction.src2);
         emit("sete", instruction.dst);
         return;
 
     case IRInstructionType::F64CMP_NEQU:
+        emit_clear_register(instruction.dst);
         emit("ucomisd", instruction.src1, instruction.src2);
         emit("setne", instruction.dst);
         return;
 
     case IRInstructionType::F64CMP_LT:
+        emit_clear_register(instruction.dst);
         emit("ucomisd", instruction.src1, instruction.src2);
         emit("setb", instruction.dst);
         return;
 
     case IRInstructionType::F64CMP_GT:
+        emit_clear_register(instruction.dst);
         emit("ucomisd", instruction.src1, instruction.src2);
         emit("seta", instruction.dst);
         return;
 
     case IRInstructionType::F64CMP_LTE:
+        emit_clear_register(instruction.dst);
         emit("ucomisd", instruction.src1, instruction.src2);
         emit("setbe", instruction.dst);
         return;
 
     case IRInstructionType::F64CMP_GTE:
+        emit_clear_register(instruction.dst);
         emit("ucomisd", instruction.src1, instruction.src2);
         emit("setae", instruction.dst);
         return;
+
     case IRInstructionType::JMP:
         emit("jmp", instruction.src2);
         return;
@@ -642,5 +661,14 @@ bool CodeGenerator::is_op_on_xmm_reg(IROperand op)
         is_xmm_register(current_function->virtual_register_locations.at(op.value).reg);
 }
 
+void CodeGenerator::emit_clear_register(IROperand src)
+{
+    if (src.kind != IROperandKind::VIRTUAL_REGISTER)
+        Logger::not_implemented();
+    if (current_function->virtual_register_locations.at(src.value).kind != LocationKind::REGISTER)
+        Logger::not_implemented();
+
+    emit("xor", get_location(src, 8), get_location(src, 8));
+}
 
 } // namespace hx

@@ -1,6 +1,5 @@
 #pragma once
 #include "heliox_instructions.hpp"
-#include "heliox_pointer.hpp"
 
 namespace hx
 {
@@ -44,6 +43,8 @@ private:
     bool is_op_on_stack(IROperand op);
     bool is_op_on_gp_reg(IROperand op);
     bool is_op_on_xmm_reg(IROperand op);
+    
+    void emit_clear_register(IROperand src);
 
     IRUnit& ir_unit;
     IRFunction* current_function;
