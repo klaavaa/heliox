@@ -119,10 +119,21 @@ sptr<SymbolTable> create_global_table_for_translation_unit(const uptr<Translatio
     for (const auto& import : tu->imports)
     {
         std::vector<std::string> module_path = import->module_path->module_path;
+        sptr<SymbolTable> module_table = global_table;
+        for (const auto& mod_name : module_path)
+        {
+            if (global_table->submodule_tables.contains(mod_name))
+            {
+                module_table = global_table->submodule_tables.at(mod_name);
+                continue;
+            }
+            sptr<SymbolTable> new_table = std::make_shared<SymbolTable>();
+            module_table->submodule_tables.insert({mod_name, new_table});
+            module_table = new_table;
+        }
         module_path.push_back(import->module_path->name);
-
         sptr<Module> module = program->global_module->find_submodule(module_path);
-        insert_module(global_table, module, true);
+        insert_module(module_table, module, true);
     }
     return global_table;
 }
