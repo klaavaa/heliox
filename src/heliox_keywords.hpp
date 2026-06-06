@@ -23,7 +23,8 @@ enum class KeyWord : uint32_t
     IMPORT,
     STRUCT,
     BREAK,
-    CONTINUE
+    CONTINUE,
+    ASM
 };
 
 
@@ -39,7 +40,8 @@ inline const std::unordered_map<std::string_view, KeyWord> keywords = {
     {"import",       KeyWord::IMPORT},
     {"struct",       KeyWord::STRUCT},
     {"break",        KeyWord::BREAK},
-    {"continue",     KeyWord::CONTINUE}
+    {"continue",     KeyWord::CONTINUE},
+    {"asm",          KeyWord::ASM}
 };
 
 inline KeyWord get_kword_from_string(std::string_view name)

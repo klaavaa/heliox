@@ -1,9 +1,9 @@
 #pragma once
 #include <array> 
-#include <vector>
 #include <set>
-#include <utility>
-#include "heliox_types.hpp"
+#include <string>
+#include <cstdint>
+#include "heliox_error.hpp"
 
 namespace hx {
 
@@ -31,6 +31,74 @@ inline bool is_xmm_register(Register reg)
     return reg >= Register::XMM0 && reg <= Register::XMM15;
 }
 
+inline Register get_register_from_string(const std::string& reg)
+{
+    if (reg == "rax")
+        return Register::A;
+    else if (reg == "rbx")
+        return Register::B;
+    else if (reg == "rcx")
+        return Register::C;
+    else if (reg == "rdx")
+        return Register::D;
+    else if (reg == "rsi")
+        return Register::SI;
+    else if (reg == "rdi")
+        return Register::DI;
+    else if (reg == "rbp")
+        return Register::BP;
+    else if (reg == "rsp")
+        return Register::SP;
+    else if (reg == "r8")
+        return Register::R8;
+    else if (reg == "r9")
+        return Register::R9;
+    else if (reg == "r10")
+        return Register::R10;
+    else if (reg == "r11")
+        return Register::R11;
+    else if (reg == "r12")
+        return Register::R12;
+    else if (reg == "r13")
+        return Register::R13;
+    else if (reg == "r14")
+        return Register::R14;
+    else if (reg == "r15")
+        return Register::R15;
+    else if (reg == "xmm0") 
+        return Register::XMM0;
+    else if (reg == "xmm1") 
+        return Register::XMM1;
+    else if (reg == "xmm2") 
+        return Register::XMM2;
+    else if (reg == "xmm3") 
+        return Register::XMM3;
+    else if (reg == "xmm4") 
+        return Register::XMM4;
+    else if (reg == "xmm5") 
+        return Register::XMM5;
+    else if (reg == "xmm6") 
+        return Register::XMM6;
+    else if (reg == "xmm7") 
+        return Register::XMM7;
+    else if (reg == "xmm8") 
+        return Register::XMM8;
+    else if (reg == "xmm9") 
+        return Register::XMM9;
+    else if (reg == "xmm10") 
+        return Register::XMM10;
+    else if (reg == "xmm11") 
+        return Register::XMM11;
+    else if (reg == "xmm12") 
+        return Register::XMM12;
+    else if (reg == "xmm13") 
+        return Register::XMM13;
+    else if (reg == "xmm14") 
+        return Register::XMM14;
+    else if (reg == "xmm15") 
+        return Register::XMM15;
+    Logger::not_implemented();
+}
 
 inline std::string get_register(Register reg, uint32_t byte_size)
 {

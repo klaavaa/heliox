@@ -44,6 +44,7 @@ private:
     uptr<for_statement> parse_for_statement();
     uptr<break_statement> parse_break_statement();
     uptr<continue_statement> parse_continue_statement();
+    uptr<asm_statement> parse_asm_statement();
 
 	void eat(TokenType token_type);
     Token peek_next(size_t peek_amount = 0);

@@ -1,5 +1,6 @@
 #include "heliox_instruction_gen.hpp"
 #include "heliox_operator.hpp"
+#include "heliox_registerdata.hpp"
 
 namespace hx
 {
@@ -778,6 +779,34 @@ void InstructionGenerator::visit_continue(uptr<continue_statement>& continue_s)
     if (loop_continue_label.kind == IROperandKind::NONE) Logger::error(*continue_s, HX_STATEMENT_NOT_IN_LOOP, "continue statement not inside a loop");
     IRInstruction jmp(IRInstructionType::JMP, IROperand::None(), IROperand::None(), loop_continue_label);
     emit_instruction(jmp, 0, false);
+}
+void InstructionGenerator::visit_asm(uptr<asm_statement>& asm_s)
+{
+    std::vector<Register> clobbered_registers;
+    for (const auto& clobber_str : asm_s->clobbered_registers)
+    {
+        Register r = get_register_from_string(clobber_str->value);
+        clobbered_registers.push_back(r);
+    }
+    
+    std::string parsed_string;
+    const auto& actual_string = asm_s->asm_body->value;
+    for (size_t i = 0; i < actual_string.size();i++)
+    {
+        if (actual_string[i] == '\\' && actual_string[i + 1] == 'n')
+        {
+            parsed_string += '\n';
+            i++;
+            continue;
+        }
+        parsed_string += actual_string[i];
+    }
+    
+    AssemblyBlock asm_block(parsed_string, clobbered_registers);
+    size_t id = ir_unit.allocate_assembly_block(asm_block);
+
+    IRInstruction asm_inst(IRInstructionType::INLINE_ASM, current_register, IROperand::ASMBlock(id), IROperand::None());
+    emit_instruction(asm_inst);
 }
 
 void InstructionGenerator::visit_logical_binop(TokenType op_token, expression& left, expression& right)

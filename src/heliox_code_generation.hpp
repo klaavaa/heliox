@@ -45,6 +45,7 @@ private:
     bool is_op_on_xmm_reg(IROperand op);
     
     void emit_clear_register(IROperand src);
+    void emit_inline_asm(IROperand src);
 
     IRUnit& ir_unit;
     IRFunction* current_function;

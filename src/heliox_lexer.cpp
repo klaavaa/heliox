@@ -74,6 +74,36 @@ Token Lexer::get_next()
     case HX_QUOT_MARK:
     {
         std::string s;
+        if (peek_next(0) == HX_QUOT_MARK && peek_next(1) == HX_QUOT_MARK) // multiline string
+        {
+            advance(); advance();
+            while(true)
+            {   
+                advance();
+                if ((m_cur_char == -1) || (peek_next(0) == -1) || (peek_next(1) == -1))
+                {
+                    Logger::error(m_filename, m_line_number, m_line_position, HX_UNTERMINATED_STRING_LITERAL, "Unminated string literal");
+                }
+                if ((m_cur_char == HX_QUOT_MARK) && (peek_next(0) == HX_QUOT_MARK) && (peek_next(1) == HX_QUOT_MARK))
+                {
+                    advance(); advance();
+                    break; 
+                }
+                if (m_cur_char == HX_NEWLINE)
+                {
+                    s += "\\n";
+                    continue;
+                }
+                if (m_cur_char == HX_BACKSLASH)
+                {
+                    s += m_cur_char;
+                    advance();
+                }
+                s += m_cur_char;
+            }
+
+            return make_token(TokenType::STRING, s);
+        }
         while (peek_next() != HX_QUOT_MARK)
         {
             if (peek_next() == HX_BACKSLASH)

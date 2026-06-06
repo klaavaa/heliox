@@ -455,6 +455,8 @@ statement Parser::parse_keyword_statement()
             return parse_break_statement();
         case KeyWord::CONTINUE:
             return parse_continue_statement();
+        case KeyWord::ASM:
+            return parse_asm_statement();
     default:
         Logger::error(m_current_token, HX_UNEXPECTED_KEYWORD, "Unexpected keyword in statement");
     }
@@ -549,6 +551,26 @@ uptr<continue_statement> Parser::parse_continue_statement()
     eat(TokenType::KEYWORD);
     eat(TokenType::SEMICOLON);
     return make_node<continue_statement>();
+}
+uptr<asm_statement> Parser::parse_asm_statement()
+{
+    eat(TokenType::KEYWORD);
+    eat(TokenType::L_BRACK); 
+    std::vector<uptr<string_literal_expr>> clobber;
+    while (m_current_token.type != TokenType::R_BRACK)
+    {
+        clobber.push_back(parse_string_literal());
+        if (m_current_token.type == TokenType::R_BRACK)
+            break;
+        eat(TokenType::COMMA);
+    }
+    eat(TokenType::R_BRACK);
+    eat(TokenType::L_BRACE);
+    uptr<string_literal_expr> asm_body = parse_string_literal();
+    eat(TokenType::R_BRACE);
+    eat(TokenType::SEMICOLON);
+
+    return make_node<asm_statement>(std::move(clobber), std::move(asm_body));
 }
 
 statement Parser::parse_type_statement()

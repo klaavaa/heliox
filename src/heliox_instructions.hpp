@@ -143,7 +143,8 @@ enum class IRInstructionType
     
     CONVERT_F64_TO_F32,
     CONVERT_F32_TO_F64,
-
+    
+    INLINE_ASM,
 };
 
 enum class LocationKind
@@ -162,6 +163,16 @@ struct Location
         Register reg;
         int64_t stack;
     };
+};
+
+struct AssemblyBlock
+{
+    AssemblyBlock(const std::string& _assembly_code, std::vector<Register> _clobbered_registers)
+        : assembly_code(_assembly_code),
+        clobbered_registers(_clobbered_registers) 
+        {}
+    std::string assembly_code;
+    std::vector<Register> clobbered_registers;
 };
 
 enum class LiteralType
@@ -185,7 +196,8 @@ enum class IROperandKind
     IMMEDIATE_VALUE,
     LITERAL_LOCATION,
     ARG_NUMBER,
-    LABEL
+    LABEL,
+    ASM_BLOCK_ID
 };
 
 struct IROperand
@@ -216,6 +228,10 @@ struct IROperand
     static IROperand Label(int64_t val)
     {
         return {IROperandKind::LABEL, val};
+    }
+    static IROperand ASMBlock(int64_t val)
+    {
+        return {IROperandKind::ASM_BLOCK_ID, val};
     }
 
     IROperandKind kind;
@@ -259,6 +275,7 @@ struct RegisterReservation
 
 };
 
+
 struct IRFunction
 {
     std::string name;
@@ -277,6 +294,8 @@ struct IRUnit
 {
     std::vector<IRFunction> ir_functions;
     std::unordered_map<size_t, AllocatedLiteral> allocated_literals;
+
+    std::vector<AssemblyBlock> assembly_blocks;
 
     size_t allocate_string_literal(const std::string& value)
     {
@@ -310,7 +329,13 @@ struct IRUnit
         allocated_literals.insert({id, AllocatedLiteral{LiteralType::FUNCTION_NAME, value}});
         return id;
     }
-
+    
+    size_t allocate_assembly_block(AssemblyBlock asm_block)
+    {
+       size_t id = assembly_blocks.size(); 
+       assembly_blocks.push_back(asm_block);
+       return id;
+    }
 };
 } // namespace hx
 
@@ -523,6 +548,10 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
             break;
         case IRInstructionType::CONVERT_F64_TO_F32:
             std::println("{}  F64_TO_F32 r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
+
+        case IRInstructionType::INLINE_ASM:
+            std::println("{}  INLINE_ASM r{}  <- asm[]", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
         default:
             std::println("instruction {} not implemented yet", static_cast<int>(ir_instruction.type));

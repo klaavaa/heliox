@@ -361,6 +361,10 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
     case IRInstructionType::CONVERT_F64_TO_F32:
         emit("cvtsd2ss", get_location(instruction.dst), get_location(instruction.src1, 8));
         return;
+    
+    case IRInstructionType::INLINE_ASM:
+        emit(ir_unit.assembly_blocks[instruction.src1.value].assembly_code);
+        return;
 
     default:
         Logger::not_implemented();
@@ -669,6 +673,12 @@ void CodeGenerator::emit_clear_register(IROperand src)
         Logger::not_implemented();
 
     emit("xor", get_location(src, 8), get_location(src, 8));
+}
+
+void CodeGenerator::emit_inline_asm(IROperand src)
+{
+    const auto& asm_block = ir_unit.assembly_blocks[src.value];
+    emit(asm_block.assembly_code);
 }
 
 } // namespace hx

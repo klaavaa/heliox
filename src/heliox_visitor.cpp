@@ -85,7 +85,9 @@ namespace hx
            [this](uptr<break_statement>& break_s)
             { visit_break(break_s); },
            [this](uptr<continue_statement>& continue_s)
-            { visit_continue(continue_s); }
+            { visit_continue(continue_s); },
+           [this](uptr<asm_statement>& asm_s)
+            { visit_asm(asm_s); }
             }, stat);
     }
     

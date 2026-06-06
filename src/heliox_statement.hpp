@@ -23,6 +23,7 @@ namespace hx {
     struct import_statement;
     struct break_statement;
     struct continue_statement;
+    struct asm_statement;
 
     using statement = std::variant<
         uptr<compound_statement>,
@@ -36,9 +37,24 @@ namespace hx {
         uptr<import_statement>,
         uptr<for_statement>,
         uptr<break_statement>,
-        uptr<continue_statement>
+        uptr<continue_statement>,
+        uptr<asm_statement>
         >;
 
+    struct asm_statement : ast_node 
+    {
+        asm_statement(std::string_view filename, uint32_t line, uint32_t position, 
+                std::vector<uptr<string_literal_expr>> _clobbered_registers, 
+                uptr<string_literal_expr> _asm_body)
+            : 
+            ast_node(filename, line, position),
+            clobbered_registers(std::move(_clobbered_registers)),
+            asm_body(std::move(_asm_body))
+        {}
+        
+        std::vector<uptr<string_literal_expr>> clobbered_registers;
+        uptr<string_literal_expr> asm_body;
+    };
 
     struct import_statement : ast_node
     {

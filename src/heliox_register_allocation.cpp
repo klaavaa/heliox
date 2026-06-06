@@ -408,6 +408,12 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
     {
         switch (instruction.type)
         {
+        case IRInstructionType::INLINE_ASM:
+        {
+            const auto& asm_block = ir_unit.assembly_blocks[instruction.src1.value];
+            preallocate_register(ir_function, instruction.dst.value, Register::A, asm_block.clobbered_registers); 
+            break;
+        }
         case IRInstructionType::IDIV:
             preallocate_register(ir_function, instruction.src1.value, Register::A, {Register::D});
             break;

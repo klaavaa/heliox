@@ -53,6 +53,8 @@ private:
     void visit_break(uptr<break_statement>& break_s) override;
     void visit_continue(uptr<continue_statement>& continue_s) override;
 
+    void visit_asm(uptr<asm_statement>& asm_s) override;
+
     void emit_implicit_conversion(const ast_node& node, IROperand vr, const type_data type_to);
 
     void visit_logical_binop(TokenType op_token, expression& left, expression& right);
