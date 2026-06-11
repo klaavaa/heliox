@@ -31,10 +31,13 @@ public:
                     if (func->is_extern) flags |= SF_EXTERN;
                     if (func->has_varargs) flags |= SF_VARARGS;
                     // we'll fill the params in the next pass
-                    func->symbol = Symbol::Function(func->name, func->return_type, {}, flags);
-                    if (!tu.global_scope->insert_symbol(func->symbol))
+
+                    func->symbol = tu.global_scope->insert_symbol(
+                            Symbol::Function(func->name, func->return_type, {}, flags));
+
+                    if (!func->symbol)
                     {
-                        Logger::error(*func, std::format("Redefinition of symbol {}", func->symbol.name));
+                        Logger::error(*func, std::format("Redefinition of symbol {}", func->symbol->name));
                     }
                 },
                 // TODO STRUCT
@@ -78,7 +81,17 @@ private:
         {
             Logger::error(filename, line_number, column, std::format("Function '{}' not defined", fcall->name));
         }
-        fcall->symbol = *symopt.value();
+        fcall->symbol = symopt.value();
+
+        for (auto& param : fcall->parameters)
+        {
+            visit_expression(param);
+        }
+    }
+    
+    void visit_expression_s(uptr<expression_statement>& stat) override
+    {
+        visit_expression(stat->expr);
     }
 
     void visit_compound(uptr<compound_statement>& compound) override 
@@ -95,12 +108,12 @@ private:
     void visit_variable_declaration(uptr<variable_declaration_statement>& variable_declaration) override 
     {
         resolve_type(variable_declaration->var_type);
-        variable_declaration->symbol = Symbol::Variable(variable_declaration->var_name,
-                variable_declaration->var_type);
-        if (!current_scope->insert_symbol(variable_declaration->symbol))
+        variable_declaration->symbol = current_scope->insert_symbol(Symbol::Variable(variable_declaration->var_name,
+                variable_declaration->var_type));
+        if (!variable_declaration->symbol)
         {
             Logger::error(*variable_declaration, std::format("Redefinition of symbol",
-                        variable_declaration->symbol.name));
+                        variable_declaration->symbol->name));
         }
     }
     void visit_variable_definition(uptr<variable_definition_statement>& variable_definition) override 
@@ -141,37 +154,38 @@ private:
 
         bool is_toplevel = current_scope->parent == program.program_scope;
 
-
         if (!is_toplevel)
         {
+            resolve_type(func->return_type);
             uint8_t flags{};
             if (func->is_extern) flags |= SF_EXTERN;
             if (func->has_varargs) flags |= SF_VARARGS;
-            func->symbol = Symbol::Function(func->name, func->return_type, {}, flags);
-            if (!current_scope->insert_symbol(func->symbol))
+            func->symbol = current_scope->insert_symbol(Symbol::Function(func->name, func->return_type, {}, flags));
+            if (!func->symbol)
             {
-                Logger::error(*func, std::format("Redefinition of symbol {}", func->symbol.name));
+                Logger::error(*func, std::format("Redefinition of symbol {}", func->symbol->name));
             }
         }
-        resolve_type(func->symbol.type);
+        resolve_type(func->symbol->type);
+
         current_scope = current_scope->get_child();
         
 
         for (auto& param : func->params)
         {
             resolve_type(param->var_type);
-            param->symbol = Symbol::Variable(param->var_name, param->var_type); 
-            if (!current_scope->insert_symbol(param->symbol))
+            param->symbol = current_scope->insert_symbol(Symbol::Variable(param->var_name, param->var_type));
+            if (!param->symbol)
             {
-                Logger::error(*func, std::format("Redefinition of symbol {}", param->symbol.name));
+                Logger::error(*func, std::format("Redefinition of symbol {}", param->symbol->name));
             }
 
             // populate the params of the func symbol
-            func->symbol.param_types.push_back(param->symbol.type);
+            func->symbol->param_types.push_back(param->symbol->type);
 
         }
         
-        Symbol previous_function_symbol = current_function_symbol;
+        Symbol* previous_function_symbol = current_function_symbol;
         current_function_symbol = func->symbol;
 
         for (auto& s : func->statements)
@@ -201,13 +215,15 @@ private:
         {
             Logger::error(filename, line_number, column, std::format("Couldn't find variable '{}'", i->name));
         }
-        i->symbol = *sym_opt.value();
+        i->symbol = sym_opt.value();
+        std::println("PRINTING IDENTIFIER NAME");
+        std::println("{}", i->symbol->name);
     }
 
 private:
     Program& program;
     sptr<Scope> current_scope;
-    Symbol current_function_symbol;
+    Symbol* current_function_symbol;
 };
 
 

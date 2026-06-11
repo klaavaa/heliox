@@ -46,7 +46,6 @@ bool InstructionGenerator::has_vr_type(IROperand vr)
 
 const Type& InstructionGenerator::get_vr_type(IROperand vr) const
 {
-    std::println("vrval {} ", vr.value);
     if (!current_function.virtual_register_types.contains(vr.value))
     {
         Logger::internal_error();
@@ -61,7 +60,7 @@ void InstructionGenerator::visit_function(uptr<function_statement>& func)
     current_register.value = 0;
     effective_register.value = 0;
     current_function = IRFunction{};
-    current_function.name = func->symbol.name;
+    current_function.name = func->symbol->name;
     current_function.is_extern = func->is_extern;
 
     if (current_function.is_extern)
@@ -76,9 +75,9 @@ void InstructionGenerator::visit_function(uptr<function_statement>& func)
         auto src = IROperand::Vr(current_register.value);
         current_register.value++;
         auto dst = IROperand::Vr(current_register.value);
-        register_vr_type(src, param->symbol.type);
-        register_vr_type(dst, param->symbol.type);
-        symbol_id_to_vr.emplace(param->symbol.id, dst.value);
+        register_vr_type(src, param->symbol->type);
+        register_vr_type(dst, param->symbol->type);
+        symbol_id_to_vr.emplace(param->symbol->id, dst.value);
         current_function.vrs_with_variables.insert(dst.value);
         emit_instruction(IRInstruction(IRInstructionType::REGISTER_ARG, dst, src, IROperand::Arg((int64_t)i)));
     }
@@ -95,7 +94,9 @@ void InstructionGenerator::visit_function(uptr<function_statement>& func)
 void InstructionGenerator::visit_function_call(uptr<function_call_expr>& function_call)
 {
     //FunctionSymbol& func_symbol = find_function_symbol(global_table, function_call->identifier->name, function_call->in_module, function_call->find_in_parent_modules); 
-    Symbol& func_symbol = function_call->symbol;
+    Symbol& func_symbol = *function_call->symbol;
+    std::println("visiting function call -> {}", func_symbol.name);
+    std::println("func type btzsz {}", func_symbol.type.byte_size());
     const size_t param_count = function_call->parameters.size();
     if ((param_count != func_symbol.param_types.size() && !(func_symbol.flags | SF_VARARGS) ) || param_count < func_symbol.param_types.size())
     {
@@ -106,12 +107,15 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     // parameter instructions
     for (size_t i = 0; i < param_count; i++)
     {
+        std::println("HERE {}", i);
         auto& param = function_call->parameters[i];
+        std::println("HERE {}", i);
         visit_expression(param);
         arg_vregs.push_back(effective_register);
     }
     for (size_t i = 0; i < arg_vregs.size(); i++)
     {
+        std::println("HERE {}", i);
         IROperand arg_vreg = arg_vregs[i];
         IRInstructionType mov_type;
         effective_register = arg_vreg;
@@ -119,6 +123,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         {
              mov_type = IRInstructionType::MOV_ARG;
              emit_implicit_conversion(*function_call, arg_vreg, func_symbol.param_types[i]);
+            std::println("HERE {}", i);
         }
         else
         {
@@ -129,9 +134,11 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
                 emit_implicit_conversion(*function_call, arg_vreg, TYPE_F64);
             }
         }
+            std::println("HERE {}", i);
         IRInstruction push_arg_instruction(mov_type, current_register, effective_register, {IROperandKind::ARG_NUMBER, (int64_t)i});
         register_vr_type(current_register, effective_register);
         emit_instruction(push_arg_instruction);
+            std::println("HERE {}", i);
     }
 
     // call instruction
@@ -187,7 +194,7 @@ void InstructionGenerator::visit_float_literal(uptr<float_literal_expr>& float_l
 
 void InstructionGenerator::visit_identifier_literal(uptr<identifier_literal_expr>& identifier_literal)
 {
-    int64_t vr = symbol_id_to_vr.at(identifier_literal->symbol.id);
+    int64_t vr = symbol_id_to_vr.at(identifier_literal->symbol->id);
     IRInstruction mov(IRInstructionType::MOV, current_register, IROperand::Vr(vr), IROperand::None());
     register_vr_type(current_register, mov.src1);
     emit_instruction(mov);
@@ -197,8 +204,8 @@ void InstructionGenerator::visit_return(uptr<return_statement>& return_s)
 {
     // todo check current function return type
     visit_expression(return_s->return_expression);
-    if (return_s->symbol.type.byte_size() != 0)
-        emit_implicit_conversion(*return_s, effective_register, return_s->symbol.type);
+    if (return_s->symbol->type.byte_size() != 0)
+        emit_implicit_conversion(*return_s, effective_register, return_s->symbol->type);
     IRInstruction return_inst(IRInstructionType::RETURN, current_register, effective_register, IROperand::None());
     register_vr_type(current_register, effective_register);
     
@@ -207,7 +214,7 @@ void InstructionGenerator::visit_return(uptr<return_statement>& return_s)
 
 void InstructionGenerator::visit_variable_declaration(uptr<variable_declaration_statement>& variable_declaration)
 {
-    symbol_id_to_vr.emplace(variable_declaration->symbol.id, current_register.value);
+    symbol_id_to_vr.emplace(variable_declaration->symbol->id, current_register.value);
     register_vr_type(current_register, variable_declaration->var_type);
     current_function.vrs_with_variables.insert(current_register.value);
     effective_register = current_register;
@@ -226,7 +233,7 @@ void InstructionGenerator::visit_variable_definition(uptr<variable_definition_st
         expression_vr = effective_register;
     }
 
-    int64_t vr = symbol_id_to_vr.at(variable_definition->declaration->symbol.id);
+    int64_t vr = symbol_id_to_vr.at(variable_definition->declaration->symbol->id);
     IRInstruction store(IRInstructionType::MOV, IROperand::Vr(vr), expression_vr, IROperand::None());
     emit_instruction(store, 0, false);
 
@@ -324,8 +331,8 @@ void InstructionGenerator::emit_assignment(TokenType op_token, expression& left_
         overloads{
         [this, op_token, &right_register](uptr<identifier_literal_expr>& identifier)
         {
-            emit_implicit_conversion(*identifier, right_register, identifier->symbol.type);
-            int64_t vr = symbol_id_to_vr.at(identifier->symbol.id);
+            emit_implicit_conversion(*identifier, right_register, identifier->symbol->type);
+            int64_t vr = symbol_id_to_vr.at(identifier->symbol->id);
             IRInstruction write_var(IRInstructionType::MOV, IROperand::Vr(vr), effective_register, IROperand::None());
             emit_instruction(write_var, 0);
         },
@@ -570,10 +577,10 @@ void InstructionGenerator::visit_unary(uptr<unary_expr>& unary)
             Logger::error(*unary, "Trying to get the address of a non-literal");
         }
         auto& identifier_literal = std::get<uptr<identifier_literal_expr>>(unary->expr);
-        int64_t vr = symbol_id_to_vr.at(identifier_literal->symbol.id);
+        int64_t vr = symbol_id_to_vr.at(identifier_literal->symbol->id);
         IROperand var_vr = IROperand::Vr(vr);
         IRInstruction addr_of(IRInstructionType::ADDR_OF, current_register, var_vr, IROperand::None());
-        register_vr_type(current_register, identifier_literal->symbol.type.get_ptr());
+        register_vr_type(current_register, identifier_literal->symbol->type.get_ptr());
         emit_instruction(addr_of);
         return;
     }

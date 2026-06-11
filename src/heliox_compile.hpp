@@ -12,8 +12,8 @@
 #include "heliox_symbol_visitor.hpp"
 #include "heliox_instruction_gen.hpp"
 #include "heliox_liveness_analysis.hpp"
-//#include "heliox_register_allocation.hpp"
-//#include "heliox_code_generation.hpp"
+#include "heliox_register_allocation.hpp"
+#include "heliox_code_generation.hpp"
 
 
 
@@ -85,12 +85,13 @@ inline void compile(const std::vector<std::string>& file_paths)
         perform_liveness_analysis_on_unit(ir_unit);
         print_live_ranges(ir_unit);
 
-        /*
+        
         // preallocate certain registers / stack
 
         // perform register allocation
         RegisterAllocator register_allocator(ir_unit);
         register_allocator.allocate_registers();
+        
         //print_ir_unit(ir_unit);
 
         // generate code
@@ -103,10 +104,10 @@ inline void compile(const std::vector<std::string>& file_paths)
             asm_output_file = flags.output_file;
         }
         create_assembly_file(asm_output_file, generated_nasm);
-        */
+        
         i++;        
     }
-    /*
+    
     if (flags.compile_only)
     {
         return;
@@ -157,7 +158,7 @@ inline void compile(const std::vector<std::string>& file_paths)
 #else
     std::system(std::format("gcc -no-pie {} -o {}", object_files, output_executable).c_str());
 #endif
-    */
+    
 }
 }
 

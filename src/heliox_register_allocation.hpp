@@ -31,7 +31,7 @@ private:
 
     bool is_spilled(IRFunction& ir_function, IROperand operand);
 
-    type_data get_operand_type(const IRFunction& ir_function, const IROperand operand);
+    Type get_operand_type(const IRFunction& ir_function, const IROperand operand);
 
     IRUnit& ir_unit;
     std::vector<int64_t> gp_active_virtual_registers;

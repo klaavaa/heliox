@@ -7,7 +7,7 @@ namespace hx
 
 void RegisterAllocator::allocate_stack(IRFunction& ir_function, const int64_t vr)
 {
-    auto byte_size = (int64_t)ir_function.virtual_register_types.at(vr).byte_size;
+    auto byte_size = (int64_t)ir_function.virtual_register_types.at(vr).byte_size();
     
     ir_function.total_stack_allocated += byte_size;
     ir_function.total_stack_allocated = align_up(ir_function.total_stack_allocated, byte_size);
@@ -172,7 +172,7 @@ void RegisterAllocator::allocate_registers(IRFunction& ir_function)
             xmm_free_registers.erase(ir_function.virtual_register_locations.at(xmm_active_unspillable_vr).reg);
         }
 
-        type_data vr_type = get_operand_type(ir_function, IROperand::Vr(vr));
+        Type vr_type = get_operand_type(ir_function, IROperand::Vr(vr));
         if (is_integer_type(vr_type))
         { 
         if (gp_free_registers.size() == 0)
@@ -271,7 +271,7 @@ void RegisterAllocator::cleanup_pass(IRFunction& ir_func)
                 break;
                 }
             case IRInstructionType::ARG_PUSH:
-                if (ir_func.virtual_register_types.at(instruction.src1.value).byte_size != 8 || 
+                if (ir_func.virtual_register_types.at(instruction.src1.value).byte_size() != 8 || 
                     (ir_func.virtual_register_locations.at(instruction.src1.value).kind == LocationKind::REGISTER
                      && is_xmm_register(ir_func.virtual_register_locations.at(instruction.src1.value).reg)))
                 {
@@ -588,7 +588,7 @@ void RegisterAllocator::preallocate_stack(IRFunction& ir_function, const int64_t
     RegisterReservation res = RegisterReservation::Stack();
     ir_function.register_reservations.insert({vr, res});
 }
-type_data RegisterAllocator::get_operand_type(const IRFunction& ir_function, const IROperand operand)
+Type RegisterAllocator::get_operand_type(const IRFunction& ir_function, const IROperand operand)
 {
     switch (operand.kind)
     {
@@ -598,11 +598,11 @@ type_data RegisterAllocator::get_operand_type(const IRFunction& ir_function, con
         switch (ir_unit.allocated_literals.at(operand.value).type)
         {
         case LiteralType::STRING:
-            return {primitive_type::U8, 1};
+            return Type{PrimitiveType::U8, 1};
         case LiteralType::FLOAT64:
-            return {primitive_type::F64, 0};
+            return TYPE_F64;
         case LiteralType::FLOAT32:
-            return {primitive_type::F64, 0};
+            return TYPE_F32;
         default:
             Logger::not_implemented();
         }

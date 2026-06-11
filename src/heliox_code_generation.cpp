@@ -158,7 +158,7 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         emit("cqo");
         emit("idiv", instruction.src2);
         // todo 1 byte op
-        emit("mov", get_location(instruction.dst), get_register(Register::D, get_vr_type(instruction.dst).byte_size));
+        emit("mov", get_location(instruction.dst), get_register(Register::D, get_vr_type(instruction.dst).byte_size()));
         return;
     case IRInstructionType::BITWISE_AND:
         emit("and", instruction.src1, instruction.src2);
@@ -415,7 +415,7 @@ void CodeGenerator::load_callee_preserved_registers()
 
 std::string CodeGenerator::get_vr_location(int64_t vr)
 {
-    uint32_t byte_size = current_function->virtual_register_types.at(vr).byte_size;
+    uint32_t byte_size = current_function->virtual_register_types.at(vr).byte_size();
     return get_vr_location(vr, byte_size);
 }
 
@@ -428,7 +428,7 @@ std::string CodeGenerator::get_vr_location(int64_t vr, uint32_t byte_size)
     }
     else // STACK
     {
-        int64_t stack_pos = abs(location.stack);
+        int64_t stack_pos = std::abs(location.stack);
         char op = '-';
 
         if (location.stack < 0)
@@ -450,7 +450,7 @@ std::string CodeGenerator::get_vr_location(int64_t vr, uint32_t byte_size)
         case 1:
             return std::format("byte[rbp  {} {}]", op, stack_pos);
         default:
-            Logger::error("", HX_ILLEGAL_REG_SIZE, std::format("tried to get a location of size: {}", byte_size));
+            Logger::error("", std::format("tried to get a location of size: {}", byte_size));
         }
     }
 }
@@ -460,7 +460,7 @@ std::string CodeGenerator::get_location(const IROperand operand)
     // we dont care about this instruciton size unless we're given a virtual register
     uint32_t instruction_size{};
     if (operand.kind == IROperandKind::VIRTUAL_REGISTER)
-        instruction_size = current_function->virtual_register_types.at(operand.value).byte_size;
+        instruction_size = current_function->virtual_register_types.at(operand.value).byte_size();
     return get_location(operand, instruction_size);
 }
 
@@ -481,7 +481,7 @@ std::string CodeGenerator::get_location(const IROperand operand, uint32_t byte_s
     case IROperandKind::LABEL:
         return std::format(".LB{}", operand.value);
     default:
-        Logger::error("", HX_ILLEGAL_LOCATION, std::format("Trying to get an illegal location {}", (int)operand.kind));
+        Logger::error("", std::format("Trying to get an illegal location {}", (int)operand.kind));
     }
 
 }
@@ -510,21 +510,26 @@ void CodeGenerator::emit_data_section()
 
 void CodeGenerator::emit_mem_write(const IROperand dst, const IROperand src)
 {
-    type_data type = get_vr_type(dst).deref();
-    uint32_t instruction_size = type.byte_size;
+    auto deref_type_opt = get_vr_type(dst).deref();
+    if (!deref_type_opt.has_value())
+    {
+        Logger::error("", "Trying to dereference a non-pointer value");
+    }
+    Type type = deref_type_opt.value();
+    uint32_t instruction_size = type.byte_size();
     std::string mov_inst = get_mov_inst(type, dst, src);
     text_section += std::format("\t{} [{}], {}\n", mov_inst, get_location(dst, 8), get_location(src, instruction_size));
 }
 void CodeGenerator::emit_mem_read(const IROperand dst, const IROperand src)
 {
-    type_data type = get_vr_type(dst);
-    uint32_t instruction_size = get_vr_type(dst).byte_size;
+    Type type = get_vr_type(dst);
+    uint32_t instruction_size = get_vr_type(dst).byte_size();
     std::string mov_inst = get_mov_inst(type, dst, src);
     text_section += std::format("\t{} {}, [{}]\n", mov_inst, get_location(dst, instruction_size), get_location(src, 8));
 }
 void CodeGenerator::emit(const std::string_view asm_instruction, const IROperand dst, const IROperand src)
 {
-    uint32_t instruction_size = get_vr_type(dst).byte_size;
+    uint32_t instruction_size = get_vr_type(dst).byte_size();
     text_section += std::format("\t{} {}, {}\n", asm_instruction, get_location(dst, instruction_size), get_location(src, instruction_size));
 }
 void CodeGenerator::emit(const std::string_view asm_instruction, const IROperand src)
@@ -562,7 +567,7 @@ void CodeGenerator::emit_lea(const IROperand dst, const IROperand src)
 
     auto& location = current_function->virtual_register_locations.at(src.value);
 
-    int64_t stack_pos = abs(location.stack);
+    int64_t stack_pos = std::abs(location.stack);
     char op = '-';
 
     if (location.stack < 0)
@@ -577,8 +582,8 @@ void CodeGenerator::emit_lea(const IROperand dst, const IROperand src)
 
 void CodeGenerator::emit_mov(const IROperand dst, const IROperand src)
 {
-    type_data vr_type = get_vr_type(dst);
-    uint32_t instruction_size = vr_type.byte_size;
+    Type vr_type = get_vr_type(dst);
+    uint32_t instruction_size = vr_type.byte_size();
     std::string mov_inst = get_mov_inst(vr_type, dst, src);
 
     if (instruction_size == 1 && current_function->virtual_register_locations.at(dst.value).kind == LocationKind::REGISTER)
@@ -602,8 +607,8 @@ void CodeGenerator::emit_test(const IROperand src)
     }
     else
     {
-        type_data vr_type = get_vr_type(src);
-        uint32_t instruction_size = vr_type.byte_size;
+        Type vr_type = get_vr_type(src);
+        uint32_t instruction_size = vr_type.byte_size();
         emit("pxor", "xmm11", "xmm11");
         if (instruction_size == 8)
             emit("ucomisd", get_location(src), "xmm11");
@@ -613,9 +618,9 @@ void CodeGenerator::emit_test(const IROperand src)
 }
 
 
-std::string CodeGenerator::get_mov_inst(type_data type, IROperand dst, IROperand src)
+std::string CodeGenerator::get_mov_inst(Type type, IROperand dst, IROperand src)
 {
-    uint32_t instruction_size = type.byte_size;
+    uint32_t instruction_size = type.byte_size();
     if (is_float_type(type))
     {
 
@@ -645,7 +650,7 @@ std::string CodeGenerator::get_mov_inst(type_data type, IROperand dst, IROperand
     return "mov";
 }
 
-type_data CodeGenerator::get_vr_type(const IROperand vr)
+Type CodeGenerator::get_vr_type(const IROperand vr)
 {
     return current_function->virtual_register_types.at(vr.value);
 }

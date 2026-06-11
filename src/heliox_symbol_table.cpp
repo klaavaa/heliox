@@ -30,15 +30,15 @@ sptr<Scope> Scope::get_child()
 
 bool Scope::symbol_exists_in_current_scope(const std::string& name)
 {
-   return std::find_if(symbols.begin(), symbols.end(), 
-               [&name](const Symbol& s){return s.name == name; }) != symbols.end();
+   return symbols.find_if([&name](const Symbol& s){return s.name == name; }).has_value();
+   //return std::find_if(symbols.begin(), symbols.end(), 
+   //            [&name](const Symbol& s){return s.name == name; }) != symbols.end();
 }
 
-bool Scope::insert_symbol(Symbol symbol)
+Symbol* Scope::insert_symbol(Symbol symbol)
 {
-    if (symbol_exists_in_current_scope(symbol.name)) return false;
-    symbols.emplace_back(symbol);
-    return true;
+    if (symbol_exists_in_current_scope(symbol.name)) return nullptr;
+    return &symbols.push_back(symbol);
 }
 
 void Scope::use_scope(sptr<Scope> scope)

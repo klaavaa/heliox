@@ -11,7 +11,7 @@ public:
     std::string generate();
 
 private:
-    type_data get_vr_type(const IROperand vr);
+    Type get_vr_type(const IROperand vr);
     std::string get_vr_location(int64_t vr);
     std::string get_vr_location(int64_t vr, uint32_t byte_size);
     std::string get_location(const IROperand operand, uint32_t byte_size);
@@ -31,7 +31,7 @@ private:
     void emit_lea(const IROperand dst, const IROperand src);
     void emit_mov(const IROperand dst, const IROperand src);
     void emit_test(const IROperand src);
-    std::string get_mov_inst(type_data type, IROperand dst, IROperand src);
+    std::string get_mov_inst(Type type, IROperand dst, IROperand src);
 
     void emit_data_section();
 

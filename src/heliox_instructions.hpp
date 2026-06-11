@@ -288,7 +288,6 @@ struct IRFunction
     std::map<int64_t, RegisterReservation> register_reservations;
     
     std::set<int64_t> vrs_with_variables;
-    std::unordered_map<uint32_t, int64_t> symbol_id_to_vr;
 
     int64_t total_stack_allocated = 0;
 };

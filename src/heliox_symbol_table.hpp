@@ -40,14 +40,15 @@ struct Scope : std::enable_shared_from_this<Scope>
 {
     std::string name;
     sptr<Scope> parent;
-    std::vector<Symbol> symbols;
+    BlockVector<Symbol, 64> symbols;
+    //std::vector<Symbol> symbols;
     std::vector<sptr<Scope>> child_scopes;
     std::vector<sptr<Scope>> using_scopes;
     
     sptr<Scope> get_child();
     
     // returns whether symbol was succesfully inserted 
-    bool insert_symbol(Symbol symbol);
+    Symbol* insert_symbol(Symbol symbol);
     bool symbol_exists_in_current_scope(const std::string& name);
     
     void use_scope(sptr<Scope> scope);
@@ -60,14 +61,16 @@ struct Scope : std::enable_shared_from_this<Scope>
            || kind == SymbolKind::FUNCTION)
     std::optional<Symbol*> find_symbol(const std::string& name)
     {
-        auto it = std::find_if(symbols.begin(), symbols.end(), 
-               [&name](const Symbol& s){return s.name == name; });
-        if (it != symbols.end() && it->kind == kind) return &*it;
+        auto opt = symbols.find_if([&name](const Symbol& s) {return s.name == name;});
+        if (opt.has_value()) return &opt.value();
+        //auto it = std::find_if(symbols.begin(), symbols.end(), 
+        //       [&name](const Symbol& s){return s.name == name; });
+        //if (it != symbols.end() && it->kind == kind) return *it;
         
         for (const auto& scope : using_scopes)
         {
             auto s = scope->find_symbol<kind>(name);
-            if (s.has_value()) return s;
+            if (s.has_value()) return s.value();
         }
 
         if (parent)

@@ -61,7 +61,7 @@ namespace hx {
             ast_node(filename, line, position),
             return_expression(std::move(return_expression)) {}
         expression return_expression;
-        Symbol symbol;
+        Symbol* symbol;
     };
 
     
@@ -73,7 +73,7 @@ namespace hx {
 
         std::string var_name;
         Type var_type;
-        Symbol symbol;
+        Symbol* symbol;
     };
 
     struct variable_definition_statement : ast_node
@@ -162,6 +162,6 @@ namespace hx {
         Type return_type;
         bool is_extern;
         bool has_varargs;
-        Symbol symbol;
+        Symbol* symbol;
     };
 }

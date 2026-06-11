@@ -49,6 +49,7 @@ struct Type
     /* TODO */
     uint32_t byte_size() const
     {
+        if (ptr_depth != 0) return 8;
         return std::visit(
         overloads{
             [](PrimitiveType primitive_type) 
@@ -75,7 +76,7 @@ struct Type
             {
                 Logger::not_implemented();
                 return 0;
-            },
+           },
             [] (const UnresolvedType& unresolved_type){
                 Logger::error("", std::format("unresolved type: {}", unresolved_type)); 
                 return 0; 
@@ -182,6 +183,28 @@ inline bool is_integer_type(const Type& t)
             return false;
     }
 
+}
+
+inline bool is_unsigned(const Type& t)
+{
+    if (t.ptr_depth != 0) return false;
+    if (!std::holds_alternative<PrimitiveType>(t.base))
+    {
+        return false;
+    }
+
+    PrimitiveType pt = std::get<PrimitiveType>(t.base);
+    
+    switch (pt)
+    {
+        case PrimitiveType::U8:
+        case PrimitiveType::U16:
+        case PrimitiveType::U32:
+        case PrimitiveType::U64:
+            return true;
+        default:
+            return false;
+    }
 }
 
 inline bool is_implicit_conversion_possible(const Type& t1, const Type& t2)
