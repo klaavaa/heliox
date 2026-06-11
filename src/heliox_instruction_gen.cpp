@@ -4,38 +4,16 @@
 
 namespace hx
 {
-InstructionGenerator::InstructionGenerator(uptr<TranslationUnit> _translation_unit, sptr<SymbolTable> _global_table)
-    : translation_unit(std::move(_translation_unit)), global_table(std::move(_global_table)), current_table(global_table)
+InstructionGenerator::InstructionGenerator(TranslationUnit& _translation_unit)
+    : translation_unit(_translation_unit)
 {
 
 }
 
 IRUnit InstructionGenerator::generate_instructions()
 {
-    visit_module(translation_unit->global_module);
-    
-    
-    auto all_imported_func_names = table_get_all_imported_functions(global_table, "");
-
-    for (const auto& fname : all_imported_func_names)
-    {
-        IRFunction ir_func;
-        ir_func.name = fname;
-        ir_func.is_extern = true;
-        ir_unit.ir_functions.push_back(ir_func);
-    }
-
+    visit_translation_unit(translation_unit);
     return ir_unit;
-}
-
-std::string InstructionGenerator::get_module_prefix() const
-{
-    std::string prefix;
-    for (const auto& module_name : current_module_path)
-    {
-        prefix += module_name + ".";
-    }
-    return prefix;
 }
 
 void InstructionGenerator::emit_instruction(const IRInstruction& instruction, int64_t inc, bool set_effective)
@@ -48,11 +26,11 @@ void InstructionGenerator::emit_instruction(const IRInstruction& instruction, in
 
     current_register.value += inc;
 }
-void InstructionGenerator::register_vr_type(IROperand vr, const type_data& type)
+void InstructionGenerator::register_vr_type(IROperand vr, const Type& type)
 {
     if (vr.value < 0)
     {
-        Logger::error("", -1, std::format("Trying to register type for virtual_register: {}", vr.value));
+        Logger::internal_error();
     }
     current_function.virtual_register_types.insert({vr.value, type});
 }
@@ -66,36 +44,31 @@ bool InstructionGenerator::has_vr_type(IROperand vr)
     return current_function.virtual_register_types.contains(vr.value);
 }
 
-const type_data& InstructionGenerator::get_vr_type(IROperand vr) const
+const Type& InstructionGenerator::get_vr_type(IROperand vr) const
 {
+    std::println("vrval {} ", vr.value);
     if (!current_function.virtual_register_types.contains(vr.value))
     {
-        Logger::error("", -1, std::format("Virtual register: {} doesn't have a registered type", vr));
+        Logger::internal_error();
     }
 
     return current_function.virtual_register_types.at(vr.value); 
 }
 
 
-void InstructionGenerator::visit_function(uptr<function>& func)
+void InstructionGenerator::visit_function(uptr<function_statement>& func)
 {
     current_register.value = 0;
     effective_register.value = 0;
-
     current_function = IRFunction{};
-    current_function.name = get_module_prefix() + func->identifier->name;
+    current_function.name = func->symbol.name;
     current_function.is_extern = func->is_extern;
-
-    current_function_node = func.get();
 
     if (current_function.is_extern)
     {
         ir_unit.ir_functions.push_back(std::move(current_function));
         return;
     }
-
-    current_table = add_child_table(global_table, current_function.name);
-    
     
     for (size_t i = 0; i < func->params.size(); i++)
     {
@@ -103,9 +76,10 @@ void InstructionGenerator::visit_function(uptr<function>& func)
         auto src = IROperand::Vr(current_register.value);
         current_register.value++;
         auto dst = IROperand::Vr(current_register.value);
-        register_vr_type(src, param->var_type);
-        register_vr_type(dst, param->var_type);
-        insert_variable_symbol(current_table, param->var_identifier->name, dst.value, param->var_type, param->filename, param->line, param->position);
+        register_vr_type(src, param->symbol.type);
+        register_vr_type(dst, param->symbol.type);
+        symbol_id_to_vr.emplace(param->symbol.id, dst.value);
+        current_function.vrs_with_variables.insert(dst.value);
         emit_instruction(IRInstruction(IRInstructionType::REGISTER_ARG, dst, src, IROperand::Arg((int64_t)i)));
     }
 
@@ -113,8 +87,6 @@ void InstructionGenerator::visit_function(uptr<function>& func)
     {
         visit_statement(statement);
     }
-    
-    current_table = global_table;
 
     ir_unit.ir_functions.push_back(std::move(current_function));
 }
@@ -122,12 +94,12 @@ void InstructionGenerator::visit_function(uptr<function>& func)
 
 void InstructionGenerator::visit_function_call(uptr<function_call_expr>& function_call)
 {
-    FunctionSymbol& func_symbol = find_function_symbol(global_table, function_call->identifier->name, function_call->in_module, function_call->find_in_parent_modules); 
-
+    //FunctionSymbol& func_symbol = find_function_symbol(global_table, function_call->identifier->name, function_call->in_module, function_call->find_in_parent_modules); 
+    Symbol& func_symbol = function_call->symbol;
     const size_t param_count = function_call->parameters.size();
-    if ((param_count != func_symbol.parameter_types.size() && !func_symbol.has_varargs) || param_count < func_symbol.parameter_types.size())
+    if ((param_count != func_symbol.param_types.size() && !(func_symbol.flags | SF_VARARGS) ) || param_count < func_symbol.param_types.size())
     {
-        Logger::error(*function_call, HX_INVALID_ARGUMENTS, "Function call argument count does not match function signature");
+        Logger::error(*function_call, "Function call argument count does not match function signature");
     }
 
     std::vector<IROperand> arg_vregs;
@@ -143,18 +115,18 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         IROperand arg_vreg = arg_vregs[i];
         IRInstructionType mov_type;
         effective_register = arg_vreg;
-        if (i < func_symbol.parameter_types.size())
+        if (i < func_symbol.param_types.size())
         {
              mov_type = IRInstructionType::MOV_ARG;
-             emit_implicit_conversion(*function_call, arg_vreg, func_symbol.parameter_types[i]);
+             emit_implicit_conversion(*function_call, arg_vreg, func_symbol.param_types[i]);
         }
         else
         {
             mov_type = IRInstructionType::MOV_VARARG;
-            type_data vararg_type = get_vr_type(arg_vreg);
-            if (is_float_type(vararg_type) && vararg_type.byte_size == 4)
+            Type vararg_type = get_vr_type(arg_vreg);
+            if (is_float_type(vararg_type) && vararg_type.byte_size() == 4)
             {
-                emit_implicit_conversion(*function_call, arg_vreg, type_data{primitive_type::F64, 0});
+                emit_implicit_conversion(*function_call, arg_vreg, TYPE_F64);
             }
         }
         IRInstruction push_arg_instruction(mov_type, current_register, effective_register, {IROperandKind::ARG_NUMBER, (int64_t)i});
@@ -163,39 +135,26 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     }
 
     // call instruction
-    std::string function_full_name;
-    for (const auto& s : func_symbol.module_path)
-    {
-        function_full_name += s + ".";
-    }
-    function_full_name += function_call->identifier->name;
-    int64_t name_id = (int64_t)ir_unit.allocate_function_name(function_full_name);
+    int64_t name_id = (int64_t)ir_unit.allocate_function_name(function_call->name);
     IRInstruction call_instruction(IRInstructionType::FUNCTION_CALL, current_register, IROperand::Literal(name_id), IROperand::None());
-    register_vr_type(current_register, func_symbol.return_type);
+    register_vr_type(current_register, func_symbol.type);
     emit_instruction(call_instruction);
 
-    if (func_symbol.return_type.byte_size != 0)
+    if (func_symbol.type.byte_size() != 0)
     {
         IRInstruction mov(IRInstructionType::MOV, current_register, effective_register, IROperand::None());;
         register_vr_type(current_register, effective_register);
         emit_instruction(mov);
     }
 
-
 }
 
 void InstructionGenerator::visit_compound(uptr<compound_statement>& compound)
 {
-    current_table = get_compound_table(current_table);
-    
-
     for (auto& statement : compound->statements)
     {
         visit_statement(statement);
     }
-
-
-    current_table = current_table->parent_table;
 }
 
 void InstructionGenerator::visit_expression_s(uptr<expression_statement>& expr)
@@ -207,14 +166,14 @@ void InstructionGenerator::visit_string_literal(uptr<string_literal_expr>& strin
 {
     int64_t literal_location = (int64_t)ir_unit.allocate_string_literal(string_literal->value);
     IRInstruction load_string(IRInstructionType::LOAD_MEM_INDEX, current_register, IROperand::Literal(literal_location), IROperand::None());
-    register_vr_type(current_register, type_data{primitive_type::U8, 1});
+    register_vr_type(current_register, Type{PrimitiveType::U8, 1});
     emit_instruction(load_string);
 }
 void InstructionGenerator::visit_int_literal(uptr<int_literal_expr>& int_literal) 
 {
     int64_t int_value = std::stoll(int_literal->value);
     IRInstruction load_int(IRInstructionType::LOAD_IMMEDIATE, current_register, IROperand::Immediate(int_value), IROperand::None());
-    register_vr_type(current_register, type_data{primitive_type::I64, 0});
+    register_vr_type(current_register, TYPE_I64);
     emit_instruction(load_int);
 }
 
@@ -222,15 +181,14 @@ void InstructionGenerator::visit_float_literal(uptr<float_literal_expr>& float_l
 {
     int64_t literal_location = (int64_t)ir_unit.allocate_float64_literal(float_literal->value);
     IRInstruction load_float(IRInstructionType::LOAD_FLOAT64, current_register, IROperand::Literal(literal_location), IROperand::None());
-    register_vr_type(current_register, type_data{primitive_type::F64, 0});
+    register_vr_type(current_register, TYPE_F64);
     emit_instruction(load_float);
 }
 
 void InstructionGenerator::visit_identifier_literal(uptr<identifier_literal_expr>& identifier_literal)
 {
-    const VariableSymbol var_sym = find_variable_symbol(current_table, identifier_literal);
-    
-    IRInstruction mov(IRInstructionType::MOV, current_register, IROperand::Vr(var_sym.virtual_register), IROperand::None());
+    int64_t vr = symbol_id_to_vr.at(identifier_literal->symbol.id);
+    IRInstruction mov(IRInstructionType::MOV, current_register, IROperand::Vr(vr), IROperand::None());
     register_vr_type(current_register, mov.src1);
     emit_instruction(mov);
 }
@@ -239,8 +197,8 @@ void InstructionGenerator::visit_return(uptr<return_statement>& return_s)
 {
     // todo check current function return type
     visit_expression(return_s->return_expression);
-    if (current_function_node->type.byte_size != 0)
-        emit_implicit_conversion(*return_s, effective_register, current_function_node->type);
+    if (return_s->symbol.type.byte_size() != 0)
+        emit_implicit_conversion(*return_s, effective_register, return_s->symbol.type);
     IRInstruction return_inst(IRInstructionType::RETURN, current_register, effective_register, IROperand::None());
     register_vr_type(current_register, effective_register);
     
@@ -249,11 +207,9 @@ void InstructionGenerator::visit_return(uptr<return_statement>& return_s)
 
 void InstructionGenerator::visit_variable_declaration(uptr<variable_declaration_statement>& variable_declaration)
 {
-    insert_variable_symbol(current_table, variable_declaration->var_identifier->name, current_register.value,
-        variable_declaration->var_type, variable_declaration->filename, variable_declaration->line, variable_declaration->position);
-    
+    symbol_id_to_vr.emplace(variable_declaration->symbol.id, current_register.value);
     register_vr_type(current_register, variable_declaration->var_type);
-
+    current_function.vrs_with_variables.insert(current_register.value);
     effective_register = current_register;
     current_register.value++;
 }
@@ -270,21 +226,20 @@ void InstructionGenerator::visit_variable_definition(uptr<variable_definition_st
         expression_vr = effective_register;
     }
 
-    const VariableSymbol var_symbol = find_variable_symbol(current_table, variable_definition->declaration->var_identifier);
-
-    IRInstruction store(IRInstructionType::MOV, IROperand::Vr(var_symbol.virtual_register), expression_vr, IROperand::None());
+    int64_t vr = symbol_id_to_vr.at(variable_definition->declaration->symbol.id);
+    IRInstruction store(IRInstructionType::MOV, IROperand::Vr(vr), expression_vr, IROperand::None());
     emit_instruction(store, 0, false);
 
 }
 
-void InstructionGenerator::emit_implicit_conversion(const ast_node& node, IROperand vr, const type_data type_to)
+void InstructionGenerator::emit_implicit_conversion(const ast_node& node, IROperand vr, const Type& type_to)
 {
-    const type_data& type_from = get_vr_type(vr);
+    const Type& type_from = get_vr_type(vr);
 
     if (!is_implicit_conversion_possible(type_from, type_to))
     {
         //todo cool error text like from i32* to f32 or etc
-        Logger::error(node, HX_IMPLICIT_CONVERSION_NOT_POSSIBLE, "Implicit conversion not possible");
+        Logger::error(node, "Implicit conversion not possible");
     }
 
     effective_register = vr;
@@ -297,16 +252,16 @@ void InstructionGenerator::emit_implicit_conversion(const ast_node& node, IROper
     else if (is_float_type(type_from))
     {
         
-        if (type_to.byte_size == 8 && type_from.byte_size == 4)
+        if (type_to.byte_size() == 8 && type_from.byte_size() == 4)
         {
             IRInstruction conversion(IRInstructionType::CONVERT_F32_TO_F64, current_register, vr, IROperand::None());
-            register_vr_type(current_register, {primitive_type::F64, 0});
+            register_vr_type(current_register, TYPE_F64);
             emit_instruction(conversion);
         }
-        else if (type_to.byte_size == 4 && type_from.byte_size == 8)
+        else if (type_to.byte_size() == 4 && type_from.byte_size() == 8)
         {
             IRInstruction conversion(IRInstructionType::CONVERT_F64_TO_F32, current_register, vr, IROperand::None());
-            register_vr_type(current_register, {primitive_type::F32, 0});
+            register_vr_type(current_register, TYPE_F32);
             emit_instruction(conversion);
         }
         return;
@@ -369,29 +324,31 @@ void InstructionGenerator::emit_assignment(TokenType op_token, expression& left_
         overloads{
         [this, op_token, &right_register](uptr<identifier_literal_expr>& identifier)
         {
-            const VariableSymbol var_sym = find_variable_symbol(current_table, identifier);
-            emit_implicit_conversion(*identifier, right_register, var_sym.data_type);
-
-            IRInstruction write_var(IRInstructionType::MOV, IROperand::Vr(var_sym.virtual_register), effective_register, IROperand::None());
+            emit_implicit_conversion(*identifier, right_register, identifier->symbol.type);
+            int64_t vr = symbol_id_to_vr.at(identifier->symbol.id);
+            IRInstruction write_var(IRInstructionType::MOV, IROperand::Vr(vr), effective_register, IROperand::None());
             emit_instruction(write_var, 0);
         },
         [this, op_token, &right_register](uptr<unary_expr>& unary) 
         {
             if (unary->op_token != TokenType::MULTIPLY)
             {
-                Logger::error(*unary, HX_ILLEGAL_ASSIGNMENT, "Tried to assign a non-assignable value");
+                Logger::error(*unary, "Tried to assign a non-assignable value");
             }
 
             visit_expression(unary->expr);
             IROperand left_side = effective_register;
-
-            emit_implicit_conversion(*unary, right_register, get_vr_type(left_side).deref());
+            
+            auto try_deref = get_vr_type(left_side).deref();
+            if (!try_deref.has_value()) Logger::error(*unary, "Cannot dereference non-pointer type");
+            Type deref_type = try_deref.value();
+            emit_implicit_conversion(*unary, right_register, deref_type);
             IRInstruction write_mem(IRInstructionType::STORE_MEM, left_side, effective_register, IROperand::None());
             emit_instruction(write_mem, 0, false);
             
         },
 
-        [](auto& expr) { Logger::error(*expr, HX_ILLEGAL_ASSIGNMENT, "Tried to assign a non-assignable value"); }
+        [](auto& expr) { Logger::error(*expr, "Tried to assign a non-assignable value"); }
         }, left_side
     );
 }
@@ -403,7 +360,7 @@ IRInstructionType InstructionGenerator::get_ir_binop_instruction(TokenType op_to
     // FLOAT OPERATIONS
     if (is_float_type(data_type))
     {
-        if (data_type.byte_size == 4)
+        if (data_type.byte_size() == 4)
         {
             switch (op_token)
             {
@@ -421,27 +378,27 @@ IRInstructionType InstructionGenerator::get_ir_binop_instruction(TokenType op_to
                 break;
             case TokenType::DOUBLE_EQU:
                 ir_instruction_type = IRInstructionType::F32CMP_EQU;
-                register_vr_type(current_register, type_data{primitive_type::I8, 0});
+                register_vr_type(current_register, TYPE_I8);
                 break;
             case TokenType::NEQU:
                 ir_instruction_type = IRInstructionType::F32CMP_NEQU;
-                register_vr_type(current_register, type_data{primitive_type::I8, 0});
+                register_vr_type(current_register, TYPE_I8);
                 break;
             case TokenType::LT:
                 ir_instruction_type = IRInstructionType::F32CMP_LT;
-                register_vr_type(current_register, type_data{primitive_type::I8, 0});
+                register_vr_type(current_register, TYPE_I8);
                 break;
             case TokenType::GT:
                 ir_instruction_type = IRInstructionType::F32CMP_GT;
-                register_vr_type(current_register, type_data{primitive_type::I8, 0});
+                register_vr_type(current_register, TYPE_I8);
                 break;
             case TokenType::LTE:
                 ir_instruction_type = IRInstructionType::F32CMP_LTE;
-                register_vr_type(current_register, type_data{primitive_type::I8, 0});
+                register_vr_type(current_register, TYPE_I8);
                 break;
             case TokenType::GTE:
                 ir_instruction_type = IRInstructionType::F32CMP_GTE;
-                register_vr_type(current_register, type_data{primitive_type::I8, 0});
+                register_vr_type(current_register, TYPE_I8);
                 break;
             default:
                 goto unknown_binop_operator;
@@ -466,27 +423,27 @@ IRInstructionType InstructionGenerator::get_ir_binop_instruction(TokenType op_to
 
         case TokenType::DOUBLE_EQU:
             ir_instruction_type = IRInstructionType::F64CMP_EQU;
-            register_vr_type(current_register, type_data{primitive_type::I8, 0});
+            register_vr_type(current_register, TYPE_I8);
             break;
         case TokenType::NEQU:
             ir_instruction_type = IRInstructionType::F64CMP_NEQU;
-            register_vr_type(current_register, type_data{primitive_type::I8, 0});
+            register_vr_type(current_register, TYPE_I8);
             break;
         case TokenType::LT:
             ir_instruction_type = IRInstructionType::F64CMP_LT;
-            register_vr_type(current_register, type_data{primitive_type::I8, 0});
+            register_vr_type(current_register, TYPE_I8);
             break;
         case TokenType::GT:
             ir_instruction_type = IRInstructionType::F64CMP_GT;
-            register_vr_type(current_register, type_data{primitive_type::I8, 0});
+            register_vr_type(current_register, TYPE_I8);
             break;
         case TokenType::LTE:
             ir_instruction_type = IRInstructionType::F64CMP_LTE;
-            register_vr_type(current_register, type_data{primitive_type::I8, 0});
+            register_vr_type(current_register, TYPE_I8);
             break;
         case TokenType::GTE:
             ir_instruction_type = IRInstructionType::F64CMP_GTE;
-            register_vr_type(current_register, type_data{primitive_type::I8, 0});
+            register_vr_type(current_register, TYPE_I8);
             break;
 
         default:
@@ -516,27 +473,27 @@ IRInstructionType InstructionGenerator::get_ir_binop_instruction(TokenType op_to
         break;
     case TokenType::DOUBLE_EQU:
         ir_instruction_type = IRInstructionType::ICMP_EQU;
-        register_vr_type(current_register, type_data{primitive_type::I8, 0});
+        register_vr_type(current_register, TYPE_I8);
         break;
     case TokenType::NEQU:
         ir_instruction_type = IRInstructionType::ICMP_NEQU;
-        register_vr_type(current_register, type_data{primitive_type::I8, 0});
+        register_vr_type(current_register, TYPE_I8);
         break;
     case TokenType::LT:
         ir_instruction_type = IRInstructionType::ICMP_LT;
-        register_vr_type(current_register, type_data{primitive_type::I8, 0});
+        register_vr_type(current_register, TYPE_I8);
         break;
     case TokenType::GT:
         ir_instruction_type = IRInstructionType::ICMP_GT;
-        register_vr_type(current_register, type_data{primitive_type::I8, 0});
+        register_vr_type(current_register, TYPE_I8);
         break;
     case TokenType::LTE:
         ir_instruction_type = IRInstructionType::ICMP_LTE;
-        register_vr_type(current_register, type_data{primitive_type::I8, 0});
+        register_vr_type(current_register, TYPE_I8);
         break;
     case TokenType::GTE:
         ir_instruction_type = IRInstructionType::ICMP_GTE;
-        register_vr_type(current_register, type_data{primitive_type::I8, 0});
+        register_vr_type(current_register, TYPE_I8);
         break;
     case TokenType::BITWISE_AND:
         ir_instruction_type = IRInstructionType::BITWISE_AND;
@@ -562,7 +519,7 @@ IRInstructionType InstructionGenerator::get_ir_binop_instruction(TokenType op_to
     return ir_instruction_type;
     
 unknown_binop_operator:
-    Logger::error("", HX_UNKNOWN_OPERATOR, "Not a valid binop operator");
+    Logger::error(filename, line_number, column, "Not a valid binop operator");
 }
 
 void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
@@ -610,13 +567,13 @@ void InstructionGenerator::visit_unary(uptr<unary_expr>& unary)
     {
         if (!std::holds_alternative<uptr<identifier_literal_expr>>(unary->expr))
         {
-            Logger::error(*unary, HX_ILLEGAL_ADDR_OF, "Trying to get the address of a non-literal");
+            Logger::error(*unary, "Trying to get the address of a non-literal");
         }
         auto& identifier_literal = std::get<uptr<identifier_literal_expr>>(unary->expr);
-        VariableSymbol var_sym = find_variable_symbol(current_table, identifier_literal);
-        IROperand var_vr = IROperand::Vr(var_sym.virtual_register);
+        int64_t vr = symbol_id_to_vr.at(identifier_literal->symbol.id);
+        IROperand var_vr = IROperand::Vr(vr);
         IRInstruction addr_of(IRInstructionType::ADDR_OF, current_register, var_vr, IROperand::None());
-        register_vr_type(current_register, var_sym.data_type.get_ptr_type());
+        register_vr_type(current_register, identifier_literal->symbol.type.get_ptr());
         emit_instruction(addr_of);
         return;
     }
@@ -628,7 +585,10 @@ void InstructionGenerator::visit_unary(uptr<unary_expr>& unary)
     case TokenType::MULTIPLY:
     {
         IRInstruction deref(IRInstructionType::DEREF, current_register, effective_register, IROperand::None());
-        register_vr_type(current_register, get_vr_type(effective_register).deref());
+        auto try_deref = get_vr_type(effective_register).deref();
+        if (!try_deref.has_value()) Logger::error(*unary, "Cannot dereference non-pointer type");
+        Type deref_type = try_deref.value();
+        register_vr_type(current_register, deref_type);
         emit_instruction(deref);
         break;
     }
@@ -655,11 +615,11 @@ void InstructionGenerator::visit_unary(uptr<unary_expr>& unary)
         emit_instruction(mov_zero, 0, false);
         IRInstruction end_label_inst(IRInstructionType::LABEL, IROperand::None(), IROperand::None(), end_label);
         emit_instruction(end_label_inst, 0, false);
-        register_vr_type(effective_register, type_data(primitive_type::I8, 0)); 
+        register_vr_type(effective_register, TYPE_I8); 
         break;
     }
     default:
-        Logger::error(*unary, HX_UNKNOWN_OPERATOR, "Unknown unary operator");
+        Logger::error(*unary, "Unknown unary operator");
     }
 
 }
@@ -704,8 +664,6 @@ void InstructionGenerator::visit_while(uptr<while_statement>& while_s)
     loop_continue_label = begin_label;
     loop_break_label = end_label;
 
-    current_table = get_compound_table(current_table);
-
     IRInstruction begin_label_inst(IRInstructionType::LABEL, IROperand::None(), IROperand::None(), begin_label);
     emit_instruction(begin_label_inst, 0, false);
 
@@ -726,7 +684,6 @@ void InstructionGenerator::visit_while(uptr<while_statement>& while_s)
     loop_continue_label = previous_continue_label;
     loop_break_label = previous_break_label;
 
-    current_table = current_table->parent_table;
 }
 
 void InstructionGenerator::visit_for(uptr<for_statement>& for_s)
@@ -742,7 +699,6 @@ void InstructionGenerator::visit_for(uptr<for_statement>& for_s)
     loop_continue_label = iteration_label;
     loop_break_label = end_label;
 
-    current_table = get_compound_table(current_table);
     visit_statement(for_s->init);  
 
     IRInstruction begin_label_inst(IRInstructionType::LABEL, IROperand::None(), IROperand::None(), begin_label);
@@ -764,19 +720,18 @@ void InstructionGenerator::visit_for(uptr<for_statement>& for_s)
     loop_continue_label = previous_continue_label;
     loop_break_label = previous_break_label;
 
-    current_table = current_table->parent_table;
 }
 
 void InstructionGenerator::visit_break(uptr<break_statement>& break_s) 
 {
-    if (loop_break_label.kind == IROperandKind::NONE) Logger::error(*break_s, HX_STATEMENT_NOT_IN_LOOP, "break statement not inside a loop");
+    if (loop_break_label.kind == IROperandKind::NONE) Logger::error(*break_s, "break statement not inside a loop");
     IRInstruction jmp(IRInstructionType::JMP, IROperand::None(), IROperand::None(), loop_break_label);
     emit_instruction(jmp, 0, false);
 }
 
 void InstructionGenerator::visit_continue(uptr<continue_statement>& continue_s)
 {
-    if (loop_continue_label.kind == IROperandKind::NONE) Logger::error(*continue_s, HX_STATEMENT_NOT_IN_LOOP, "continue statement not inside a loop");
+    if (loop_continue_label.kind == IROperandKind::NONE) Logger::error(*continue_s, "continue statement not inside a loop");
     IRInstruction jmp(IRInstructionType::JMP, IROperand::None(), IROperand::None(), loop_continue_label);
     emit_instruction(jmp, 0, false);
 }
@@ -837,7 +792,7 @@ void InstructionGenerator::visit_logical_binop(TokenType op_token, expression& l
         IRInstruction end_label_inst(IRInstructionType::LABEL, IROperand::None(), IROperand::None(), end_label);
         emit_instruction(end_label_inst, 0, false);
 
-        register_vr_type(effective_register, type_data{primitive_type::I8, 0});
+        register_vr_type(effective_register, TYPE_I8);
         return;
     }
     if (op_token == TokenType::LOGICAL_OR)
@@ -865,7 +820,7 @@ void InstructionGenerator::visit_logical_binop(TokenType op_token, expression& l
         IRInstruction end_label_inst(IRInstructionType::LABEL, IROperand::None(), IROperand::None(), end_label);
         emit_instruction(end_label_inst, 0, false);
 
-        register_vr_type(effective_register, type_data{primitive_type::I8, 0});
+        register_vr_type(effective_register, TYPE_I8);
         return;
     }
 

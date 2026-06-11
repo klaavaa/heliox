@@ -1,8 +1,5 @@
 #pragma once
 
-#include "heliox_expression.hpp"
-#include "heliox_statement.hpp"
-#include "heliox_token.hpp"
 #include "heliox_program.hpp"
 
 namespace hx {
@@ -11,13 +8,12 @@ class Parser
 
 public:
     Parser(std::vector<Token>& tokens);
-    
-    uptr<TranslationUnit> parse_translation_unit();
+
+    TranslationUnit parse_translation_unit();
 
 private:	
-    void parse_module();
-
-    uptr<function> parse_function();
+    statement parse_toplevel_statement();
+    uptr<function_statement> parse_function();
     expression parse_identifier();
     uptr<identifier_literal_expr> parse_identifier_literal();
     uptr<string_literal_expr> parse_string_literal();
@@ -30,9 +26,10 @@ private:
     
     expression parse_unary();
 
+    uptr<variable_definition_statement> parse_variable_definition();
     uptr<variable_declaration_statement> parse_variable_declaration();
-
-    type_data parse_type();
+    
+    Type parse_type();
 	
     statement parse_statement();
     uptr<compound_statement> parse_compound_statement();
@@ -64,13 +61,8 @@ private:
     size_t m_current_token_index = 0;
     Token m_current_token;
 
-    sptr<Module> global_module;
-    sptr<Module> m_current_module;
 
-    std::vector<uptr<import_statement>> imports;
-    
     bool in_module_block = false;
-
     uint32_t relevant_line;
     uint32_t relevant_position;
     bool equal_sign_in_current_expression = false;

@@ -1,85 +1,102 @@
 #pragma once
-
-#include "heliox_types.hpp"
-#include "heliox_program.hpp"
-#include "heliox_pointer.hpp"
-#include "heliox_error.hpp"
-
-#include <string>
-#include <vector>
 #include <cstdint>
-#include <unordered_map>
+#include <string>
+#include <optional>
+#include <vector>
+#include <algorithm>
+#include "typedefs.hpp"
+#include "heliox_types.hpp"
 
 namespace hx
 {
-    struct VariableSymbol
+
+inline constexpr uint8_t SF_EXTERN =  1 << 1;
+inline constexpr uint8_t SF_VARARGS = 1 << 2;
+
+enum class SymbolKind
+{
+    TYPEDEF,
+    VARIABLE,
+    FUNCTION
+};
+
+struct Symbol
+{
+    SymbolKind kind;
+    std::string name;
+    Type type;
+    uint8_t flags{0};
+    
+    std::vector<Type> param_types;
+    
+    uint32_t id;
+    
+    static Symbol Function(const std::string name, Type return_type, std::vector<Type> param_types, uint8_t flags={});
+    static Symbol Variable(const std::string name, Type type, uint8_t flags={});
+    static Symbol Typedef(const std::string name, Type type, uint8_t flags={});
+};
+
+struct Scope : std::enable_shared_from_this<Scope>
+{
+    std::string name;
+    sptr<Scope> parent;
+    std::vector<Symbol> symbols;
+    std::vector<sptr<Scope>> child_scopes;
+    std::vector<sptr<Scope>> using_scopes;
+    
+    sptr<Scope> get_child();
+    
+    // returns whether symbol was succesfully inserted 
+    bool insert_symbol(Symbol symbol);
+    bool symbol_exists_in_current_scope(const std::string& name);
+    
+    void use_scope(sptr<Scope> scope);
+    
+
+    // look for symbol of kind "kind"
+    template <SymbolKind kind>
+    requires (kind == SymbolKind::TYPEDEF 
+           || kind == SymbolKind::VARIABLE 
+           || kind == SymbolKind::FUNCTION)
+    std::optional<Symbol*> find_symbol(const std::string& name)
     {
-        int64_t virtual_register;
-        type_data data_type; 
-        std::string_view filename;
-        uint32_t line_number;
-        uint32_t position;
-    };
-
-    struct FunctionSymbol
-    {
-        type_data return_type; 
-        std::vector<type_data> parameter_types;
-        bool has_varargs;
-        std::vector<std::string> module_path;
-
-        bool imported_function;
-
-        std::string_view filename;
-        uint32_t line_number;
-        uint32_t position;
-    };
-
-
-    struct SymbolTable
-    {
-        SymbolTable() = default;
-        std::unordered_map<std::string, VariableSymbol> variable_symbols; 
-        std::unordered_map<std::string, FunctionSymbol> function_symbols; 
-
-        sptr<SymbolTable> parent_table = nullptr;
-        std::unordered_map<std::string, sptr<SymbolTable>> child_tables;
-        std::unordered_map<std::string, sptr<SymbolTable>> submodule_tables;
-    };
-
-    void insert_variable_symbol(sptr<SymbolTable> table, const std::string& name, int64_t virtual_register, const type_data& data_type, std::string_view filename, uint32_t line_number, uint32_t position);
-    void insert_function_symbol(sptr<SymbolTable> table, const std::string& name, const type_data& return_type, const std::vector<type_data>& parameter_types, bool has_varargs, const std::vector<std::string>& module_path, bool imported_function, std::string_view filename, uint32_t line_number, uint32_t position);
-    sptr<SymbolTable> find_submodule_table(sptr<SymbolTable> table, const std::vector<std::string>& module_path);
-    sptr<SymbolTable> get_or_create_submodule_table(sptr<SymbolTable> table, const std::string& module_name);
-    void insert_module(sptr<SymbolTable> table, sptr<Module> module, bool is_import);
-    FunctionSymbol& find_function_symbol(sptr<SymbolTable> table, const std::string& name, const std::vector<std::string>& module_path, bool find_in_parent_modules);
-    sptr<SymbolTable> add_child_table(sptr<SymbolTable> parent, const std::string& name);
-    sptr<SymbolTable> get_compound_table(sptr<SymbolTable> current_table);
-    void close_compound_table(sptr<SymbolTable> compound_table);
-    sptr<SymbolTable> create_global_table_for_translation_unit(const uptr<TranslationUnit>& tu, const uptr<Program>& program);
-
-    VariableSymbol& find_variable_symbol(sptr<SymbolTable> table, const uptr<identifier_literal_expr>& identifier);
-
-    bool table_has_variable_with_vr(sptr<SymbolTable> table, int64_t vr);
-
-    std::vector<std::string> table_get_all_imported_functions(sptr<SymbolTable> table, std::string module_path);
-
-    inline void print_table(sptr<SymbolTable> table)
-    {
-        for (auto& [n, f] : table->function_symbols)
+        auto it = std::find_if(symbols.begin(), symbols.end(), 
+               [&name](const Symbol& s){return s.name == name; });
+        if (it != symbols.end() && it->kind == kind) return &*it;
+        
+        for (const auto& scope : using_scopes)
         {
-            std::println("{}()", n);
+            auto s = scope->find_symbol<kind>(name);
+            if (s.has_value()) return s;
         }
-        for (auto& [n, t] : table->submodule_tables)
-        {
-            std::println("submodule_table: {}", n);
-            print_table(t);
-        }
-        for (auto& [n, t] : table->child_tables)
-        {
-            std::println("child_table: {}", n);
-            print_table(t);
-        }
+
+        if (parent)
+            return parent->find_symbol<kind>(name);
+
+        return std::nullopt;
     }
+
+    std::optional<Symbol*> find_function_symbol(const std::string& name);
+    std::optional<Symbol*> find_variable_symbol(const std::string& name);
+    std::optional<Symbol*> find_typedef_symbol(const std::string& name);
+
+};
+
+inline sptr<Scope> create_program_scope()
+{
+   sptr<Scope> program_scope = std::make_shared<Scope>(); 
+   program_scope->name = "program"; 
+   for (auto& [str, pt] : primitive_type_map)
+   {
+       Symbol s;
+       s.kind = SymbolKind::TYPEDEF;
+       s.name = str;
+       s.type = Type{pt, 0};
+       program_scope->insert_symbol(s);
+   }
+
+  return program_scope;
+}
+
 
 } // namespace hx

@@ -9,7 +9,7 @@ namespace hx
 class InstructionGenerator : public Visitor
 {
 public:
-    InstructionGenerator(uptr<TranslationUnit> _translation_unit, sptr<SymbolTable> _global_table);    
+    InstructionGenerator(TranslationUnit& _translation_unit);    
 
     IRUnit generate_instructions();
 
@@ -20,16 +20,15 @@ private:
         
     IRInstructionType get_ir_binop_instruction(TokenType op_token, IROperand left_register);
 
-    void register_vr_type(IROperand vr, const type_data& type);
+    void register_vr_type(IROperand vr, const Type& type);
     void register_vr_type(IROperand vr, IROperand from_vr);
 
     bool has_vr_type(IROperand vr);
 
-    const type_data& get_vr_type(IROperand vr) const;
+    const Type& get_vr_type(IROperand vr) const;
 
-    std::string get_module_prefix() const;
 
-    void visit_function(uptr<function>& func) override;
+    void visit_function(uptr<function_statement>& func) override;
     void visit_int_literal(uptr<int_literal_expr>& int_literal) override;
     void visit_float_literal(uptr<float_literal_expr>& float_literal) override;
     void visit_string_literal(uptr<string_literal_expr>& string_literal) override;
@@ -37,7 +36,6 @@ private:
     void visit_binop(uptr<binop_expr>& binop) override;
     void visit_unary(uptr<unary_expr>& unary) override;
     void visit_function_call(uptr<function_call_expr>& function_call) override;
-    void visit_explicit_conversion(uptr<explicit_conversion_expr>& explicit_conversion) override {}
     void visit_compound(uptr<compound_statement>& compound) override;
     void visit_return(uptr<return_statement>& return_s) override;
     void visit_variable_declaration(uptr<variable_declaration_statement>& variable_declaration) override;
@@ -46,27 +44,21 @@ private:
     void visit_while(uptr<while_statement>& while_s) override;
     void visit_for(uptr<for_statement>& for_s) override;
     void visit_expression_s(uptr<expression_statement>& expr) override;
-    void visit_noop_s([[maybe_unused]]uptr<noop_statement>& noop) override {}
-    void visit_noop_e([[maybe_unused]]uptr<noop_expression>& noop) override{}
-    void visit_import([[maybe_unused]]uptr<import_statement>& import_s) override{}
 
     void visit_break(uptr<break_statement>& break_s) override;
     void visit_continue(uptr<continue_statement>& continue_s) override;
 
     void visit_asm(uptr<asm_statement>& asm_s) override;
 
-    void emit_implicit_conversion(const ast_node& node, IROperand vr, const type_data type_to);
+    void emit_implicit_conversion(const ast_node& node, IROperand vr, const Type& type_to);
 
     void visit_logical_binop(TokenType op_token, expression& left, expression& right);
 
 private:
-    uptr<TranslationUnit> translation_unit;
-    sptr<SymbolTable> global_table;
-    sptr<SymbolTable> current_table;
+    TranslationUnit& translation_unit;
 
     IRUnit ir_unit;
     IRFunction current_function;
-    function* current_function_node;
 
     IROperand current_register = {IROperandKind::VIRTUAL_REGISTER, 0};
     IROperand effective_register = {IROperandKind::VIRTUAL_REGISTER, 0};
@@ -74,6 +66,8 @@ private:
     int64_t next_label = 0;
     IROperand loop_continue_label = IROperand::None();
     IROperand loop_break_label = IROperand::None();
+
+    std::unordered_map<uint32_t, int64_t> symbol_id_to_vr;
 };
 
 

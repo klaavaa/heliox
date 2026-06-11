@@ -294,7 +294,7 @@ inline std::string get_register(Register reg, uint32_t byte_size)
             Logger::not_implemented();
         }
     default:
-        Logger::error("", HX_ILLEGAL_REG_SIZE, std::format("tried to get a register of size: {} ({})", byte_size, (int)reg));
+        Logger::error("", std::format("tried to get a register of size: {} ({})", byte_size, (int)reg));
     }
 }
 

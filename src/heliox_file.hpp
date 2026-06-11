@@ -4,7 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include "heliox_error.hpp"
-#include "heliox_pointer.hpp"
+#include "typedefs.hpp"
 
 std::string load_hx_file(const std::string& file_path)
 {
@@ -19,7 +19,7 @@ std::string load_hx_file(const std::string& file_path)
 	}
 	else
 	{
-        hx::Logger::error(file_path, HX_FILE_OPEN_ERROR, "Error opening file for reading");
+        hx::Logger::error(file_path, "Error opening file for reading");
 	}
 	
 	return buffer.str();
@@ -45,7 +45,7 @@ void create_assembly_file(const std::string& file_path, const std::string& assem
 	}
 	else
 	{
-		hx::Logger::error(file_path, HX_FILE_OPEN_ERROR, "Error opening file for writing");
+		hx::Logger::error(file_path, "Error opening file for writing");
 	}
 }
 

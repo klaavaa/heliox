@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include <print>
 
 #include "heliox_compile_flags.hpp"
 
@@ -10,11 +9,11 @@
 #include "heliox_error.hpp"
 #include "heliox_file.hpp"
 
-#include "heliox_symbol_table.hpp"
+#include "heliox_symbol_visitor.hpp"
 #include "heliox_instruction_gen.hpp"
 #include "heliox_liveness_analysis.hpp"
-#include "heliox_register_allocation.hpp"
-#include "heliox_code_generation.hpp"
+//#include "heliox_register_allocation.hpp"
+//#include "heliox_code_generation.hpp"
 
 
 
@@ -31,13 +30,14 @@ inline void compile(const std::vector<std::string>& file_paths)
 
     std::vector<uptr<Program>> programs;
     std::vector<std::string> stripped_file_paths;
-    std::vector<uptr<TranslationUnit>> translation_units;
+    std::vector<TranslationUnit> translation_units;
     
+
     for (const auto& file_path : file_paths)
     {
     if (file_path.substr(file_path.size() - 4) != ".hlx")
     {
-        Logger::error(file_path, HX_NOT_HELIOX_FILE, "File is not a .hlx file");
+        Logger::error(file_path, "File is not a .hlx file");
     }
 
     // get last part of absolute path (example home/dir1/dir2/file.hlx -> file.hlx)
@@ -58,34 +58,34 @@ inline void compile(const std::vector<std::string>& file_paths)
     } */
     Lexer lexer(text, file_path);
     std::vector<Token> tokens = lexer.tokenize();
-    Parser parser = Parser(tokens);
+    Parser parser(tokens);
 
-    uptr<TranslationUnit> tu = parser.parse_translation_unit(); 
+    TranslationUnit tu = parser.parse_translation_unit(); 
     translation_units.push_back(std::move(tu));
     }  
     
     // Creates a program which contains all modules
-    uptr<Program> program = std::make_unique<Program>(translation_units);
+    Program program(translation_units);
+    
+    SymbolVisitor symbol_visitor(program);
+    symbol_visitor.populate_toplevel_symbols();
+    symbol_visitor.populate_rest_of_symbols_and_resolve_types();
+
     size_t i = 0;
-
-
     for (auto& tu : translation_units)
     {
-        //Logger::info("generating IR for '{}'", tu->filename);
-        // create a symbol table for each translation unit
-        // the imports are handled here by fetching imported symbols from program's global module
-        auto global_table = create_global_table_for_translation_unit(tu, program);
-
-        //print_table(global_table);
         // generate IR instructions
-        InstructionGenerator instruction_gen(std::move(tu), global_table);
+        InstructionGenerator instruction_gen(tu);
         
         IRUnit ir_unit = instruction_gen.generate_instructions();
-        //print_ir_unit(ir_unit);
-
+        
+        print_ir_unit(ir_unit);
+        
         // generate live-ranges for virtual registers
-        perform_liveness_analysis_on_unit(ir_unit, global_table);
-        //print_live_ranges(ir_unit);
+        perform_liveness_analysis_on_unit(ir_unit);
+        print_live_ranges(ir_unit);
+
+        /*
         // preallocate certain registers / stack
 
         // perform register allocation
@@ -103,9 +103,10 @@ inline void compile(const std::vector<std::string>& file_paths)
             asm_output_file = flags.output_file;
         }
         create_assembly_file(asm_output_file, generated_nasm);
-        i++;
+        */
+        i++;        
     }
-
+    /*
     if (flags.compile_only)
     {
         return;
@@ -156,6 +157,7 @@ inline void compile(const std::vector<std::string>& file_paths)
 #else
     std::system(std::format("gcc -no-pie {} -o {}", object_files, output_executable).c_str());
 #endif
+    */
 }
 }
 

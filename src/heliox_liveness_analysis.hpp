@@ -2,14 +2,13 @@
 
 #include "heliox_program.hpp"
 #include "heliox_instructions.hpp"
-#include "heliox_symbol_table.hpp"
 
 namespace hx
 {
 
 
-void perform_liveness_analysis_on_function(IRFunction& ir_function, sptr<SymbolTable> table);
-void perform_liveness_analysis_on_unit(IRUnit& ir_unit, sptr<SymbolTable> global_table);
+void perform_liveness_analysis_on_function(IRFunction& ir_function);
+void perform_liveness_analysis_on_unit(IRUnit& ir_unit);
 
 inline void print_live_ranges(IRUnit& ir_unit)
 {

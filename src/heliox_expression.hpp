@@ -3,10 +3,11 @@
 #include <string>
 #include <variant>
 #include <vector>
-#include "heliox_pointer.hpp"
-#include "heliox_types.hpp"
+#include "typedefs.hpp"
 #include "heliox_token.hpp"
 #include "heliox_ast_node.hpp"
+#include "heliox_symbol_table.hpp"
+
 namespace hx
 {
 
@@ -54,13 +55,13 @@ struct string_literal_expr : ast_node
 };
 
 struct identifier_literal_expr : ast_node
-
 {
-    identifier_literal_expr(std::string_view filename, uint32_t line, uint32_t position, std::string name, std::vector<std::string> module_path = {})
-        : ast_node(filename, line, position), name(name), module_path(std::move(module_path)) {}
+    identifier_literal_expr(std::string_view filename, uint32_t line, uint32_t position, std::string name)
+        : ast_node(filename, line, position), name(name) {}
     std::string name;
-    std::vector<std::string> module_path;
+    Symbol symbol;
 };
+
 struct binop_expr : ast_node
 {
     binop_expr(std::string_view filename, uint32_t line, uint32_t position, expression left, expression right, TokenType op_token)
@@ -78,28 +79,21 @@ struct unary_expr : ast_node
 };
 struct function_call_expr : ast_node
 {
-    function_call_expr(std::string_view filename, uint32_t line, uint32_t position, uptr<identifier_literal_expr> _identifier,
-            std::vector<expression> parameters, std::vector<std::string> _in_module)
-        : ast_node(filename, line, position), identifier(std::move(_identifier)),
-          parameters(std::move(parameters)),
-          in_module(std::move(_in_module)) 
-          {
-            find_in_parent_modules = identifier->module_path.empty();
-            if (!find_in_parent_modules)
-                in_module = identifier->module_path; 
-          }
-    uptr<identifier_literal_expr> identifier;
+    function_call_expr(std::string_view filename, uint32_t line, uint32_t position, std::string name, std::vector<expression> parameters)
+        : ast_node(filename, line, position), name(name),
+          parameters(std::move(parameters))
+          {}
+    std::string name;
     std::vector<expression> parameters;
-    std::vector<std::string> in_module;
-    bool find_in_parent_modules;
+    Symbol symbol;
 };
 
 struct explicit_conversion_expr : ast_node
 {
-    explicit_conversion_expr(std::string_view filename, uint32_t line, uint32_t position, type_data type_info, expression expr)
-        : ast_node(filename, line, position), type_info(type_info), expr(std::move(expr)) {}
+    explicit_conversion_expr(std::string_view filename, uint32_t line, uint32_t position, std::string _type, expression expr)
+        : ast_node(filename, line, position), type(_type), expr(std::move(expr)) {}
 
-    type_data type_info;
+    std::string type;
     expression expr;
 };
 

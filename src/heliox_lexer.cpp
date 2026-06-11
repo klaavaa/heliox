@@ -82,7 +82,7 @@ Token Lexer::get_next()
                 advance();
                 if ((m_cur_char == -1) || (peek_next(0) == -1) || (peek_next(1) == -1))
                 {
-                    Logger::error(m_filename, m_line_number, m_line_position, HX_UNTERMINATED_STRING_LITERAL, "Unminated string literal");
+                    Logger::error(m_filename, m_line_number, m_line_position, "Unminated string literal");
                 }
                 if ((m_cur_char == HX_QUOT_MARK) && (peek_next(0) == HX_QUOT_MARK) && (peek_next(1) == HX_QUOT_MARK))
                 {
@@ -113,7 +113,7 @@ Token Lexer::get_next()
             }
             if (peek_next() == -1 || peek_next() == HX_NEWLINE)
             {
-                Logger::error(m_filename, m_line_number, m_line_position, HX_UNTERMINATED_STRING_LITERAL, "Unterminated string literal");
+                Logger::error(m_filename, m_line_number, m_line_position, "Unterminated string literal");
             }
             advance();
             s += m_cur_char;
@@ -217,7 +217,7 @@ Token Lexer::get_next()
             return get_next();
 
         error_label:
-            Logger::error(m_filename, start_line, start_position, HX_UNTERMINATED_MULTILINE_COMMENT, "Unterminated multiline comment, no matching '*/' found");
+            Logger::error(m_filename, start_line, start_position, "Unterminated multiline comment, no matching '*/' found");
 
         }
         
@@ -367,7 +367,7 @@ Token Lexer::get_next()
         return make_number();
     }
     
-    Logger::error(m_filename, m_line_number, m_line_position, HX_UNRECONIZED_CHARACTER, "Unrecognized character");
+    Logger::error(m_filename, m_line_number, m_line_position, "Unrecognized character");
 }
 
 Token Lexer::make_number()
@@ -383,7 +383,7 @@ Token Lexer::make_number()
         {
             if (!is_int)
             {
-                Logger::error(m_filename, m_line_number, m_line_position, HX_INVALID_FLOAT_LITERAL, "Invalid float literal, more than 1 dot found");
+                Logger::error(m_filename, m_line_number, m_line_position, "Invalid float literal, more than 1 dot found");
             }
             is_int = false;
         }

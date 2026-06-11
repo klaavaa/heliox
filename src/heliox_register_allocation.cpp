@@ -414,6 +414,7 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
             preallocate_register(ir_function, instruction.dst.value, Register::A, asm_block.clobbered_registers); 
             break;
         }
+        case IRInstructionType::IMUL:
         case IRInstructionType::IDIV:
             preallocate_register(ir_function, instruction.src1.value, Register::A, {Register::D});
             break;
@@ -422,7 +423,6 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
             break;
         case IRInstructionType::IADD:
         case IRInstructionType::ISUB:
-        case IRInstructionType::IMUL:
         case IRInstructionType::F32ADD:
         case IRInstructionType::F64ADD:
         case IRInstructionType::F32SUB:

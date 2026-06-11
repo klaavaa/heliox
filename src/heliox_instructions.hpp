@@ -281,11 +281,14 @@ struct IRFunction
     std::string name;
     bool is_extern;
     std::vector<IRInstruction> instructions{};
-    std::unordered_map<int64_t, type_data> virtual_register_types;
+    std::unordered_map<int64_t, Type> virtual_register_types;
     std::map<int64_t, LiveRange> live_ranges;
     std::map<int64_t, Location> virtual_register_locations;
 
     std::map<int64_t, RegisterReservation> register_reservations;
+    
+    std::set<int64_t> vrs_with_variables;
+    std::unordered_map<uint32_t, int64_t> symbol_id_to_vr;
 
     int64_t total_stack_allocated = 0;
 };

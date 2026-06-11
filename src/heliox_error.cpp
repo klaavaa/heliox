@@ -3,31 +3,31 @@
 
 namespace hx {
 
-void Logger::error(std::string_view filename, int error_code, std::string_view info)
+void Logger::error(std::string_view filename, std::string_view info)
 {
-	std::println(stderr, "{}(): error {}: {}", filename, error_code, info);
-	exit(error_code);
+	std::println(stderr, "{}(): error: {}", filename, info);
+	exit(1);
 }
 
-void Logger::error(std::string_view filename, uint32_t line, uint32_t position, int error_code, std::string_view info)
+void Logger::error(std::string_view filename, uint32_t line, uint32_t position, std::string_view info)
 {
-	std::println(stderr, "{}({}:{}): error {}: {}", filename, line, position, error_code, info);
-	exit(error_code);
+	std::println(stderr, "{}({}:{}): error: {}", filename, line, position, info);
+	exit(1);
 }
 
-void Logger::error(const Token& token, int error_code, std::string_view info)
+void Logger::error(const Token& token, std::string_view info)
 {
-	error(token.filename, token.line, token.position, error_code, info);
+	error(token.filename, token.line, token.position, info);
 }
 	
-void Logger::error(const ast_node& node, int error_code, std::string_view info)
+void Logger::error(const ast_node& node, std::string_view info)
 {
-	error(node.filename, node.line, node.position, error_code, info);
+	error(node.filename, node.line, node.position, info);
 }
 
-void Logger::warning(Token& token, int warning_code, std::string_view info)
+void Logger::warning(Token& token, std::string_view info)
 {
-	std::println(stderr, "{}({}:{}): warning {}: {}", token.filename, token.line, token.position, warning_code, info);
+	std::println(stderr, "{}({}:{}): warning: {}", token.filename, token.line, token.position, info);
 }
 
 

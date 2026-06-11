@@ -1,5 +1,5 @@
 #include "heliox_visitor.hpp"
-
+#include <print>
 
     
 namespace hx
@@ -9,34 +9,25 @@ namespace hx
     Visitor::~Visitor() = default;
 
 
-    void Visitor::visit_program(uptr<Program>& prog)
+    void Visitor::visit_program(Program& prog)
     {
-        visit_module(prog->global_module);
+        for (auto& unit : prog.translation_units)
+            visit_translation_unit(unit);
     }
 
-    void Visitor::visit_module(sptr<Module>& module)
+    void Visitor::visit_translation_unit(TranslationUnit& unit)
     {
-        if (!module->name.empty())
-        {
-            current_module_path.push_back(module->name);
-        }
-        for (auto& func : module->functions)
-        {
-            visit_function(func);
-        }
-        for (auto& [name, submodule] : module->submodules)
-        {
-            visit_module(submodule);
-        }
-        if (!current_module_path.empty())
-        {
-            current_module_path.pop_back();
-        }
-
+        filename = unit.filename;
+        for (auto& statement : unit.statements)
+            visit_statement(statement);
     }
+
 
     void Visitor::visit_expression(expression& expr)
-  {
+    {
+        auto* const ast_node = as_ast_node(expr);
+        line_number = ast_node->line;
+        column = ast_node->position;
         std::visit(overloads{
             [this](uptr<int_literal_expr>& int_literal)
             {visit_int_literal(int_literal);},
@@ -61,6 +52,10 @@ namespace hx
 
     void Visitor::visit_statement(statement& stat)
     {
+        auto* const ast_node = as_ast_node(stat);
+        line_number = ast_node->line;
+        column = ast_node->position;
+
         std::visit(overloads{
            [this](uptr<compound_statement>& compound)
             { visit_compound(compound);},
@@ -80,15 +75,23 @@ namespace hx
             { visit_expression_s(expression_s);},
            [this](uptr<noop_statement>& noop_s)
             { visit_noop_s(noop_s); },
-           [this](uptr<import_statement>& import_s)
-            { visit_import(import_s); },
            [this](uptr<break_statement>& break_s)
             { visit_break(break_s); },
            [this](uptr<continue_statement>& continue_s)
             { visit_continue(continue_s); },
            [this](uptr<asm_statement>& asm_s)
-            { visit_asm(asm_s); }
+            { visit_asm(asm_s); },
+           [this](uptr<function_statement>& func_s)
+            { visit_function(func_s); }
             }, stat);
     }
     
+    const ast_node* Visitor::as_ast_node(expression& expr) const
+    {
+        return std::visit([](auto& e) -> ast_node* { return e.get(); }, expr);
+    }
+    const ast_node* Visitor::as_ast_node(statement& stat) const
+    {
+        return std::visit([](auto& s) -> ast_node* { return s.get(); }, stat);
+    }
 }

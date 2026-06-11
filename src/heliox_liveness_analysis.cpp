@@ -4,7 +4,7 @@ namespace hx
 {
 
 
-void perform_liveness_analysis_on_function(IRFunction& ir_function, sptr<SymbolTable> table)
+void perform_liveness_analysis_on_function(IRFunction& ir_function)
 {
     //todo LOOP
     
@@ -56,7 +56,7 @@ void perform_liveness_analysis_on_function(IRFunction& ir_function, sptr<SymbolT
                 
                 for (auto& [vr, live_range] : live_ranges)
                 {
-                    if (!table_has_variable_with_vr(table, vr)) continue;
+                    if (!ir_function.vrs_with_variables.contains(vr)) continue;
                     if (live_range.end > label_numbers.at(instruction.src2.value))
                     {
                         live_range.end = instruction_number;
@@ -86,13 +86,12 @@ void perform_liveness_analysis_on_function(IRFunction& ir_function, sptr<SymbolT
 }
 
 
-void perform_liveness_analysis_on_unit(IRUnit& ir_unit, sptr<SymbolTable> global_table)
+void perform_liveness_analysis_on_unit(IRUnit& ir_unit)
 {
     for (auto& ir_function : ir_unit.ir_functions)
     {
-        if (!global_table->child_tables.contains(ir_function.name)) continue; //func doesnt have body 
-        sptr<SymbolTable> current_table = global_table->child_tables.at(ir_function.name);
-        perform_liveness_analysis_on_function(ir_function, current_table);
+        if (ir_function.instructions.empty()) continue;
+        perform_liveness_analysis_on_function(ir_function);
     }
 }
 

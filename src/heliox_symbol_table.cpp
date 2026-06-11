@@ -2,166 +2,60 @@
 
 namespace hx {
 
+uint32_t SYMBOL_ID = 0;
 
-void insert_variable_symbol(sptr<SymbolTable> table, const std::string& name, int64_t virtual_register, const type_data& data_type, std::string_view filename, uint32_t line_number, uint32_t position)
+Symbol Symbol::Function(const std::string name, Type return_type, std::vector<Type> param_types, uint8_t flags)
 {
-    if (table->variable_symbols.contains(name))
-    {
-        Logger::error(filename, line_number, position, HX_SYMBOL_REDEFINITION, "Variable with this name already exists in current scope");
-    }
-
-    VariableSymbol symbol{virtual_register, data_type, filename, line_number, position};
-    table->variable_symbols.insert({name, symbol});
+    return Symbol{.kind = SymbolKind::FUNCTION, .name = name, .type = return_type, .flags = flags, .param_types = param_types, .id = SYMBOL_ID++};
 }
 
-void insert_function_symbol(sptr<SymbolTable> table, const std::string &name, const type_data &return_type, const std::vector<type_data> &parameter_types, bool has_varargs, const std::vector<std::string> &module_path, bool imported_function, std::string_view filename, uint32_t line_number, uint32_t position)
+Symbol Symbol::Variable(const std::string name, Type type, uint8_t flags)
 {
-    if (table->function_symbols.contains(name))
-    {
-        Logger::error(filename, line_number, position, HX_SYMBOL_REDEFINITION, "Function with this name already exists");
-    }
-    FunctionSymbol symbol{return_type, parameter_types, has_varargs, module_path, imported_function, filename, line_number, position};
-    table->function_symbols.insert({name, symbol});
+    return Symbol{.kind = SymbolKind::VARIABLE, .name = name, .type = type, .flags = flags, .id = SYMBOL_ID++};
 }
 
-sptr<SymbolTable> find_submodule_table(sptr<SymbolTable> table, const std::vector<std::string> &module_path)
+Symbol Symbol::Typedef(const std::string name, Type type, uint8_t flags)
 {
-    sptr<SymbolTable> current_table = table;
-    for (const auto &module_name : module_path)
-    {
-        if (!current_table->submodule_tables.contains(module_name))
-        {
-            Logger::error("", HX_MODULE_NOT_FOUND, "Module not found");
-        }
-        current_table = current_table->submodule_tables.at(module_name);
-    }
-    return current_table;
+    return Symbol{.kind = SymbolKind::VARIABLE, .name = name, .type = type, .flags = flags, .id = SYMBOL_ID++};
 }
 
-sptr<SymbolTable> get_or_create_submodule_table(sptr<SymbolTable> table, const std::string &module_name)
+sptr<Scope> Scope::get_child()
 {
-    if (module_name.empty())
-        return table;
-    if (table->submodule_tables.contains(module_name))
-    {
-        return table->submodule_tables.at(module_name);
-    }
-    sptr<SymbolTable> submodule_table = std::make_shared<SymbolTable>();
-    submodule_table->parent_table = table;
-    table->submodule_tables.insert({module_name, submodule_table});
-    return submodule_table;
+    sptr<Scope> table = std::make_shared<Scope>();
+    table->parent = shared_from_this();
+    child_scopes.push_back(table);
+    return table;
+};
+
+
+bool Scope::symbol_exists_in_current_scope(const std::string& name)
+{
+   return std::find_if(symbols.begin(), symbols.end(), 
+               [&name](const Symbol& s){return s.name == name; }) != symbols.end();
 }
 
-void insert_module(sptr<SymbolTable> table, sptr<Module> module, bool is_import)
+bool Scope::insert_symbol(Symbol symbol)
 {
-    sptr<SymbolTable> submodule_table = get_or_create_submodule_table(table, module->name);
-    for (auto& func : module->functions)
-    {
-        insert_function_symbol(submodule_table, func->identifier->name, func->type, func->get_parameter_type_data(),
-            func->has_varargs, module->get_module_path(), is_import, func->filename, func->line_number, func->position);
-    }
-    for (const auto& [name, submodule] : module->submodules)
-    {
-        insert_module(submodule_table, submodule, is_import);
-    }
+    if (symbol_exists_in_current_scope(symbol.name)) return false;
+    symbols.emplace_back(symbol);
+    return true;
 }
 
-FunctionSymbol& find_function_symbol(sptr<SymbolTable> table, const std::string& name, const std::vector<std::string>& module_path, bool find_in_parent_modules)
+void Scope::use_scope(sptr<Scope> scope)
 {
-    sptr<SymbolTable> submodule_table = find_submodule_table(table, module_path);
-
-    do
-    { 
-    if (submodule_table->function_symbols.contains(name))
-    {
-        return submodule_table->function_symbols.at(name);
-    }
-    } while(find_in_parent_modules && (submodule_table = submodule_table->parent_table));
-
-    Logger::error("", HX_SYMBOL_NOT_FOUND, "Function not found");
+    using_scopes.push_back(scope);
 }
 
-VariableSymbol& find_variable_symbol(sptr<SymbolTable> table, const uptr<identifier_literal_expr>& identifier)
+std::optional<Symbol*> Scope::find_function_symbol(const std::string& name)
 {
-    const std::string& name = identifier->name;
-    if (table->variable_symbols.contains(name)) 
-    {
-        return table->variable_symbols.at(name);
-    }
-    else if (table->parent_table)
-    {
-        return find_variable_symbol(table->parent_table, identifier);
-    }
-    Logger::error(*identifier, HX_SYMBOL_NOT_FOUND, "Variable not found");
-
+    return find_symbol<SymbolKind::FUNCTION>(name);
 }
-
-sptr<SymbolTable> add_child_table(sptr<SymbolTable> parent, const std::string& name)
+std::optional<Symbol*> Scope::find_variable_symbol(const std::string& name)
 {
-    sptr<SymbolTable> child = std::make_shared<SymbolTable>();
-    child->parent_table = parent;
-    parent->child_tables.insert({name, child});
-    return child;
+    return find_symbol<SymbolKind::VARIABLE>(name);
 }
-
-sptr<SymbolTable> get_compound_table(sptr<SymbolTable> current_table)
+std::optional<Symbol*> Scope::find_typedef_symbol(const std::string& name)
 {
-    sptr<SymbolTable> compound_table = std::make_shared<SymbolTable>();
-    compound_table->parent_table = current_table;
-    return compound_table;
+    return find_symbol<SymbolKind::TYPEDEF>(name);
 }
-
-
-sptr<SymbolTable> create_global_table_for_translation_unit(const uptr<TranslationUnit>& tu, const uptr<Program>& program)
-{
-    sptr<SymbolTable> global_table = std::make_shared<SymbolTable>();
-    insert_module(global_table, tu->global_module, false);
-    for (const auto& import : tu->imports)
-    {
-        std::vector<std::string> module_path = import->module_path->module_path;
-        sptr<SymbolTable> module_table = global_table;
-        for (const auto& mod_name : module_path)
-        {
-            if (global_table->submodule_tables.contains(mod_name))
-            {
-                module_table = global_table->submodule_tables.at(mod_name);
-                continue;
-            }
-            sptr<SymbolTable> new_table = std::make_shared<SymbolTable>();
-            module_table->submodule_tables.insert({mod_name, new_table});
-            module_table = new_table;
-        }
-        module_path.push_back(import->module_path->name);
-        sptr<Module> module = program->global_module->find_submodule(module_path);
-        insert_module(module_table, module, true);
-    }
-    return global_table;
-}
-
-bool table_has_variable_with_vr(sptr<SymbolTable> table, int64_t vr)
-{
-    for (auto& [_, sym] : table->variable_symbols)
-    {
-        if (sym.virtual_register == vr) return true;
-    }
-    return false;
-}
-std::vector<std::string> table_get_all_imported_functions(sptr<SymbolTable> table, std::string module_path)
-{
-    std::vector<std::string> function_names;
-    for (auto& [name, sym] : table->function_symbols)
-    {
-        if (sym.imported_function)
-        {
-            function_names.push_back(module_path + name);
-        }
-    }
-    for (auto& [name, subtable] : table->submodule_tables)
-    {
-        std::vector<std::string> v = table_get_all_imported_functions(subtable, module_path + name + ".");
-        function_names.insert(function_names.end(), v.begin(), v.end());
-    }
-    return function_names;
-}
-
 } // namespace hx

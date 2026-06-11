@@ -1,129 +1,50 @@
 #include "heliox_parser.hpp"
-#include "heliox_expression.hpp"
 #include "heliox_keywords.hpp"
-#include "heliox_statement.hpp"
-#include "heliox_token.hpp"
-#include "heliox_types.hpp"
 #include "heliox_operator.hpp"
 #include <memory>
-#include <print>
 
 namespace hx 
 {
 Parser::Parser(std::vector<Token>& tokens)
 	:
     m_tokens(tokens),
-    m_current_token(tokens[0]),
-    global_module(std::make_shared<Module>()),
-    m_current_module(global_module)
+    m_current_token(tokens[0])
+
 {
     m_current_token_index++;
 }
 
-uptr<TranslationUnit> Parser::parse_translation_unit()
+
+TranslationUnit Parser::parse_translation_unit()
 {
-    //std::vector<uptr<function>> functions;
-
-    //sptr<Module> current_module = std::make_shared<Module>();
-
+    std::vector<statement> statements;
     while (m_current_token.type != TokenType::END_OF_FILE)
     {
-        parse_module();
+        statements.push_back(parse_toplevel_statement());
     }
 
-    return std::make_unique<TranslationUnit>(std::move(global_module), std::move(imports), m_current_token.filename);
-
+    return TranslationUnit(m_current_token.filename, statements);
 }
 
-void Parser::parse_module()
-{
-    switch (m_current_token.type) 
-     {
-        case TokenType::KEYWORD:
-        {
-            KeyWord kword = get_kword_from_string(m_current_token.value);
-            switch (kword) 
-            {
-                case KeyWord::FUN:
-                case KeyWord::EXTERN:
-                    m_current_module->insert_function(parse_function());
-                    break;
-                case KeyWord::MODULE:
-                {
-                    if (!in_module_block)
-                    {
-                        m_current_module = global_module;
-                    }
 
-                    eat(TokenType::KEYWORD);
-                    if (m_current_token.type == TokenType::SEMICOLON)
-                    {
-                        eat(TokenType::SEMICOLON);
-                        return;
-                    }
-                    m_current_module = create_or_get_submodule(m_current_module, m_current_token.value);
-                    eat(TokenType::IDENTIFIER);
-                    while (m_current_token.type == TokenType::COLON)
-                    {
-                        eat(TokenType::COLON);
-                        eat(TokenType::COLON);
-                        m_current_module = create_or_get_submodule(m_current_module, m_current_token.value);
-                        eat(TokenType::IDENTIFIER);
-                    }
-                    if (m_current_token.type == TokenType::L_BRACE)
-                    {
-                        bool was_in_module_block = in_module_block;
-                        eat(TokenType::L_BRACE);
-                        in_module_block = true;
-                        parse_module();
-                        eat(TokenType::R_BRACE);
-                        in_module_block = was_in_module_block;
-                        m_current_module = m_current_module->parent_module;
-                        return;
-                    }
-                    eat(TokenType::SEMICOLON);
-                    return;
-                }
-                case KeyWord::IMPORT:
-                {
-                    eat(TokenType::KEYWORD);
-                    uptr<identifier_literal_expr> module_path = parse_identifier_literal();
-                    imports.push_back(make_node<import_statement>(std::move(module_path))); 
-                    eat(TokenType::SEMICOLON);
-                    break;
-                }
-                case KeyWord::STRUCT:
-                {
-                    eat(TokenType::KEYWORD);
-                    uptr<identifier_literal_expr> struct_name = parse_identifier_literal();
-                    std::vector<uptr<variable_declaration_statement>> declarations;
-                    eat(TokenType::L_BRACE);
-                    while (m_current_token.type != TokenType::R_BRACE)
-                    {
-                        declarations.push_back(parse_variable_declaration());
-                        eat(TokenType::SEMICOLON);
-                    }
-                    eat(TokenType::R_BRACE);
-                    eat(TokenType::SEMICOLON);
-                    
-                    m_current_module->structs.push_back(std::make_unique<struct_declaration>(std::move(declarations)));
-                    break;
-                }
-                default:
-                {
-                    Logger::error(m_current_token, HX_UNEXPECTED_KEYWORD, "Unexpected keyword");
-                }
-            }
-            break;
-            }
-        default:
+statement Parser::parse_toplevel_statement()
+{
+    if (m_current_token.type == TokenType::KEYWORD)
+    {
+        KeyWord key = get_kword_from_string(m_current_token.value);
+        switch (key)
         {
-            Logger::error(m_current_token, HX_UNEXPECTED_TOKEN, "Unexpected token");
+        case KeyWord::FUN:
+        case KeyWord::EXTERN:
+            return parse_function();
+        default:
+            Logger::not_implemented();
         }
     }
+    Logger::not_implemented();
 }
 
-uptr<function> Parser::parse_function()
+uptr<function_statement> Parser::parse_function()
 {
     uint32_t fun_line = m_current_token.line;
     uint32_t fun_position = m_current_token.position;
@@ -140,7 +61,7 @@ uptr<function> Parser::parse_function()
     }
     if (kword != KeyWord::FUN)
     {
-        Logger::error(m_current_token, HX_UNEXPECTED_KEYWORD, "Expected 'fun' keyword at start of function definition");
+        Logger::error(m_current_token, "Expected 'fun' keyword at start of function definition");
     }
     eat(TokenType::KEYWORD);
     
@@ -161,21 +82,11 @@ uptr<function> Parser::parse_function()
                 eat(TokenType::DOTDOTDOT);
                 if (m_current_token.type != TokenType::R_PAREN)
                 {
-                    hx::Logger::error(m_current_token, HX_VARARGS_NOT_LAST_ARG, "Varargs must be the last parameter of a function");
+                    Logger::error(m_current_token, "Varargs must be the last parameter of a function");
                 }
                 break;
             }
-            type_data td = parse_type(); 
-            
-            if (m_current_token.type == TokenType::IDENTIFIER)
-            {
-                parameters.emplace_back(make_node<variable_declaration_statement>(td, parse_identifier_literal()));
-            }
-            else
-            {
-                parameters.emplace_back(make_node<variable_declaration_statement>(td,
-                            make_node<identifier_literal_expr>("")));
-            }
+            parameters.push_back(parse_variable_declaration());
 
             if (m_current_token.type == TokenType::R_PAREN)
             {
@@ -185,21 +96,24 @@ uptr<function> Parser::parse_function()
         }
     }
     eat(TokenType::R_PAREN);
-
-    type_data td = parse_type(); 
+    Type return_type; 
+    if (m_current_token.type == TokenType::IDENTIFIER)
+        return_type = parse_type(); 
+    else 
+        return_type = Type::Primitive(PrimitiveType::VOID, 0);
     
     if (m_current_token.type == TokenType::SEMICOLON)
     {
         eat(TokenType::SEMICOLON);
-        if (is_extern)
-            return std::make_unique<function>(std::move(identifier), std::move(parameters),
-                    std::move(std::vector<statement>{}), td, is_extern, varargs, m_current_token.filename, fun_line, fun_position);
-        return std::make_unique<function>(std::move(identifier), std::move(parameters),
-                std::move(std::vector<statement>{}), td, is_extern, varargs, m_current_token.filename, fun_line, fun_position);
+        relevant_line = fun_line;
+        relevant_position = fun_position;
+        return make_node<function_statement>(identifier->name, std::move(parameters),
+                std::move(std::vector<statement>{}), return_type, is_extern, varargs);
     }
+
     if (is_extern)
     {
-        Logger::error(m_current_token, HX_EXTERN_FUNC_WITH_BODY, "Extern function defined with a body"); 
+        Logger::error(m_current_token, "Extern function defined with a body"); 
     }
     eat(TokenType::L_BRACE);
     std::vector<statement> statements;
@@ -208,27 +122,17 @@ uptr<function> Parser::parse_function()
         statements.push_back(parse_statement());
     }
     eat(TokenType::R_BRACE);
-    return std::make_unique<function>(std::move(identifier), std::move(parameters),
-           std::move(statements), td, is_extern, varargs, m_current_token.filename, fun_line, fun_position);
+    relevant_line = fun_line;
+    relevant_position = fun_position;
+    return make_node<function_statement>(identifier->name, std::move(parameters),
+           std::move(statements), return_type, is_extern, varargs);
 }
 
 uptr<identifier_literal_expr> Parser::parse_identifier_literal()
 {
-    std::vector<std::string> name_parts{};
-    name_parts.push_back(m_current_token.value);
+    std::string name = m_current_token.value;
     eat(TokenType::IDENTIFIER);
-    while (m_current_token.type == TokenType::COLON)
-    {
-        eat(TokenType::COLON);
-        eat(TokenType::COLON);
-        name_parts.push_back(m_current_token.value);
-        eat(TokenType::IDENTIFIER);
-    }
-    if (name_parts.size() == 1)
-        return make_node<identifier_literal_expr>(name_parts.front());
-    std::string name = name_parts.back();
-    name_parts.pop_back();
-    return make_node<identifier_literal_expr>(name, name_parts);
+    return make_node<identifier_literal_expr>(name);
 }
 expression Parser::parse_identifier()
 {
@@ -271,10 +175,9 @@ expression Parser::parse_identifier()
         }
         eat(TokenType::R_PAREN);
 
-        std::vector<std::string> module_path = m_current_module->get_module_path();
 
         return make_node<function_call_expr>(
-                std::move(identifier), std::move(expressions), std::move(module_path));
+                identifier->name, std::move(expressions));
     }
     return identifier;
 }
@@ -334,7 +237,7 @@ expression Parser::parse_primary()
         }
 
     default:
-        Logger::error(m_current_token, HX_UNEXPECTED_TOKEN, "Unexpected token, expected primary expression");
+        Logger::error(m_current_token, "Unexpected token, expected primary expression");
     }
 
 }
@@ -350,7 +253,7 @@ expression Parser::parse_expression_from_primary(expression primary, uint32_t mi
         {
             if (equal_sign_in_current_expression)
             {
-                Logger::error(m_current_token, HX_MULTIPLE_EQUAL_SIGNS_IN_EXPRESSION, "Multiple equal signs in expression");
+                Logger::error(m_current_token, "Multiple equal signs in expression");
             }
             equal_sign_in_current_expression = true;
         }
@@ -381,26 +284,35 @@ expression Parser::parse_expression()
     return parse_expression_from_primary(parse_unary(), 0);
 }
 
-type_data Parser::parse_type()
+
+Type Parser::parse_type()
 {
-    primitive_type pt = get_primitive_type_from_string(m_current_token.value);
-    eat(TokenType::IDENTIFIER);
-     
+    if (m_current_token.type != TokenType::IDENTIFIER)
+        return Type::Unresolved("auto", 0);
+    std::string type_name = parse_identifier_literal()->name;
     uint32_t ptr_depth = 0;
     while (m_current_token.type == TokenType::MULTIPLY)
     {
-        ptr_depth++;
+        ptr_depth++; 
         eat(TokenType::MULTIPLY);
     }
-    return type_data(pt, ptr_depth);
-
+    return Type::Unresolved(type_name, ptr_depth);
 }
 
 uptr<variable_declaration_statement> Parser::parse_variable_declaration()
 {
-    type_data td = parse_type(); 
-    uptr<identifier_literal_expr> identifier = parse_identifier_literal();
-    return make_node<variable_declaration_statement>(td, std::move(identifier));
+    std::string name = parse_identifier_literal()->name;
+    eat(TokenType::COLON);
+    Type type = parse_type(); 
+    return make_node<variable_declaration_statement>(name, type);
+}
+
+uptr<variable_definition_statement> Parser::parse_variable_definition()
+{
+    auto declaration = parse_variable_declaration();
+    eat(TokenType::EQU);
+    auto expression = parse_expression();
+    return make_node<variable_definition_statement>(std::move(declaration), std::move(expression));
 }
 
 statement Parser::parse_statement()
@@ -416,19 +328,18 @@ statement Parser::parse_statement()
         case TokenType::SEMICOLON:
             eat(TokenType::SEMICOLON);
             return make_node<noop_statement>();
-    // assume it is an expression statement if none of the above      
         default:
             if (m_current_token.type == TokenType::IDENTIFIER)
             {
-                size_t index_to_peek_next = 0;
-                while (peek_next(index_to_peek_next).type == TokenType::MULTIPLY)
+                if (peek_next().type == TokenType::COLON)
                 {
-                    index_to_peek_next += 1;
-                }
-                if (peek_next(index_to_peek_next).type == TokenType::IDENTIFIER &&
-                    ((peek_next(index_to_peek_next + 1).type == TokenType::EQU) || (peek_next(index_to_peek_next + 1).type == TokenType::SEMICOLON)))
-                {
-                    return parse_type_statement();
+                    auto declaration = parse_variable_declaration();
+                    if (m_current_token.type == TokenType::SEMICOLON)
+                        return declaration;
+                    eat(TokenType::EQU);
+                    auto def = make_node<variable_definition_statement>(std::move(declaration), parse_expression());
+                    eat(TokenType::SEMICOLON);
+                    return def;
                 }
             }
             equal_sign_in_current_expression = false;
@@ -458,7 +369,7 @@ statement Parser::parse_keyword_statement()
         case KeyWord::ASM:
             return parse_asm_statement();
     default:
-        Logger::error(m_current_token, HX_UNEXPECTED_KEYWORD, "Unexpected keyword in statement");
+        Logger::error(m_current_token, "Unexpected keyword in statement");
     }
 } 
 
@@ -573,27 +484,6 @@ uptr<asm_statement> Parser::parse_asm_statement()
     return make_node<asm_statement>(std::move(clobber), std::move(asm_body));
 }
 
-statement Parser::parse_type_statement()
-{
-    // checked before calling whether it has value
-    type_data type = parse_type();
-    uptr<identifier_literal_expr> identifier = parse_identifier_literal();
-    uptr<variable_declaration_statement> declaration = 
-        make_node<variable_declaration_statement>(type, std::move(identifier));
-
-    if (m_current_token.type == TokenType::EQU)
-    {
-        eat(TokenType::EQU);
-        equal_sign_in_current_expression = true;
-        expression definition = parse_expression();
-        eat(TokenType::SEMICOLON);
-        return make_node<variable_definition_statement>
-            (std::move(declaration), std::move(definition));
-
-    }
-    eat(TokenType::SEMICOLON);
-    return declaration;
-}
 
 
 
@@ -618,7 +508,7 @@ void Parser::eat(TokenType token_type)
     if (m_current_token.type != token_type)
     {
         // TODO: unexpected token error
-        Logger::error(m_current_token, HX_UNEXPECTED_TOKEN, "Unexpected token");
+        Logger::error(m_current_token, std::format("Unexpected token {}", m_current_token.value));
     }
     relevant_line = m_current_token.line; 
     relevant_position = m_current_token.position;

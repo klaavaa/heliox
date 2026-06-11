@@ -31,6 +31,7 @@ bool is_valid_binary_operator(TokenType token_type)
     case TokenType::BITWISE_XOR:
     case TokenType::SHIFT_LEFT:
     case TokenType::SHIFT_RIGHT:
+    case TokenType::DOT:
         return true;
 
 
@@ -94,6 +95,8 @@ uint32_t get_binop_precedence_level(TokenType token_type)
         case TokenType::DIVIDE:
         case TokenType::MODULO:
             return 14;
+        case TokenType::DOT:
+            return 15;
         
         default:
             return 0; // not a binop
@@ -145,6 +148,7 @@ op_associativity get_binop_associativity(TokenType token_type)
     case TokenType::MINUS:
     case TokenType::DIVIDE:
     case TokenType::MULTIPLY:
+    case TokenType::DOT:
 		return op_associativity::LEFT_TO_RIGHT;
 
 	default: // not a bin op

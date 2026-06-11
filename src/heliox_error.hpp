@@ -5,43 +5,6 @@
 #include "heliox_token.hpp"
 #include "heliox_ast_node.hpp"
 
-#define HX_TODO 999
-
-#define HX_NOT_HELIOX_FILE 1
-#define HX_FILE_OPEN_ERROR 2
-
-#define HX_UNRECONIZED_CHARACTER 10
-#define HX_UNTERMINATED_STRING_LITERAL 11 
-#define HX_UNTERMINATED_MULTILINE_COMMENT 12 
-#define HX_INVALID_FLOAT_LITERAL 13
-
-#define HX_VARARGS_NOT_LAST_ARG 99
-#define HX_EXTERN_FUNC_WITH_BODY 100
-#define HX_NOT_PRIMITIVE_TYPE 101
-#define HX_UNEXPECTED_TOKEN 102
-#define HX_UNEXPECTED_KEYWORD 103
-#define HX_MULTIPLE_EQUAL_SIGNS_IN_EXPRESSION 104
-
-#define HX_SYMBOL_REDEFINITION 200
-#define HX_SYMBOL_NOT_FOUND 201
-#define HX_MODULE_NOT_FOUND 202
-
-#define HX_INVALID_ARGUMENTS 300
-#define HX_STATEMENT_NOT_IN_LOOP 301
-#define HX_IMPLICIT_CONVERSION_NOT_POSSIBLE 301
-#define HX_ILLEGAL_SIZE 350
-
-#define HX_UNKNOWN_OPERATOR 359
-#define HX_ILLEGAL_BINARY_OPERATION 360
-
-#define HX_ILLEGAL_ASSIGNMENT 369
-
-#define HX_ILLEGAL_DEREF 380
-#define HX_ILLEGAL_ADDR_OF 381
-
-#define HX_ILLEGAL_REG_SIZE 500
-#define HX_ILLEGAL_LOCATION 501
-
 namespace hx 
 {
 
@@ -49,10 +12,10 @@ namespace hx
 class Logger
 {
 public:
-	[[noreturn]] static void error(std::string_view filename, int error_code, std::string_view info);
-	[[noreturn]] static void error(std::string_view filename, uint32_t line, uint32_t position, int error_code, std::string_view info);
-	[[noreturn]] static void error(const Token& token, int error_code,std::string_view info);	
-	[[noreturn]] static void error(const ast_node& node, int error_code, std::string_view info);
+	[[noreturn]] static void error(std::string_view filename, std::string_view info);
+	[[noreturn]] static void error(std::string_view filename, uint32_t line, uint32_t position, std::string_view info);
+	[[noreturn]] static void error(const Token& token, std::string_view info);	
+	[[noreturn]] static void error(const ast_node& node, std::string_view info);
 
 
 	template<typename... Args>
@@ -64,11 +27,21 @@ public:
 	}
 
 
-	static void warning(Token& token, int warning_code,std::string_view info);
+	static void warning(Token& token, std::string_view info);
 
 	[[noreturn]] static void not_implemented(std::source_location location = std::source_location::current())
 	{
 		std::println(stderr, "{}({}:{}): {}: NOT IMPLEMENTED", location.file_name(), location.line(), location.column(), location.function_name());
+		exit(-1);
+	}
+	[[noreturn]] static void internal_error(std::source_location location = std::source_location::current())
+	{
+		std::println(stderr, "{}({}:{}): {}: INTERNAL ERROR", location.file_name(), location.line(), location.column(), location.function_name());
+		exit(-1);
+	}
+	[[noreturn]] static void todo_error(std::source_location location = std::source_location::current())
+	{
+		std::println(stderr, "{}({}:{}): {}: TODO ERROR", location.file_name(), location.line(), location.column(), location.function_name());
 		exit(-1);
 	}
 
