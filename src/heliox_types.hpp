@@ -30,7 +30,8 @@ enum struct PrimitiveType
 
 struct StructType 
 {
-    Scope* scope;
+    sptr<Scope> scope;
+    uint32_t byte_size;
 };
 
 using UnresolvedType = std::string;
@@ -42,6 +43,7 @@ struct Type
 {
     static Type Unresolved(const UnresolvedType& name, uint32_t ptr_depth) { return Type{name, ptr_depth}; }
     static Type Primitive(PrimitiveType basic, uint32_t ptr_depth) { return Type{basic, ptr_depth}; }
+    static Type Struct(StructType struct_type) { return Type{struct_type, 0}; }
 
     BaseType base;
     uint32_t ptr_depth;
@@ -52,7 +54,7 @@ struct Type
         if (ptr_depth != 0) return 8;
         return std::visit(
         overloads{
-            [](PrimitiveType primitive_type) 
+            [](PrimitiveType primitive_type) -> uint32_t 
             {
             switch (primitive_type)
             {
@@ -72,12 +74,11 @@ struct Type
                 case PrimitiveType::VOID: return 0;
             }
             },
-            []([[maybe_unused]]const StructType& struct_type)
+            [](const StructType& struct_type) -> uint32_t
             {
-                Logger::not_implemented();
-                return 0;
+                return struct_type.byte_size;
            },
-            [] (const UnresolvedType& unresolved_type){
+            [] (const UnresolvedType& unresolved_type) -> uint32_t {
                 Logger::error("", std::format("unresolved type: {}", unresolved_type)); 
                 return 0; 
             }
@@ -97,12 +98,14 @@ struct Type
                 const PrimitiveType bt = std::get<PrimitiveType>(b.base);
                 return (at == bt) && (a.ptr_depth == b.ptr_depth);
             },
+
             [](auto&&)
             {
             // TODO
             Logger::not_implemented();
             return false;
             }
+
             },
             a.base);
     }

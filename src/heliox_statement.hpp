@@ -22,6 +22,7 @@ namespace hx {
     struct continue_statement;
     struct asm_statement;
     struct function_statement;
+    struct struct_statement;
 
     using statement = std::variant<
         uptr<compound_statement>,
@@ -36,7 +37,8 @@ namespace hx {
         uptr<break_statement>,
         uptr<continue_statement>,
         uptr<asm_statement>,
-        uptr<function_statement>
+        uptr<function_statement>,
+        uptr<struct_statement>
         >;
     
     struct asm_statement : ast_node 
@@ -162,6 +164,20 @@ namespace hx {
         Type return_type;
         bool is_extern;
         bool has_varargs;
+        Symbol* symbol;
+    };
+
+    struct struct_statement : ast_node
+    {
+        struct_statement(std::string_view filename, uint32_t line, uint32_t position, std::string name, std::vector<uptr<variable_declaration_statement>> fields)
+            :
+            ast_node(filename, line, position),
+            name(name),
+            fields(std::move(fields))
+        {}
+
+        std::string name;
+        std::vector<uptr<variable_declaration_statement>> fields;
         Symbol* symbol;
     };
 }

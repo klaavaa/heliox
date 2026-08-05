@@ -82,7 +82,9 @@ namespace hx
            [this](uptr<asm_statement>& asm_s)
             { visit_asm(asm_s); },
            [this](uptr<function_statement>& func_s)
-            { visit_function(func_s); }
+            { visit_function(func_s); },
+           [this](uptr<struct_statement>& struct_s)
+            { visit_struct(struct_s); }
             }, stat);
     }
     

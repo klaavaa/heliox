@@ -1,8 +1,8 @@
-extern fun printf(u8* str, ...) void;
+extern fun printf(str: u8*, ...) void;
 
 fun main() i32
 {
-    i32 i = 0; 
+    i: i32 = 0; 
     while i < 10
     {
         printf("%d\n\0", i);

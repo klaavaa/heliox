@@ -95,8 +95,6 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
 {
     //FunctionSymbol& func_symbol = find_function_symbol(global_table, function_call->identifier->name, function_call->in_module, function_call->find_in_parent_modules); 
     Symbol& func_symbol = *function_call->symbol;
-    std::println("visiting function call -> {}", func_symbol.name);
-    std::println("func type btzsz {}", func_symbol.type.byte_size());
     const size_t param_count = function_call->parameters.size();
     if ((param_count != func_symbol.param_types.size() && !(func_symbol.flags | SF_VARARGS) ) || param_count < func_symbol.param_types.size())
     {
@@ -107,15 +105,12 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     // parameter instructions
     for (size_t i = 0; i < param_count; i++)
     {
-        std::println("HERE {}", i);
         auto& param = function_call->parameters[i];
-        std::println("HERE {}", i);
         visit_expression(param);
         arg_vregs.push_back(effective_register);
     }
     for (size_t i = 0; i < arg_vregs.size(); i++)
     {
-        std::println("HERE {}", i);
         IROperand arg_vreg = arg_vregs[i];
         IRInstructionType mov_type;
         effective_register = arg_vreg;
@@ -123,7 +118,6 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         {
              mov_type = IRInstructionType::MOV_ARG;
              emit_implicit_conversion(*function_call, arg_vreg, func_symbol.param_types[i]);
-            std::println("HERE {}", i);
         }
         else
         {
@@ -134,11 +128,9 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
                 emit_implicit_conversion(*function_call, arg_vreg, TYPE_F64);
             }
         }
-            std::println("HERE {}", i);
         IRInstruction push_arg_instruction(mov_type, current_register, effective_register, {IROperandKind::ARG_NUMBER, (int64_t)i});
         register_vr_type(current_register, effective_register);
         emit_instruction(push_arg_instruction);
-            std::println("HERE {}", i);
     }
 
     // call instruction
@@ -354,7 +346,14 @@ void InstructionGenerator::emit_assignment(TokenType op_token, expression& left_
             emit_instruction(write_mem, 0, false);
             
         },
+        [this, op_token, &right_register](uptr<binop_expr>& binary)
+        {
+            if (binary->op_token != TokenType::DOT)
+            {
+                Logger::error(*binary, "Tried to assign a non-assignable value");
+            }
 
+        },
         [](auto& expr) { Logger::error(*expr, "Tried to assign a non-assignable value"); }
         }, left_side
     );

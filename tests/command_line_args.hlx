@@ -1,8 +1,8 @@
-extern fun printf(u8* str, ...) void;
+extern fun printf(str: u8*, ...) void;
 
-fun main(i64 argc, u8** argv) i32
+fun main(argc: i64, argv: u8**) i32
 {
-    i64 i = 0;
+    i: i64 = 0;
     while (i < argc)
     {
         printf("%d: %s\n\0", i, *(argv+8*i));

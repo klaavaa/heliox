@@ -1,6 +1,6 @@
-extern fun printf(u8* str, ...) void;
+extern fun printf(str: u8*, ...) void;
 
-fun add_floats(f64 a, f64 b, f64 c, f32 d, f64 e, f32 f, f64 g) f32
+fun add_floats(a:f64, b:f64, c:f64, d:f32, e:f64 , f:f32 , g:f64 ) f32
 {
     return a + b+c+d+e+f+g;
 }

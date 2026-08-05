@@ -1,15 +1,15 @@
-extern fun printf(u8* str, ...) void;
+extern fun printf(str: u8*, ...) void;
 
 
 fun main() i32
 {
 
-    i32 a = 0;
-    i32 b = 1;
+    a: i32 = 0;
+    b: i32 = 1;
 
-    for (i32 i = 0; i < 25; i += 1)
+    for (i: i32 = 0; i < 25; i += 1)
     {
-        i32 next = a + b;
+        next: i32 = a + b;
         a = b;
         b = next;
     }

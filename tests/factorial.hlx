@@ -1,6 +1,6 @@
-extern fun printf(u8* str, ...) void;
+extern fun printf(str: u8*, ...) void;
 
-fun factorial(i32 x) i32
+fun factorial(x: i32) i32
 {
     if (x <= 1) 
     {
@@ -9,9 +9,9 @@ fun factorial(i32 x) i32
     return x * factorial(x - 1);
 }
 
-fun main(i32 argc, u8** argv) i32
+fun main(argc: i32, argv: u8** ) i32
 {
-    i32 x = 12;
+    x: i32 = 12;
     printf("%d\n\0", factorial(x));
     return 0;
 }

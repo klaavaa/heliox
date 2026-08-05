@@ -1,24 +1,18 @@
-extern fun printf(u8* str, ...) void;
-extern fun sin(f64 x) f64;
-extern fun cos(f64 x) f64;
-extern fun exp(f64 x) f64;
-extern fun sqrt(f64 x) f64;
-extern fun log(f64 x) f64;
-extern fun atan2(f64 y, f64 x) f64;
+extern fun printf(str:u8*, ...) void;
 
-fun main(i64 argc, u8** argv) i32
+
+struct Vec2 
 {
-    f64 C = 1.5;
-    f64 a = sin(C);
-    f64 b = cos(C);
-    f64 c = exp(C);
-    f64 d = sqrt(C);
-    f64 e = log(C);
-    f64 f = atan2(C, C);
-    printf("C: %f\nsin: %f\ncos: %f\nexp: %f\nsqrt: %f\nlog %f\natan2: %f\n",
-    C, a, b, c, d, e, f);
-
-    return 0;
+    x: f32;
+    y: f32;
 }
 
+
+
+fun main() i32 
+{
+    pos: Vec2;
+    pos.x = 1.0;
+    pos.y = 1.0+3.2;
+}
 

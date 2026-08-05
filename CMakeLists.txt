@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 4.0)
 
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
     
 if (MSVC)
@@ -12,7 +12,6 @@ endif()
 project(heliox)
 
 include_directories(${PROJECT_SOURCE_DIR}/src)
-
 file(GLOB SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp)
 
 add_executable(heliox ${SOURCES})

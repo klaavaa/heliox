@@ -1,12 +1,12 @@
-fun h(i64 x) i64
+fun h(x: i64) i64
 {
     return x + 1;
 }
-fun g(i64 x) i64
+fun g(x: i64) i64
 {
     return h(x + 1);
 }
-fun f(i64 x) i64
+fun f(x: i64) i64
 {
     return g(g(x));
 }

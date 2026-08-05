@@ -414,8 +414,9 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
             preallocate_register(ir_function, instruction.dst.value, Register::A, asm_block.clobbered_registers); 
             break;
         }
-        case IRInstructionType::IMUL:
+        // TODO FIX COMPILER BUG (see test factorial)
         case IRInstructionType::IDIV:
+        case IRInstructionType::IMUL:
             preallocate_register(ir_function, instruction.src1.value, Register::A, {Register::D});
             break;
         case IRInstructionType::IMOD:

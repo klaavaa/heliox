@@ -40,7 +40,16 @@ public:
                         Logger::error(*func, std::format("Redefinition of symbol {}", func->symbol->name));
                     }
                 },
-                // TODO STRUCT
+                [&tu](uptr<struct_statement>& struct_s)
+                {
+                    StructType st;
+                    Type t = Type::Struct(st);
+                    struct_s->symbol = tu.global_scope->insert_symbol(Symbol::Typedef(struct_s->name, t));
+                    if (!struct_s->symbol)
+                    {
+                        Logger::error(*struct_s, std::format("Redefinition of symbol {}", struct_s->symbol->name));
+                    }
+                },
                 [](auto&&) {}
                 }, statement);
             }
@@ -88,6 +97,7 @@ private:
             visit_expression(param);
         }
     }
+
     
     void visit_expression_s(uptr<expression_statement>& stat) override
     {
@@ -197,10 +207,63 @@ private:
 
         current_scope = current_scope->parent;
     }
+
+    void visit_struct(uptr<struct_statement>& struct_s) override
+    {
+        StructType struct_type;
+        struct_type.scope = std::make_shared<Scope>(); 
+        uint32_t struct_byte_size{0};
+        uint32_t max_alignment{0};
+
+        for (auto& decl : struct_s->fields)
+        {
+            resolve_type(decl->var_type);
+
+            if (decl->var_type.byte_size() == 0)
+            {
+                Logger::error(*decl, "Cannot have a struct field with byte size 0");
+            }
+            // pad
+            uint32_t alignment = decl->var_type.byte_size();
+            max_alignment = std::max(alignment, max_alignment);
+            
+            struct_byte_size = (struct_byte_size + alignment - 1) & ~(alignment - 1);
+
+            Symbol field = Symbol::StructField(decl->var_name, decl->var_type, struct_byte_size);
+            struct_type.scope->insert_symbol(field);
+
+            struct_byte_size += alignment;
+
+        }
+        struct_byte_size = (struct_byte_size + max_alignment - 1) & ~(max_alignment - 1);
+        struct_type.byte_size = struct_byte_size;
+        Type t = Type::Struct(struct_type);
+        // if toplevel
+        if (struct_s->symbol)
+        {
+            struct_s->symbol->type = t;
+        }
+        else
+        {
+            struct_s->symbol = current_scope->insert_symbol(Symbol::Typedef(struct_s->name, t));
+            if (!struct_s->symbol)
+            {
+                Logger::error(*struct_s, std::format("Redefinition of symbol {}", struct_s->symbol->name));
+            }
+        }
+    }
     
     void visit_binop(uptr<binop_expr>& binop) override 
     {
         visit_expression(binop->left);
+        if (binop->op_token == TokenType::DOT)
+        {
+            if (!std::holds_alternative<StructType>(effective_type->base))
+            {
+                Logger::error(*binop, "Type not accessable");
+            }
+            current_scope = std::get<StructType>(effective_type->base).scope;
+        }
         visit_expression(binop->right);
     }
     void visit_unary(uptr<unary_expr>& unary) override 
@@ -216,14 +279,14 @@ private:
             Logger::error(filename, line_number, column, std::format("Couldn't find variable '{}'", i->name));
         }
         i->symbol = sym_opt.value();
-        std::println("PRINTING IDENTIFIER NAME");
-        std::println("{}", i->symbol->name);
+        effective_type = &i->symbol->type;
     }
 
 private:
     Program& program;
     sptr<Scope> current_scope;
     Symbol* current_function_symbol;
+    Type* effective_type;
 };
 
 

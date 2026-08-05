@@ -37,6 +37,8 @@ statement Parser::parse_toplevel_statement()
         case KeyWord::FUN:
         case KeyWord::EXTERN:
             return parse_function();
+        case KeyWord::STRUCT:
+            return parse_struct();
         default:
             Logger::not_implemented();
         }
@@ -126,6 +128,24 @@ uptr<function_statement> Parser::parse_function()
     relevant_position = fun_position;
     return make_node<function_statement>(identifier->name, std::move(parameters),
            std::move(statements), return_type, is_extern, varargs);
+}
+
+uptr<struct_statement> Parser::parse_struct()
+{
+    eat(TokenType::KEYWORD);
+    std::string name = m_current_token.value;
+    eat(TokenType::IDENTIFIER);
+    
+    eat(TokenType::L_BRACE);
+    std::vector<uptr<variable_declaration_statement>> fields; 
+    while (m_current_token.type != TokenType::R_BRACE)
+    {
+        fields.push_back(parse_variable_declaration());
+        eat(TokenType::SEMICOLON);
+    }
+    eat(TokenType::R_BRACE);
+    
+    return make_node<struct_statement>(name, std::move(fields));
 }
 
 uptr<identifier_literal_expr> Parser::parse_identifier_literal()
@@ -368,6 +388,11 @@ statement Parser::parse_keyword_statement()
             return parse_continue_statement();
         case KeyWord::ASM:
             return parse_asm_statement();
+        case KeyWord::EXTERN:
+        case KeyWord::FUN:
+            return parse_function();
+        case KeyWord::STRUCT:
+            return parse_struct();
     default:
         Logger::error(m_current_token, "Unexpected keyword in statement");
     }

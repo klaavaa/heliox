@@ -1,6 +1,6 @@
-extern fun printf(u8* str, ...) void;
+extern fun printf(str: u8*, ...) void;
 
-fun exec(i32 x) i32
+fun exec(x: i32) i32
 {
     printf("%d: exec\n\0", x);
     return 1;
@@ -8,13 +8,13 @@ fun exec(i32 x) i32
 
 fun main() i32
 {
-    i32 x = 0;
-    i32 a1 = 0 && exec(x); 
+    x: i32 = 0;
+    a1: i32 = 0 && exec(x); 
     x += 1;
-    i32 a2 = 1 && exec(x); 
+    a2: i32 = 1 && exec(x); 
     x += 1;
-    i32 b1 = 0 || exec(x);
+    b1: i32 = 0 || exec(x);
     x += 1;
-    i32 b2 = 1 || exec(x);
+    b2: i32 = 1 || exec(x);
     return 0;
 }

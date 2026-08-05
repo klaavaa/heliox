@@ -17,7 +17,8 @@ enum class SymbolKind
 {
     TYPEDEF,
     VARIABLE,
-    FUNCTION
+    FUNCTION,
+    STRUCT_FIELD,
 };
 
 struct Symbol
@@ -25,14 +26,18 @@ struct Symbol
     SymbolKind kind;
     std::string name;
     Type type;
-    uint8_t flags{0};
     
     std::vector<Type> param_types;
     
+    uint32_t alignment;
+
+    uint8_t flags{0};
+
     uint32_t id;
     
     static Symbol Function(const std::string name, Type return_type, std::vector<Type> param_types, uint8_t flags={});
     static Symbol Variable(const std::string name, Type type, uint8_t flags={});
+    static Symbol StructField(const std::string name, Type type, uint32_t alignment, uint8_t flags={});
     static Symbol Typedef(const std::string name, Type type, uint8_t flags={});
 };
 
@@ -41,7 +46,6 @@ struct Scope : std::enable_shared_from_this<Scope>
     std::string name;
     sptr<Scope> parent;
     BlockVector<Symbol, 64> symbols;
-    //std::vector<Symbol> symbols;
     std::vector<sptr<Scope>> child_scopes;
     std::vector<sptr<Scope>> using_scopes;
     
@@ -58,14 +62,12 @@ struct Scope : std::enable_shared_from_this<Scope>
     template <SymbolKind kind>
     requires (kind == SymbolKind::TYPEDEF 
            || kind == SymbolKind::VARIABLE 
-           || kind == SymbolKind::FUNCTION)
+           || kind == SymbolKind::FUNCTION
+           || kind == SymbolKind::STRUCT_FIELD)
     std::optional<Symbol*> find_symbol(const std::string& name)
     {
         auto opt = symbols.find_if([&name](const Symbol& s) {return s.name == name;});
         if (opt.has_value()) return &opt.value();
-        //auto it = std::find_if(symbols.begin(), symbols.end(), 
-        //       [&name](const Symbol& s){return s.name == name; });
-        //if (it != symbols.end() && it->kind == kind) return *it;
         
         for (const auto& scope : using_scopes)
         {
@@ -82,6 +84,7 @@ struct Scope : std::enable_shared_from_this<Scope>
     std::optional<Symbol*> find_function_symbol(const std::string& name);
     std::optional<Symbol*> find_variable_symbol(const std::string& name);
     std::optional<Symbol*> find_typedef_symbol(const std::string& name);
+    std::optional<Symbol*> find_struct_field_symbol(const std::string& name);
 
 };
 

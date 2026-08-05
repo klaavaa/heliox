@@ -39,6 +39,7 @@ namespace hx
         virtual void visit_continue( [[maybe_unused]] uptr<continue_statement>& continue_s) {}
         virtual void visit_asm( [[maybe_unused]] uptr<asm_statement>& asm_s) {}
         virtual void visit_function( [[maybe_unused]] uptr<function_statement>& func) {}
+        virtual void visit_struct( [[maybe_unused]] uptr<struct_statement>& struct_s) {}
     protected:
         const ast_node* as_ast_node(expression& expr) const;
         const ast_node* as_ast_node(statement& stat) const;

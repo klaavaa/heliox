@@ -59,6 +59,14 @@ public:
         }
         return std::nullopt;
     }
+    
+    [[nodiscard]] size_t size() const
+    {
+        if (elements.empty()) return 0;
+        size_t complete_blocks_size = (elements.size() - 1) * N;
+        size_t partial_block_size = elements.back().size(); 
+        return complete_blocks_size + partial_block_size;
+    }
 
 private:
     std::vector<uptr<std::inplace_vector<T, N>>> elements;

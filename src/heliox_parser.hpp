@@ -14,6 +14,7 @@ public:
 private:	
     statement parse_toplevel_statement();
     uptr<function_statement> parse_function();
+    uptr<struct_statement> parse_struct();
     expression parse_identifier();
     uptr<identifier_literal_expr> parse_identifier_literal();
     uptr<string_literal_expr> parse_string_literal();
