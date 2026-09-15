@@ -16,14 +16,21 @@ class bcolors:
 
 class CompileData:
     nasm_format = ""
+    executable_folder = "../build/"
 
 def compile_test(test: str) -> bool:
-    if subprocess.run(["../build/heliox", "-o", f"{test}",  f"{test}.hlx"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
+    if subprocess.run([CompileData.executable_folder + "heliox", "-o", f"{test}",  f"{test}.hlx"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
         return False
     return True
 
 def main():
-    os.chdir("tests/")
+    current_path = os.path.dirname(os.path.realpath(__file__))
+    os.chdir(os.path.join(current_path, "tests/"))
+    if os.path.exists("../build/Debug"):
+        CompileData.executable_folder = "../build/Debug/"
+    elif os.path.exists("../build/Release"):
+        CompileData.executable_folder = "../build/Release/"
+
     tests = os.listdir(".")
 
     expected_values = {
