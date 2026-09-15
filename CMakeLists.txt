@@ -2,14 +2,14 @@ cmake_minimum_required(VERSION 4.0)
 
 set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-    
+
+project(heliox)
+
 if (MSVC)
     add_compile_options(/W4)
 else()
     add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
-
-project(heliox)
 
 include_directories(${PROJECT_SOURCE_DIR}/src)
 file(GLOB SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp)
