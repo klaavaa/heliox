@@ -60,6 +60,10 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
 {
     switch (instruction.type)
     {
+    case IRInstructionType::LOAD_EFFECTIVE_ADDRESS:
+        emit("lea", instruction.dst, instruction.src1);
+        return;
+
     case IRInstructionType::LOAD_IMMEDIATE:
         emit_mov(instruction.dst, instruction.src1);
         return;
@@ -365,7 +369,6 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
     case IRInstructionType::INLINE_ASM:
         emit(ir_unit.assembly_blocks[instruction.src1.value].assembly_code);
         return;
-
     default:
         Logger::not_implemented();
     }

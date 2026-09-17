@@ -35,33 +35,33 @@ inline void compile(const std::vector<std::string>& file_paths)
 
     for (const auto& file_path : file_paths)
     {
-    if (file_path.substr(file_path.size() - 4) != ".hlx")
-    {
-        Logger::error(file_path, "File is not a .hlx file");
-    }
+        if (file_path.substr(file_path.size() - 4) != ".hlx")
+        {
+            Logger::error(file_path, "File is not a .hlx file");
+        }
 
-    // get last part of absolute path (example home/dir1/dir2/file.hlx -> file.hlx)
-    std::string file_path_stripped = file_path.substr(file_path.find_last_of("/") + 1, file_path.size());
+        // get last part of absolute path (example home/dir1/dir2/file.hlx -> file.hlx)
+        std::string file_path_stripped = file_path.substr(file_path.find_last_of("/") + 1, file_path.size());
 
-    // strip file extension (example file.hlx -> file)
-    file_path_stripped = file_path_stripped.substr(0, file_path_stripped.size() - 4);
-    stripped_file_paths.emplace_back(file_path_stripped);
+        // strip file extension (example file.hlx -> file)
+        file_path_stripped = file_path_stripped.substr(0, file_path_stripped.size() - 4);
+        stripped_file_paths.emplace_back(file_path_stripped);
 
-    std::string text = load_hx_file(file_path);
+        std::string text = load_hx_file(file_path);
 
-    //Lexer lexer = Lexer(text, file_path);
-    //std::vector<Token> tokens = lexer.tokenize();
-    /* 
-    for (const auto& tok : tokens)
-    {
-        std::println("{}", get_string_from_token_type(tok.type));
-    } */
-    Lexer lexer(text, file_path);
-    std::vector<Token> tokens = lexer.tokenize();
-    Parser parser(tokens);
+        //Lexer lexer = Lexer(text, file_path);
+        //std::vector<Token> tokens = lexer.tokenize();
+        /* 
+        for (const auto& tok : tokens)
+        {
+            std::println("{}", get_string_from_token_type(tok.type));
+        } */
+        Lexer lexer(text, file_path);
+        std::vector<Token> tokens = lexer.tokenize();
+        Parser parser(tokens);
 
-    TranslationUnit tu = parser.parse_translation_unit(); 
-    translation_units.push_back(std::move(tu));
+        TranslationUnit tu = parser.parse_translation_unit(); 
+        translation_units.push_back(std::move(tu));
     }  
     
     // Creates a program which contains all modules

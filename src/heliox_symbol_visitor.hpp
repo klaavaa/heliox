@@ -42,6 +42,8 @@ public:
                 },
                 [&tu](uptr<struct_statement>& struct_s)
                 {
+                    Logger::not_implemented();
+                    /*
                     StructType st;
                     Type t = Type::Struct(st);
                     struct_s->symbol = tu.global_scope->insert_symbol(Symbol::Typedef(struct_s->name, t));
@@ -49,6 +51,7 @@ public:
                     {
                         Logger::error(*struct_s, std::format("Redefinition of symbol {}", struct_s->symbol->name));
                     }
+                    */
                 },
                 [](auto&&) {}
                 }, statement);
@@ -210,6 +213,8 @@ private:
 
     void visit_struct(uptr<struct_statement>& struct_s) override
     {
+        Logger::not_implemented();
+        /*
         StructType struct_type;
         struct_type.scope = std::make_shared<Scope>(); 
         uint32_t struct_byte_size{0};
@@ -251,6 +256,7 @@ private:
                 Logger::error(*struct_s, std::format("Redefinition of symbol {}", struct_s->symbol->name));
             }
         }
+        */
     }
     
     void visit_binop(uptr<binop_expr>& binop) override 
@@ -258,11 +264,14 @@ private:
         visit_expression(binop->left);
         if (binop->op_token == TokenType::DOT)
         {
+            Logger::not_implemented();
+            /*
             if (!std::holds_alternative<StructType>(effective_type->base))
             {
                 Logger::error(*binop, "Type not accessable");
             }
             current_scope = std::get<StructType>(effective_type->base).scope;
+            */
         }
         visit_expression(binop->right);
     }

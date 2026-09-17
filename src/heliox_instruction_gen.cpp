@@ -206,6 +206,14 @@ void InstructionGenerator::visit_return(uptr<return_statement>& return_s)
 
 void InstructionGenerator::visit_variable_declaration(uptr<variable_declaration_statement>& variable_declaration)
 {
+    if (variable_declaration->var_type.is_array()) {
+        IRInstruction stack_allocation(IRInstructionType::LOAD_EFFECTIVE_ADDRESS, 
+                IROperand::Vr(current_register.value + 1), current_register, IROperand::None());
+                //IROperand::Immediate(variable_declaration->var_type.array_byte_size()));
+        register_vr_type(current_register, Type::BlockAllocation(variable_declaration->var_type.array_byte_size()));
+        emit_instruction(stack_allocation);
+    }
+
     symbol_id_to_vr.emplace(variable_declaration->symbol->id, current_register.value);
     register_vr_type(current_register, variable_declaration->var_type);
     current_function.vrs_with_variables.insert(current_register.value);

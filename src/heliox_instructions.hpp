@@ -73,6 +73,7 @@ enum class IRInstructionType
     LOAD_MEM_INDEX,
     LOAD_FLOAT32,
     LOAD_FLOAT64,
+    LOAD_EFFECTIVE_ADDRESS,
 
     STORE_MEM,
     
@@ -383,6 +384,9 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
             break;
         case IRInstructionType::LOAD_FLOAT64:
             std::println("{}  LOAD_F64   r{}  <- idx[{}]", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
+        case IRInstructionType::LOAD_EFFECTIVE_ADDRESS:
+            std::println("{}  LEA        r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
         case IRInstructionType::MOV:
             std::println("{}  MOV        r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);

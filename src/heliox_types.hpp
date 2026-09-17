@@ -10,9 +10,6 @@
 
 namespace hx {
 
-
-struct Scope;
-
 enum struct PrimitiveType
 {
     VOID,
@@ -28,30 +25,41 @@ enum struct PrimitiveType
     F64,
 };
 
-struct StructType 
-{
-    sptr<Scope> scope;
-    uint32_t byte_size;
+struct AllocatedBlock {
+    uint32_t block_size; 
 };
 
 using UnresolvedType = std::string;
-
-using BaseType = std::variant<UnresolvedType, PrimitiveType, StructType>;
-
+using BaseType = std::variant<UnresolvedType, PrimitiveType, AllocatedBlock>;
 
 struct Type
 {
-    static Type Unresolved(const UnresolvedType& name, uint32_t ptr_depth) { return Type{name, ptr_depth}; }
-    static Type Primitive(PrimitiveType basic, uint32_t ptr_depth) { return Type{basic, ptr_depth}; }
-    static Type Struct(StructType struct_type) { return Type{struct_type, 0}; }
+    static Type Unresolved(const UnresolvedType& name, uint32_t ptr_depth, uint32_t array_element_count=0) { 
+        if (array_element_count != 0) ptr_depth++;
+        return Type{name, ptr_depth, array_element_count}; 
+    }
+    static Type Primitive(PrimitiveType basic, uint32_t ptr_depth, uint32_t array_element_count=0) { 
+        if (array_element_count != 0) ptr_depth++;
+        return Type{basic, ptr_depth, array_element_count};
+    }
+    static Type BlockAllocation(uint32_t block_size) {
+        return Type{AllocatedBlock(block_size), 0, 0};
+    }
 
     BaseType base;
     uint32_t ptr_depth;
+    // array_element_count = 0 meaning it is not an array
+    uint32_t array_element_count;
 
-    /* TODO */
-    uint32_t byte_size() const
-    {
-        if (ptr_depth != 0) return 8;
+    bool is_array() const {
+        return array_element_count != 0;
+    }
+
+    uint32_t array_byte_size() const {
+        return array_element_count * this->deref()->byte_size();
+    }
+    
+    uint32_t base_type_byte_size() const {
         return std::visit(
         overloads{
             [](PrimitiveType primitive_type) -> uint32_t 
@@ -74,16 +82,21 @@ struct Type
                 case PrimitiveType::VOID: return 0;
             }
             },
-            [](const StructType& struct_type) -> uint32_t
-            {
-                return struct_type.byte_size;
-           },
             [] (const UnresolvedType& unresolved_type) -> uint32_t {
                 Logger::error("", std::format("unresolved type: {}", unresolved_type)); 
                 return 0; 
+            },
+            [] (const AllocatedBlock& allocated_block) -> uint32_t {
+                return allocated_block.block_size;
             }
             },
             base);
+    }
+    /* TODO */
+    uint32_t byte_size() const
+    {
+        if (ptr_depth != 0) return 8;
+        return base_type_byte_size();
     }
     
     friend bool operator == (const Type& a, const Type& b)

@@ -316,6 +316,21 @@ Type Parser::parse_type()
         ptr_depth++; 
         eat(TokenType::MULTIPLY);
     }
+    if (m_current_token.type == TokenType::L_BRACK) {
+        eat(TokenType::L_BRACK);
+
+        if (m_current_token.type != TokenType::INTEGER) 
+            Logger::error(m_current_token.filename, m_current_token.line, m_current_token.position, "Array must have a length");
+
+        int array_element_count = std::stoi(m_current_token.value);
+        if (array_element_count < 1) Logger::error(m_current_token.filename, m_current_token.line, m_current_token.position, "Trying to create an array with a length less than 1");
+        eat(TokenType::INTEGER);
+
+        eat(TokenType::R_BRACK);
+
+        return Type::Unresolved(type_name, ptr_depth, static_cast<uint32_t>(array_element_count));
+
+    }
     return Type::Unresolved(type_name, ptr_depth);
 }
 

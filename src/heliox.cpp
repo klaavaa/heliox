@@ -30,9 +30,8 @@ int main(int argc, char** argv)
         return 0;
     }
     
-    auto func = fn<void, const std::vector<std::string>&>(hx::compile);
 
-    double time = timeit<void, const std::vector<std::string>&>(func, file_paths);
+    double time = timeit(hx::compile, file_paths);
     std::println("Compile time: {:.0f}ms", time);
 
 
