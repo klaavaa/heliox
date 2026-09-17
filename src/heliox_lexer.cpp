@@ -283,12 +283,12 @@ Token Lexer::get_next()
         }
         return make_token(TokenType::MODULO, "");
     }
-    /*
-    case AT:
+    
+    case HX_AT:
     {
         return make_token(TokenType::AT, "");
     }
-    */
+    
     case HX_LEFT_ARROW:
     {
         if (peek_next() == HX_EQUALS)

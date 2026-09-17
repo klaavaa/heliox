@@ -118,6 +118,12 @@ private:
 
         current_scope = current_scope->parent;
     } 
+    void visit_explicit_conversion(uptr<explicit_conversion_expr>& explicit_conversion) override
+    {
+        resolve_type(explicit_conversion->type);
+        visit_expression(explicit_conversion->expr);
+    }
+
     void visit_variable_declaration(uptr<variable_declaration_statement>& variable_declaration) override 
     {
         resolve_type(variable_declaration->var_type);

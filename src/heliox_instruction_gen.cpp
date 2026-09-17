@@ -638,6 +638,21 @@ void InstructionGenerator::visit_unary(uptr<unary_expr>& unary)
 
 }
 
+void InstructionGenerator::visit_explicit_conversion(uptr<explicit_conversion_expr>& explicit_conversion)
+{
+    visit_expression(explicit_conversion->expr);
+    // todo other ops than ptr cast
+    auto effective_type = get_vr_type(effective_register);
+    if (is_pointer_type(explicit_conversion->type) && is_pointer_type(effective_type)) {
+        IRInstruction mov(IRInstructionType::MOV, current_register, effective_register, IROperand::None());
+        register_vr_type(current_register, explicit_conversion->type);
+        emit_instruction(mov);
+        return;
+    }
+    Logger::error(*explicit_conversion, "Illegal conversion");
+}
+
+
 void InstructionGenerator::visit_conditional(uptr<conditional_statement>& conditional)
 {
     visit_expression(conditional->condition);

@@ -174,6 +174,10 @@ inline bool is_float_type(const Type& t)
 
 }
 
+inline bool is_pointer_type(const Type& t) {
+    return t.ptr_depth > 0;
+}
+
 inline bool is_integer_type(const Type& t)
 {
     if (t.ptr_depth != 0) return true;
@@ -256,11 +260,6 @@ constexpr uint32_t get_ptr_byte_size()
     return 8;
 }
 
-inline primitive_type get_primitive_type_from_string(std::string_view type_name)
-{
-    if (!primitive_type_map.count(type_name)) return primitive_type::USER_DEFINED_STRUCT;
-    return primitive_type_map.at(type_name); 
-}
 
 
 struct type_data

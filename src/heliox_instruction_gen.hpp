@@ -44,6 +44,7 @@ private:
     void visit_while(uptr<while_statement>& while_s) override;
     void visit_for(uptr<for_statement>& for_s) override;
     void visit_expression_s(uptr<expression_statement>& expr) override;
+    void visit_explicit_conversion(uptr<explicit_conversion_expr>& explicit_conversion) override;
 
     void visit_break(uptr<break_statement>& break_s) override;
     void visit_continue(uptr<continue_statement>& continue_s) override;

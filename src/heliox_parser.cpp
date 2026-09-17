@@ -157,25 +157,6 @@ uptr<identifier_literal_expr> Parser::parse_identifier_literal()
 expression Parser::parse_identifier()
 {
     uptr<identifier_literal_expr> identifier = parse_identifier_literal();
-    // check if identifier is a primitive type, if it is, explicit casting is in order
-    // TODO EXPLICIT CONVERSION
-    /*
-    auto primitive_type = get_primitive_type_from_string(identifier->name);
-    uint32_t ptr_depth = 0;
-    while (m_current_token.type == TokenType::MULTIPLY)
-    {
-        ptr_depth++;
-        eat(TokenType::MULTIPLY);
-    }
-    if (!(primitive_type == primitive_type::USER_DEFINED_STRUCT && ptr_depth == 0))
-    {
-        type_data conversion_type(primitive_type, ptr_depth);
-        eat(TokenType::L_PAREN); 
-        expression expr = parse_expression();
-        eat(TokenType::R_PAREN);
-        return make_node<explicit_conversion_expr>(conversion_type, std::move(expr));
-    }
-    */
 
     // check if its a function call 
     if (m_current_token.type == TokenType::L_PAREN)
@@ -255,7 +236,8 @@ expression Parser::parse_primary()
         eat(TokenType::R_PAREN);
         return expr;
         }
-
+    case TokenType::AT:
+        return parse_explicit_cast();
     default:
         Logger::error(m_current_token, "Unexpected token, expected primary expression");
     }
@@ -332,6 +314,14 @@ Type Parser::parse_type()
 
     }
     return Type::Unresolved(type_name, ptr_depth);
+}
+
+uptr<explicit_conversion_expr> Parser::parse_explicit_cast()
+{
+    eat(TokenType::AT);
+    auto type = parse_type();
+
+    return make_node<explicit_conversion_expr>(type, parse_expression());
 }
 
 uptr<variable_declaration_statement> Parser::parse_variable_declaration()

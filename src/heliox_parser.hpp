@@ -30,6 +30,8 @@ private:
     uptr<variable_definition_statement> parse_variable_definition();
     uptr<variable_declaration_statement> parse_variable_declaration();
     
+    uptr<explicit_conversion_expr> parse_explicit_cast();
+
     Type parse_type();
 	
     statement parse_statement();

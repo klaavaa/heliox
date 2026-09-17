@@ -90,10 +90,10 @@ struct function_call_expr : ast_node
 
 struct explicit_conversion_expr : ast_node
 {
-    explicit_conversion_expr(std::string_view filename, uint32_t line, uint32_t position, std::string _type, expression expr)
+    explicit_conversion_expr(std::string_view filename, uint32_t line, uint32_t position, Type _type, expression expr)
         : ast_node(filename, line, position), type(_type), expr(std::move(expr)) {}
 
-    std::string type;
+    Type type;
     expression expr;
 };
 
