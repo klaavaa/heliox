@@ -321,7 +321,7 @@ uptr<explicit_conversion_expr> Parser::parse_explicit_cast()
     eat(TokenType::AT);
     auto type = parse_type();
 
-    return make_node<explicit_conversion_expr>(type, parse_expression());
+    return make_node<explicit_conversion_expr>(type, parse_primary());
 }
 
 uptr<variable_declaration_statement> Parser::parse_variable_declaration()
