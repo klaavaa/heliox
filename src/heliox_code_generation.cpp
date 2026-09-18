@@ -365,6 +365,20 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
     case IRInstructionType::CONVERT_F64_TO_F32:
         emit("cvtsd2ss", get_location(instruction.dst), get_location(instruction.src1, 8));
         return;
+
+    case IRInstructionType::CONVERT_INT_TO_F64:
+        emit("cvtsi2sd", get_location(instruction.dst), get_location(instruction.src1, 4));
+        return;
+    case IRInstructionType::CONVERT_INT_TO_F32:
+        emit("cvtsi2ss", get_location(instruction.dst), get_location(instruction.src1, 4));
+        return;
+
+    case IRInstructionType::CONVERT_F64_TO_INT:
+        emit("cvtsd2si", get_location(instruction.dst), get_location(instruction.src1, 4));
+        return;
+    case IRInstructionType::CONVERT_F32_TO_INT:
+        emit("cvtss2si", get_location(instruction.dst), get_location(instruction.src1, 4));
+        return;
     
     case IRInstructionType::INLINE_ASM:
         emit(ir_unit.assembly_blocks[instruction.src1.value].assembly_code);

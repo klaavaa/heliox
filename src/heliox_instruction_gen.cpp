@@ -632,6 +632,10 @@ void InstructionGenerator::visit_unary(uptr<unary_expr>& unary)
         register_vr_type(effective_register, TYPE_I8); 
         break;
     }
+    case TokenType::MINUS:
+    {
+        
+    }
     default:
         Logger::error(*unary, "Unknown unary operator");
     }
@@ -649,6 +653,42 @@ void InstructionGenerator::visit_explicit_conversion(uptr<explicit_conversion_ex
         emit_instruction(mov);
         return;
     }
+
+    if (is_float_type(explicit_conversion->type) && is_integer_type(effective_type)) {
+        IRInstructionType conversion_type;
+        switch (explicit_conversion->type.byte_size()) {
+            case 8: // f64
+                conversion_type = IRInstructionType::CONVERT_INT_TO_F64;
+                break;
+            case 4: // f32
+                conversion_type = IRInstructionType::CONVERT_INT_TO_F32;
+                break;
+            default:
+                Logger::error(*explicit_conversion, "unknown float size");
+        }
+        IRInstruction conversion(conversion_type, current_register, effective_register, IROperand::None());
+        register_vr_type(current_register, explicit_conversion->type);
+        emit_instruction(conversion);        
+        return;
+    }
+    if (is_integer_type(explicit_conversion->type) && is_float_type(effective_type)) {
+        IRInstructionType conversion_type;
+        switch (effective_type.byte_size()) {
+            case 8: // f64
+                conversion_type = IRInstructionType::CONVERT_F64_TO_INT;
+                break;
+            case 4: // f32
+                conversion_type = IRInstructionType::CONVERT_F32_TO_INT;
+                break;
+            default:
+                Logger::not_implemented(); //shouldnt get here;
+        }
+        IRInstruction conversion(conversion_type, current_register, effective_register, IROperand::None());
+        register_vr_type(current_register, explicit_conversion->type);
+        emit_instruction(conversion);        
+        return;
+    }
+
     Logger::error(*explicit_conversion, "Illegal conversion");
 }
 

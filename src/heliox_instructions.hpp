@@ -144,7 +144,13 @@ enum class IRInstructionType
     
     CONVERT_F64_TO_F32,
     CONVERT_F32_TO_F64,
+
+    CONVERT_INT_TO_F32,
+    CONVERT_INT_TO_F64,
     
+    CONVERT_F32_TO_INT,
+    CONVERT_F64_TO_INT,
+
     INLINE_ASM,
 };
 
