@@ -405,6 +405,9 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
     
     int64_t pushed_argc = 0;
 
+    int64_t register_int_argc = 0;
+    int64_t register_float_argc = 0;
+
     for (auto& instruction : ir_function.instructions)
     {
         switch (instruction.type)
@@ -450,6 +453,7 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
             break;
         case IRInstructionType::REGISTER_ARG:
             {
+            #ifdef _WIN32
             if (!is_integer_type(ir_function.virtual_register_types.at(instruction.src1.value)))
             {
 
@@ -466,6 +470,26 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
                 preallocate_register(ir_function, instruction.src1.value, g_register_data.register_passed_int_args.at(instruction.src2.value));
                 break;
             }
+            #else
+            if (!is_integer_type(ir_function.virtual_register_types.at(instruction.src1.value)))
+            {
+
+                if (register_float_argc < (int64_t)g_register_data.register_passed_float_args.size())
+                {
+                    preallocate_register(ir_function, instruction.src1.value, g_register_data.register_passed_float_args.at(register_float_argc));
+                    register_float_argc++;
+                    break;
+                }
+
+                goto inst_register_arg_push; 
+            }
+            if (register_int_argc < (int64_t)g_register_data.register_passed_int_args.size())
+            {
+                preallocate_register(ir_function, instruction.src1.value, g_register_data.register_passed_int_args.at(register_int_argc));
+                register_int_argc++;
+                break;
+            }
+            #endif
 
             inst_register_arg_push:
                 //need to take in codegen consideration the callee saved registers
