@@ -565,11 +565,18 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
     if (get_vr_type(left_register) != get_vr_type(right_register))
     {
         emit_implicit_conversion(*binop, right_register, get_vr_type(left_register));
+        right_register = effective_register;
     }
+
+    IRInstruction mov_src1(IRInstructionType::MOV, current_register, left_register, IROperand::None()); 
+    register_vr_type(current_register, left_register);
+    emit_instruction(mov_src1);
 
     IRInstructionType instruction_type = get_ir_binop_instruction(binop->op_token, left_register);
 
-    IRInstruction binop_inst(instruction_type, current_register, left_register, effective_register);
+    IRInstruction binop_inst(instruction_type, current_register, effective_register, right_register);
+
+    //IRInstruction binop_inst(instruction_type, current_register, left_register, effective_register);
     if (!has_vr_type(current_register))
     {
         register_vr_type(current_register, left_register);
