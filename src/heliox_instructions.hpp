@@ -96,16 +96,20 @@ enum class IRInstructionType
     IDIV,
     IMUL,
     IMOD,
+    INEG,
 
     F64ADD,
     F64SUB,
     F64DIV,
     F64MUL,
+    F64NEG,
 
     F32ADD,
     F32SUB,
     F32DIV,
     F32MUL,
+    F32NEG,
+
 
     BITWISE_AND,
     BITWISE_OR,
@@ -150,6 +154,8 @@ enum class IRInstructionType
     
     CONVERT_F32_TO_INT,
     CONVERT_F64_TO_INT,
+
+    SIGN_EXTEND,
 
     INLINE_ASM,
 };
@@ -423,7 +429,9 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
         case IRInstructionType::IDIV:
             std::println("{}  IDIV       r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
-
+        case IRInstructionType::INEG:
+            std::println("{}  INEG       r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
         case IRInstructionType::F64ADD:
             std::println("{}  F64ADD     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
 
@@ -455,6 +463,14 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
         case IRInstructionType::F32DIV:
             std::println("{}  F32DIV     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
+
+        case IRInstructionType::F64NEG:
+            std::println("{}  F64NEG     r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
+        case IRInstructionType::F32NEG:
+            std::println("{}  F32NEG     r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
+
         case IRInstructionType::IMOD:
             std::println("{}  IMOD       r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
@@ -561,6 +577,26 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
         case IRInstructionType::CONVERT_F64_TO_F32:
             std::println("{}  F64_TO_F32 r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
+
+
+        case IRInstructionType::CONVERT_INT_TO_F32:
+            std::println("{}  INT_TO_F32 r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
+        case IRInstructionType::CONVERT_INT_TO_F64:
+            std::println("{}  INT_TO_F64 r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
+        case IRInstructionType::CONVERT_F32_TO_INT:
+            std::println("{}  F32_TO_INT r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
+        case IRInstructionType::CONVERT_F64_TO_INT:
+            std::println("{}  F64_TO_INT r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
+
+        case IRInstructionType::SIGN_EXTEND:
+            std::println("{}  SIGN_EXT   r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
+
+
 
         case IRInstructionType::INLINE_ASM:
             std::println("{}  INLINE_ASM r{}  <- asm[]", prefix, ir_instruction.dst, ir_instruction.src1);

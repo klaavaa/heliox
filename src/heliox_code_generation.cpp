@@ -122,7 +122,12 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         emit("imul", instruction.src1, instruction.src2);
         emit_mov(instruction.dst, instruction.src1);
         return;
-    
+     
+    case IRInstructionType::INEG:
+        emit_mov(instruction.dst, instruction.src1);
+        emit("neg", instruction.dst);
+        return;
+
     case IRInstructionType::F64ADD:
         emit("addsd", instruction.src1, instruction.src2);
         emit_mov(instruction.dst, instruction.src1);
@@ -138,6 +143,20 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
     case IRInstructionType::F64DIV:
         emit("divsd", instruction.src1, instruction.src2);
         emit_mov(instruction.dst, instruction.src1);
+        return;
+
+    case IRInstructionType::F64NEG:
+        emit("pcmpeqd", "xmm11", "xmm11");
+        emit("psllq", "xmm11", "63");
+        emit_mov(instruction.dst, instruction.src1);
+        emit("xorpd", get_location(instruction.dst), "xmm11");
+        return;
+
+    case IRInstructionType::F32NEG:
+        emit("pcmpeqd", "xmm11", "xmm11");
+        emit("pslld", "xmm11", "31");
+        emit_mov(instruction.dst, instruction.src1);
+        emit("xorps", get_location(instruction.dst), "xmm11");
         return;
 
     case IRInstructionType::F32ADD:
@@ -367,17 +386,21 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         return;
 
     case IRInstructionType::CONVERT_INT_TO_F64:
-        emit("cvtsi2sd", get_location(instruction.dst), get_location(instruction.src1, 4));
+        emit("cvtsi2sd", get_location(instruction.dst), get_location(instruction.src1));
         return;
     case IRInstructionType::CONVERT_INT_TO_F32:
-        emit("cvtsi2ss", get_location(instruction.dst), get_location(instruction.src1, 4));
+        emit("cvtsi2ss", get_location(instruction.dst), get_location(instruction.src1));
         return;
 
     case IRInstructionType::CONVERT_F64_TO_INT:
-        emit("cvtsd2si", get_location(instruction.dst), get_location(instruction.src1, 4));
+        emit("cvtsd2si", get_location(instruction.dst), get_location(instruction.src1));
         return;
     case IRInstructionType::CONVERT_F32_TO_INT:
-        emit("cvtss2si", get_location(instruction.dst), get_location(instruction.src1, 4));
+        emit("cvtss2si", get_location(instruction.dst), get_location(instruction.src1));
+        return;
+
+    case IRInstructionType::SIGN_EXTEND:
+        emit("movsxd", get_location(instruction.dst), get_location(instruction.src1));
         return;
     
     case IRInstructionType::INLINE_ASM:

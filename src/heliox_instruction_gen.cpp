@@ -634,7 +634,27 @@ void InstructionGenerator::visit_unary(uptr<unary_expr>& unary)
     }
     case TokenType::MINUS:
     {
-        
+        const auto expr_type = get_vr_type(effective_register);
+        if (is_integer_type(expr_type)) {
+            IRInstruction neg(IRInstructionType::INEG, current_register, effective_register, IROperand::None());
+            register_vr_type(current_register, effective_register);
+            emit_instruction(neg);
+        } else if (is_float_type(expr_type)) {
+            IRInstructionType inst_type;
+            if (expr_type.byte_size() == 8) {
+                inst_type = IRInstructionType::F64NEG;
+            } else {
+                inst_type = IRInstructionType::F32NEG;
+            }
+
+            IRInstruction neg(inst_type, current_register, effective_register, IROperand::None());
+
+            register_vr_type(current_register, effective_register);
+            emit_instruction(neg);
+        } else {
+            Logger::error(*unary, "Unary operator '-' not supported for this type");
+        }
+        break;
     }
     default:
         Logger::error(*unary, "Unknown unary operator");
@@ -653,7 +673,20 @@ void InstructionGenerator::visit_explicit_conversion(uptr<explicit_conversion_ex
         emit_instruction(mov);
         return;
     }
+    if (is_integer_type(explicit_conversion->type) && is_integer_type(effective_type)) {
+        if (explicit_conversion->type.byte_size() <= effective_type.byte_size()) {
+            IRInstruction mov(IRInstructionType::MOV, current_register, effective_register, IROperand::None());
+            register_vr_type(current_register, explicit_conversion->type);
+            emit_instruction(mov);
+            return;
+        }
 
+        IRInstruction sign_extend(IRInstructionType::SIGN_EXTEND, current_register, effective_register, IROperand::None());
+        register_vr_type(current_register, explicit_conversion->type);
+        emit_instruction(sign_extend);
+        
+        return;
+    }
     if (is_float_type(explicit_conversion->type) && is_integer_type(effective_type)) {
         IRInstructionType conversion_type;
         switch (explicit_conversion->type.byte_size()) {
