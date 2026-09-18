@@ -11,6 +11,7 @@ struct CompileFlags
 {
     bool compile_only = false;
     bool compile_and_assemble_only = false;
+    bool print_ir = false;
     std::string output_file = "";
 
 };
@@ -65,6 +66,13 @@ inline void process_flag(std::string_view flag_string, int* i, int argc, char** 
         flags.output_file = std::string(argv[*i]);
         return;
     }
+
+    if (flag_string == "-v") 
+    {
+        flags.print_ir = true;     
+        return;
+    }
+
 
     Logger::pre_compile_error("unregognized command-line option: '{}'", flag_string);
 }

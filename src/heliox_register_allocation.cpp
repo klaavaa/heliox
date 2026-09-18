@@ -8,7 +8,6 @@ namespace hx
 void RegisterAllocator::allocate_stack(IRFunction& ir_function, const int64_t vr)
 {
     auto byte_size = (int64_t)ir_function.virtual_register_types.at(vr).byte_size();
-    std::println("vr: {}\nbyte_size: {}\n", vr, byte_size);
     
     ir_function.total_stack_allocated += byte_size;
     ir_function.total_stack_allocated = align_up(ir_function.total_stack_allocated, byte_size);

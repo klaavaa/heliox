@@ -79,12 +79,11 @@ inline void compile(const std::vector<std::string>& file_paths)
         
         IRUnit ir_unit = instruction_gen.generate_instructions();
         
-        print_ir_unit(ir_unit);
+        if (flags.print_ir)
+            print_ir_unit(ir_unit);
         
         // generate live-ranges for virtual registers
         perform_liveness_analysis_on_unit(ir_unit);
-        print_live_ranges(ir_unit);
-
         
         // preallocate certain registers / stack
 

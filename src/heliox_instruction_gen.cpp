@@ -576,7 +576,6 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
 
     IRInstruction binop_inst(instruction_type, current_register, effective_register, right_register);
 
-    //IRInstruction binop_inst(instruction_type, current_register, left_register, effective_register);
     if (!has_vr_type(current_register))
     {
         register_vr_type(current_register, left_register);
