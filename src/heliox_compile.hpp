@@ -9,6 +9,8 @@
 #include "heliox_error.hpp"
 #include "heliox_file.hpp"
 
+#include "heliox_timer.hpp"
+
 #include "heliox_symbol_visitor.hpp"
 #include "heliox_instruction_gen.hpp"
 #include "heliox_liveness_analysis.hpp"
@@ -33,6 +35,7 @@ inline void compile(const std::vector<std::string>& file_paths)
     std::vector<TranslationUnit> translation_units;
     
 
+    HX_PERF_START();
     for (const auto& file_path : file_paths)
     {
         if (file_path.substr(file_path.size() - 4) != ".hlx")
@@ -49,21 +52,16 @@ inline void compile(const std::vector<std::string>& file_paths)
 
         std::string text = load_hx_file(file_path);
 
-        //Lexer lexer = Lexer(text, file_path);
-        //std::vector<Token> tokens = lexer.tokenize();
-        /* 
-        for (const auto& tok : tokens)
-        {
-            std::println("{}", get_string_from_token_type(tok.type));
-        } */
         Lexer lexer(text, file_path);
         std::vector<Token> tokens = lexer.tokenize();
-        Parser parser(tokens);
 
+        Parser parser(tokens);
         TranslationUnit tu = parser.parse_translation_unit(); 
         translation_units.push_back(std::move(tu));
     }  
+    HX_PERF_END("ast generation");
     
+    HX_PERF_START();
     // Creates a program which contains all modules
     Program program(translation_units);
     
@@ -106,11 +104,14 @@ inline void compile(const std::vector<std::string>& file_paths)
         
         i++;        
     }
+    HX_PERF_END("codegen");
     
     if (flags.compile_only)
     {
         return;
     }
+
+    HX_PERF_START();
 
     std::vector<std::string> object_file_paths;
 
@@ -130,11 +131,14 @@ inline void compile(const std::vector<std::string>& file_paths)
         #endif
 
     }
+    HX_PERF_END("nasm");
 
     if (flags.compile_and_assemble_only)
     {
         return;
     }
+
+    HX_PERF_START();
 
     std::string object_files;
     for (const auto& object_file_path : object_file_paths)
@@ -158,6 +162,7 @@ inline void compile(const std::vector<std::string>& file_paths)
     std::system(std::format("gcc -no-pie {} -o {}", object_files, output_executable).c_str());
 #endif
     
+    HX_PERF_END("linking");
 }
 }
 
