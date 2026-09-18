@@ -252,8 +252,12 @@ void InstructionGenerator::emit_implicit_conversion(const ast_node& node, IROper
     effective_register = vr;
     if (is_integer_type(type_from))
     {
-        // todo: not sure if this is the best way to go about this
-        // current_function.virtual_register_types.at(vr.value) = type_to;
+        if (type_from.byte_size() >= type_to.byte_size()) return;
+        if (is_unsigned(type_from)) return;
+
+        IRInstruction sign_extend(IRInstructionType::SIGN_EXTEND, current_register, vr, IROperand::None());
+        register_vr_type(current_register, type_to);
+        emit_instruction(sign_extend);
         return;
     }
     else if (is_float_type(type_from))
