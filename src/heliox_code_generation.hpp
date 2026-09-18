@@ -16,6 +16,7 @@ private:
     std::string get_vr_location(int64_t vr, uint32_t byte_size);
     std::string get_location(const IROperand operand, uint32_t byte_size);
     std::string get_location(const IROperand operand);
+    uint32_t get_byte_size(const IROperand operand);
     void emit_mem_write(const IROperand dst, const IROperand src);
     void emit_mem_read(const IROperand dst, const IROperand src);
     void emit(const std::string_view asm_instruction, const IROperand dst, const IROperand src);

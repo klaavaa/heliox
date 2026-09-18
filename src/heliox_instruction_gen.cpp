@@ -703,6 +703,12 @@ void InstructionGenerator::visit_explicit_conversion(uptr<explicit_conversion_ex
             default:
                 Logger::error(*explicit_conversion, "unknown float size");
         }
+        if (effective_type.byte_size() < 4) {
+            Type implicit_type;
+            if (is_unsigned(effective_type)) implicit_type = TYPE_U32;
+            else implicit_type = TYPE_I32;
+            emit_implicit_conversion(*explicit_conversion, effective_register, implicit_type);
+        }
         IRInstruction conversion(conversion_type, current_register, effective_register, IROperand::None());
         register_vr_type(current_register, explicit_conversion->type);
         emit_instruction(conversion);        

@@ -400,9 +400,11 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
         return;
 
     case IRInstructionType::SIGN_EXTEND:
-        emit("movsxd", get_location(instruction.dst), get_location(instruction.src1));
+        if (get_byte_size(instruction.dst) < 4)
+            emit("movsxd", get_location(instruction.dst), get_location(instruction.src1));
+        else 
+            emit("movsx", get_location(instruction.dst), get_location(instruction.src1));
         return;
-    
     case IRInstructionType::INLINE_ASM:
         emit(ir_unit.assembly_blocks[instruction.src1.value].assembly_code);
         return;
@@ -493,6 +495,12 @@ std::string CodeGenerator::get_vr_location(int64_t vr, uint32_t byte_size)
             Logger::error("", std::format("tried to get a location of size: {}", byte_size));
         }
     }
+}
+
+uint32_t CodeGenerator::get_byte_size(const IROperand operand)
+{
+    if (operand.kind != IROperandKind::VIRTUAL_REGISTER) Logger::internal_error();
+    return current_function->virtual_register_types.at(operand.value).byte_size();
 }
 
 std::string CodeGenerator::get_location(const IROperand operand)
