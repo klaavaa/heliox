@@ -31,7 +31,7 @@ fun get_float(arr: void**, i: i32) f32 {
 
 fun main() i32 
 {
-    my_arr: void*[16];
+    my_arr: void*[17];
     *@i32*(my_arr) = 0;
     
     for (i: i32 = 0; i < 16; i += 1) {
