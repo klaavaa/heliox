@@ -104,5 +104,15 @@ inline sptr<Scope> create_program_scope()
   return program_scope;
 }
 
+inline void print_scope(sptr<Scope> scope) {
+    std::println("scope name: {}", scope->name);
+    for (size_t i = 0; i < scope->symbols.size(); i++) {
+        auto& sym = scope->symbols[i];
+        std::println("sym: {}", sym.name);
+    }
+    if (scope->parent)
+        print_scope(scope->parent);
+}
+
 
 } // namespace hx

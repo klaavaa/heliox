@@ -63,6 +63,7 @@ public:
     {
         for (auto& tu : program.translation_units)
         {
+            current_scope = tu.global_scope;
             visit_translation_unit(tu);
         }
     }

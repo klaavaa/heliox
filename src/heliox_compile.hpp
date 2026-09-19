@@ -30,7 +30,6 @@ inline void compile(const std::vector<std::string>& file_paths)
         Logger::pre_compile_error("Output file cannot be specified with -c or -S flags with multiple files");
     }
 
-    std::vector<uptr<Program>> programs;
     std::vector<std::string> stripped_file_paths;
     std::vector<TranslationUnit> translation_units;
     
