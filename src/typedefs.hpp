@@ -41,7 +41,7 @@ public:
         size_t outer_i = i / N;
         size_t inner_i = i % N;
 
-        return elements.at(outer_i).at(inner_i);
+        return elements.at(outer_i)->at(inner_i);
     }
 
     T& operator[](size_t i)
@@ -64,7 +64,7 @@ public:
     {
         if (elements.empty()) return 0;
         size_t complete_blocks_size = (elements.size() - 1) * N;
-        size_t partial_block_size = elements.back().size(); 
+        size_t partial_block_size = elements.back()->size(); 
         return complete_blocks_size + partial_block_size;
     }
 
