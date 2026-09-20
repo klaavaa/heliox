@@ -1,14 +1,15 @@
 # Heliox Programming Language
 
-**Heliox** is a work-in-progress programming language created with the intention of learning how compilers work.  
-> ⚠️ Note: The project is still very much in the early stages of development
+**Heliox** is a work-in-progress programming language created with the intention of learning how compilers work. 
+
+It compiles heliox source files into nasm x64 assembly which get linked into a binary by gcc.
 
 
 ---
 
 ## Usage
 
-Before using Heliox, read the `REQUIREMENTS` file for necessary tools.
+`REQUIREMENTS` file contains necessary tools.
 
 ### Build
 
