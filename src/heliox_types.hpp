@@ -139,17 +139,17 @@ struct Type
 };
 
 
-inline constexpr Type TYPE_F32  = Type(PrimitiveType::F32,  0);
-inline constexpr Type TYPE_F64  = Type(PrimitiveType::F64,  0);
-inline constexpr Type TYPE_I8   = Type(PrimitiveType::I8,   0);
-inline constexpr Type TYPE_I16  = Type(PrimitiveType::I16,  0);
-inline constexpr Type TYPE_I32  = Type(PrimitiveType::I32,  0);
-inline constexpr Type TYPE_I64  = Type(PrimitiveType::I64,  0);
-inline constexpr Type TYPE_U8   = Type(PrimitiveType::U8,   0);
-inline constexpr Type TYPE_U16  = Type(PrimitiveType::U16,  0);
-inline constexpr Type TYPE_U32  = Type(PrimitiveType::U32,  0);
-inline constexpr Type TYPE_U64  = Type(PrimitiveType::U64,  0);
-inline constexpr Type TYPE_VOID = Type(PrimitiveType::VOID, 0);
+inline constexpr Type TYPE_F32  = Type(PrimitiveType::F32,  0, 0);
+inline constexpr Type TYPE_F64  = Type(PrimitiveType::F64,  0, 0);
+inline constexpr Type TYPE_I8   = Type(PrimitiveType::I8,   0, 0);
+inline constexpr Type TYPE_I16  = Type(PrimitiveType::I16,  0, 0);
+inline constexpr Type TYPE_I32  = Type(PrimitiveType::I32,  0, 0);
+inline constexpr Type TYPE_I64  = Type(PrimitiveType::I64,  0, 0);
+inline constexpr Type TYPE_U8   = Type(PrimitiveType::U8,   0, 0);
+inline constexpr Type TYPE_U16  = Type(PrimitiveType::U16,  0, 0);
+inline constexpr Type TYPE_U32  = Type(PrimitiveType::U32,  0, 0);
+inline constexpr Type TYPE_U64  = Type(PrimitiveType::U64,  0, 0);
+inline constexpr Type TYPE_VOID = Type(PrimitiveType::VOID, 0, 0);
 
 
 /* TODO */
@@ -172,6 +172,16 @@ inline bool is_float_type(const Type& t)
             return false;
     }
 
+}
+
+// naming kinda sus 
+inline bool is_string(const Type& t) {
+    if (!std::holds_alternative<PrimitiveType>(t.base))
+    {
+        return false;
+    }
+    PrimitiveType pt = std::get<PrimitiveType>(t.base);
+    return (t.ptr_depth == 1 && pt == PrimitiveType::U8);
 }
 
 inline bool is_pointer_type(const Type& t) {

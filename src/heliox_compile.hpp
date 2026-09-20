@@ -19,6 +19,7 @@
 
 
 
+
 namespace hx  
 {
 inline void compile(const std::vector<std::string>& file_paths)
@@ -67,6 +68,7 @@ inline void compile(const std::vector<std::string>& file_paths)
     SymbolVisitor symbol_visitor(program);
     symbol_visitor.populate_toplevel_symbols();
     symbol_visitor.populate_rest_of_symbols_and_resolve_types();
+    
 
     size_t i = 0;
     for (auto& tu : translation_units)

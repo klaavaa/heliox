@@ -298,6 +298,11 @@ private:
         effective_type = &i->symbol->type;
     }
 
+    void visit_macro_expr(uptr<macro_expr>& i) override 
+    {
+        visit_expression(i->argument);
+    }
+
 private:
     Program& program;
     sptr<Scope> current_scope;

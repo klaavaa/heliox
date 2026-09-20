@@ -135,7 +135,7 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
 
     // call instruction
     int64_t name_id = (int64_t)ir_unit.allocate_function_name(function_call->name);
-    IRInstruction call_instruction(IRInstructionType::FUNCTION_CALL, current_register, IROperand::Literal(name_id), IROperand::None());
+    IRInstruction call_instruction(IRInstructionType::FUNCTION_CALL, current_register, IROperand::LiteralLocation(name_id), IROperand::None());
     register_vr_type(current_register, func_symbol.type);
     emit_instruction(call_instruction);
 
@@ -164,7 +164,8 @@ void InstructionGenerator::visit_expression_s(uptr<expression_statement>& expr)
 void InstructionGenerator::visit_string_literal(uptr<string_literal_expr>& string_literal) 
 {
     int64_t literal_location = (int64_t)ir_unit.allocate_string_literal(string_literal->value);
-    IRInstruction load_string(IRInstructionType::LOAD_MEM_INDEX, current_register, IROperand::Literal(literal_location), IROperand::None());
+    IRInstruction load_string(IRInstructionType::LOAD_MEM_INDEX, current_register, IROperand::LiteralLocation(literal_location), IROperand::None());
+    last_string_literal_location = load_string.src1.value;
     register_vr_type(current_register, Type{PrimitiveType::U8, 1});
     emit_instruction(load_string);
 }
@@ -179,7 +180,7 @@ void InstructionGenerator::visit_int_literal(uptr<int_literal_expr>& int_literal
 void InstructionGenerator::visit_float_literal(uptr<float_literal_expr>& float_literal)
 {
     int64_t literal_location = (int64_t)ir_unit.allocate_float64_literal(float_literal->value);
-    IRInstruction load_float(IRInstructionType::LOAD_FLOAT64, current_register, IROperand::Literal(literal_location), IROperand::None());
+    IRInstruction load_float(IRInstructionType::LOAD_FLOAT64, current_register, IROperand::LiteralLocation(literal_location), IROperand::None());
     register_vr_type(current_register, TYPE_F64);
     emit_instruction(load_float);
 }
@@ -223,7 +224,10 @@ void InstructionGenerator::visit_variable_declaration(uptr<variable_declaration_
 
 void InstructionGenerator::visit_variable_definition(uptr<variable_definition_statement>& variable_definition)
 {
+
     visit_expression(variable_definition->definition);
+
+
     IROperand expression_vr = effective_register;
     visit_variable_declaration(variable_definition->declaration);
     
@@ -234,6 +238,12 @@ void InstructionGenerator::visit_variable_definition(uptr<variable_definition_st
     }
 
     int64_t vr = symbol_id_to_vr.at(variable_definition->declaration->symbol->id);
+
+    // used for #strlen
+    if (std::holds_alternative<uptr<string_literal_expr>>(variable_definition->definition)) {
+        identifier_string_literal_location.insert({vr, last_string_literal_location});
+    }
+
     IRInstruction store(IRInstructionType::MOV, IROperand::Vr(vr), expression_vr, IROperand::None());
     emit_instruction(store, 0, false);
 
@@ -943,6 +953,66 @@ void InstructionGenerator::visit_logical_binop(TokenType op_token, expression& l
     }
 
     Logger::not_implemented();
+}
+
+void InstructionGenerator::visit_macro_expr(uptr<macro_expr>& macro) 
+{
+    if (macro->command_name == "strlen") {
+        std::visit(overloads{
+            [&](uptr<string_literal_expr>& string_literal) {
+                visit_string_literal(string_literal);
+                int64_t strlen_id = (int64_t)ir_unit.allocate_stringlength_literal(last_string_literal_location);
+                IRInstruction strlen(IRInstructionType::MOV, current_register, IROperand::Literal(strlen_id), IROperand::None());
+                register_vr_type(current_register, TYPE_U64);
+                emit_instruction(strlen); 
+            },
+            [&](uptr<identifier_literal_expr>& identifier) {
+                auto type = identifier->symbol->type;
+                if (!is_string(type)) Logger::error(*identifier, "Cannot process the string length for non-string-type"); 
+                auto vr = symbol_id_to_vr.at(identifier->symbol->id);
+                if (!identifier_string_literal_location.contains(vr)) 
+                    Logger::error(*identifier, "Identifier is not a const string");
+                
+                int64_t string_id = identifier_string_literal_location.at(vr);
+                int64_t strlen_id = (int64_t)ir_unit.allocate_stringlength_literal(string_id);
+                IRInstruction strlen(IRInstructionType::MOV, current_register, IROperand::Literal(strlen_id), IROperand::None());
+                register_vr_type(current_register, TYPE_U64);
+                emit_instruction(strlen); 
+            },
+
+            [&, this](auto& expr) { Logger::error(*expr, "Cannot process the string length for node"); }
+        }, macro->argument);
+
+    }
+    else if (macro->command_name == "sizeof") {
+        std::visit(overloads{
+            [&](uptr<string_literal_expr>& string_literal) {
+                Logger::not_implemented();
+            },
+            [&](uptr<int_literal_expr>& int_literal) {
+                IRInstruction load_int(IRInstructionType::LOAD_IMMEDIATE, current_register, IROperand::Immediate(TYPE_I64.byte_size()), IROperand::None());
+                register_vr_type(current_register, TYPE_U64);
+                emit_instruction(load_int);
+            },
+            [&](uptr<identifier_literal_expr>& identifier) {
+                auto type = identifier->symbol->type;
+                uint32_t byte_size;
+                if (type.is_array())
+                    byte_size = type.array_byte_size();
+                else
+                    byte_size = type.byte_size();
+                IRInstruction load_int(IRInstructionType::LOAD_IMMEDIATE, current_register, IROperand::Immediate(byte_size), IROperand::None());
+                register_vr_type(current_register, TYPE_U64);
+                emit_instruction(load_int);
+            },
+
+            [&, this](auto& expr) { Logger::error(*expr, "Cannot process the string length for node"); }
+        }, macro->argument);
+    }
+    else {
+        Logger::error(*macro, "Unknown macro command");
+    }
+
 }
 
 } // namespace hx

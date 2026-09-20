@@ -21,6 +21,7 @@ enum class SymbolKind
     STRUCT_FIELD,
 };
 
+
 struct Symbol
 {
     SymbolKind kind;
@@ -46,6 +47,7 @@ struct Scope : std::enable_shared_from_this<Scope>
     std::string name;
     sptr<Scope> parent;
     BlockVector<Symbol, 64> symbols;
+
     std::vector<sptr<Scope>> child_scopes;
     std::vector<sptr<Scope>> using_scopes;
     

@@ -524,6 +524,8 @@ std::string CodeGenerator::get_location(const IROperand operand, uint32_t byte_s
             return std::format("{}", ir_unit.allocated_literals.at(operand.value).value);
         }
         return std::format("[rel $L{}]", operand.value);
+    case IROperandKind::LITERAL:
+        return std::format("$L{}", operand.value);
     case IROperandKind::IMMEDIATE_VALUE:
         return std::format("{}", operand.value);
     case IROperandKind::LABEL:
@@ -543,6 +545,9 @@ void CodeGenerator::emit_data_section()
         {
         case LiteralType::STRING:
             data_section += std::format("\t$L{} db {}\n", key, literal.value);
+            break;
+        case LiteralType::STRINGLENGTH:
+            data_section += std::format("\t$L{} equ $ - $L{}\n", key, literal.value);
             break;
         case LiteralType::FLOAT64:
             data_section += std::format("\t$L{} dq {}\n", key, literal.value);

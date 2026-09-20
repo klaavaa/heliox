@@ -45,6 +45,8 @@ namespace hx
             {visit_unary(unary);},
             [this](uptr<explicit_conversion_expr>& explicit_conversion)
             {visit_explicit_conversion(explicit_conversion);},
+            [this](uptr<macro_expr>& macro)
+            {visit_macro_expr(macro);},
             [this](uptr<noop_expression>& noop)
             {visit_noop_e(noop);}
             }, expr);

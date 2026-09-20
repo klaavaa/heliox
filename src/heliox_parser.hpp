@@ -31,6 +31,7 @@ private:
     uptr<variable_declaration_statement> parse_variable_declaration();
     
     uptr<explicit_conversion_expr> parse_explicit_cast();
+    uptr<macro_expr> parse_macro_expr();
 
     Type parse_type();
 	
@@ -53,7 +54,6 @@ private:
     // creates the node with source location information
     template<typename T, typename... Args>
     requires std::derived_from<T, ast_node>
-
     uptr<T> make_node(Args&&... args)
     {
         return std::make_unique<T>(m_current_token.filename, relevant_line, relevant_position, std::forward<Args>(args)...);

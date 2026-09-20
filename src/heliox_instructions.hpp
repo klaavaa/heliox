@@ -22,7 +22,7 @@ inline int64_t align_up(int64_t offset, int64_t align)
 
 inline std::string parse_string_for_asm(const std::string& str)
 {
-        std::string parsed_string = "\"";
+    std::string parsed_string = "\"";
     bool escaped = false;
     for (size_t i = 0; i < str.size(); i++)
     {
@@ -191,6 +191,8 @@ struct AssemblyBlock
 enum class LiteralType
 {
     STRING,
+    STRINGLENGTH_UNUSED,
+    STRINGLENGTH,
     FLOAT32,
     FLOAT64,
     FUNCTION_NAME,
@@ -208,6 +210,7 @@ enum class IROperandKind
     VIRTUAL_REGISTER,
     IMMEDIATE_VALUE,
     LITERAL_LOCATION,
+    LITERAL,
     ARG_NUMBER,
     LABEL,
     ASM_BLOCK_ID
@@ -233,9 +236,14 @@ struct IROperand
     {
         return {IROperandKind::ARG_NUMBER, val};
     }
-    static IROperand Literal(int64_t val)
+    static IROperand LiteralLocation(int64_t val)
     {
         return {IROperandKind::LITERAL_LOCATION, val};
+    }
+    
+    static IROperand Literal(int64_t val)
+    {
+        return {IROperandKind::LITERAL, val};
     }
 
     static IROperand Label(int64_t val)
@@ -308,18 +316,27 @@ struct IRFunction
 struct IRUnit
 {
     std::vector<IRFunction> ir_functions;
-    std::unordered_map<size_t, AllocatedLiteral> allocated_literals;
+    std::map<size_t, AllocatedLiteral> allocated_literals;
 
     std::vector<AssemblyBlock> assembly_blocks;
 
     size_t allocate_string_literal(const std::string& value)
     {
         size_t id = allocated_literals.size();
-        // todo parse string literals for escape sequences 
         std::string parsed = parse_string_for_asm(value);
         allocated_literals.insert({id, AllocatedLiteral{LiteralType::STRING, parsed}});
+        allocated_literals.insert({id + 1, AllocatedLiteral{LiteralType::STRINGLENGTH_UNUSED, std::to_string(id)}});
         return id;
     }
+
+    
+    size_t allocate_stringlength_literal(size_t string_id) 
+    {
+        if (!allocated_literals.contains(string_id)) Logger::internal_error();
+        allocated_literals.at(string_id + 1).type = LiteralType::STRINGLENGTH;
+        return string_id + 1;
+    }
+   
 
     size_t allocate_float64_literal(const std::string& value)
     {
@@ -403,6 +420,7 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
         case IRInstructionType::MOV:
             std::println("{}  MOV        r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
+
         case IRInstructionType::ARG_PUSH:
             std::println("{}  ARG_PUSH        <- r{}", prefix, ir_instruction.src1);
             break;
@@ -512,63 +530,63 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
             std::println("{}  JMP_NOT         <- r{}, LB{}", prefix, ir_instruction.src1, ir_instruction.src2);
             break;
         case IRInstructionType::LABEL:
-            std::println("{}  LABEL           <-    , LB{}", prefix, ir_instruction.src2);
+            std::println("{}  LABEL          <-    , LB{}", prefix, ir_instruction.src2);
             break;
         case IRInstructionType::ICMP_EQU:
-            std::println("{}  ICMP_EQU    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            std::println("{}  ICMP_EQU   r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
         case IRInstructionType::ICMP_NEQU:
-            std::println("{}  ICMP_NEQU   r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            std::println("{}  ICMP_NEQU  r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
         case IRInstructionType::ICMP_LT:
-            std::println("{}  ICMP_LT     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            std::println("{}  ICMP_LT    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
         case IRInstructionType::ICMP_GT:
-            std::println("{}  ICMP_GT     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            std::println("{}  ICMP_GT    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
         case IRInstructionType::ICMP_LTE:
-            std::println("{}  ICMP_LTE    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            std::println("{}  ICMP_LTE   r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
         case IRInstructionType::ICMP_GTE:
-            std::println("{}  ICMP_GTE    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            std::println("{}  ICMP_GTE   r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
 
         case IRInstructionType::F32CMP_EQU:
-            std::println("{}  F32CMP_EQU    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            std::println("{}  F32CMP_EQU r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
         case IRInstructionType::F32CMP_NEQU:
-            std::println("{}  F32CMP_NEQU   r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            std::println("{}  F32CMP_NEQU r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
         case IRInstructionType::F32CMP_LT:
-            std::println("{}  F32CMP_LT     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            std::println("{}  F32CMP_LT  r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
         case IRInstructionType::F32CMP_GT:
-            std::println("{}  F32CMP_GT     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            std::println("{}  F32CMP_GT    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
         case IRInstructionType::F32CMP_LTE:
-            std::println("{}  F32CMP_LTE    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            std::println("{}  F32CMP_LTE   r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
         case IRInstructionType::F32CMP_GTE:
-            std::println("{}  F32CMP_GTE    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            std::println("{}  F32CMP_GTE   r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
 
         case IRInstructionType::F64CMP_EQU:
-            std::println("{}  F64CMP_EQU    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            std::println("{}  F64CMP_EQU   r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
         case IRInstructionType::F64CMP_NEQU:
-            std::println("{}  F64CMP_NEQU   r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            std::println("{}  F64CMP_NEQU  r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
         case IRInstructionType::F64CMP_LT:
-            std::println("{}  F64CMP_LT     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            std::println("{}  F64CMP_LT    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
         case IRInstructionType::F64CMP_GT:
-            std::println("{}  F64CMP_GT     r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            std::println("{}  F64CMP_GT    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
         case IRInstructionType::F64CMP_LTE:
-            std::println("{}  F64CMP_LTE    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            std::println("{}  F64CMP_LTE   r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
         case IRInstructionType::F64CMP_GTE:
-            std::println("{}  F64CMP_GTE    r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            std::println("{}  F64CMP_GTE   r{}  <- r{}, r{}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
 
         case IRInstructionType::CONVERT_F32_TO_F64:
@@ -597,10 +615,11 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
             break;
 
 
-
         case IRInstructionType::INLINE_ASM:
             std::println("{}  INLINE_ASM r{}  <- asm[]", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
+
+
         default:
             std::println("instruction {} not implemented yet", static_cast<int>(ir_instruction.type));
             break;

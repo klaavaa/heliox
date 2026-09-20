@@ -46,6 +46,8 @@ private:
     void visit_expression_s(uptr<expression_statement>& expr) override;
     void visit_explicit_conversion(uptr<explicit_conversion_expr>& explicit_conversion) override;
 
+    void visit_macro_expr(uptr<macro_expr>& macro) override;
+
     void visit_break(uptr<break_statement>& break_s) override;
     void visit_continue(uptr<continue_statement>& continue_s) override;
 
@@ -69,6 +71,9 @@ private:
     IROperand loop_break_label = IROperand::None();
 
     std::unordered_map<uint32_t, int64_t> symbol_id_to_vr;
+    
+    std::unordered_map<int64_t, int64_t> identifier_string_literal_location;
+    int64_t last_string_literal_location = 0;
 };
 
 

@@ -10,6 +10,7 @@
 #define HX_COMMA						','
 #define HX_DOT							'.'
 #define HX_DOLLAR						'$'
+#define HX_HASH 						'#'
 
 #define HX_AMPERSAND					'&'
 #define HX_PIPE						    '|'
@@ -113,6 +114,7 @@ enum class TokenType
 	STRING,
 
 	AT,
+    HASH,
 
 	LOGICAL_AND,
 	LOGICAL_OR,

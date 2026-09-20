@@ -238,6 +238,8 @@ expression Parser::parse_primary()
         }
     case TokenType::AT:
         return parse_explicit_cast();
+    case TokenType::HASH:
+        return parse_macro_expr();
     default:
         Logger::error(m_current_token, "Unexpected token, expected primary expression");
     }
@@ -304,7 +306,7 @@ Type Parser::parse_type()
         if (m_current_token.type != TokenType::INTEGER) 
             Logger::error(m_current_token.filename, m_current_token.line, m_current_token.position, "Array must have a length");
 
-        int array_element_count = std::stoi(m_current_token.value);
+        int64_t array_element_count = std::stoll(m_current_token.value);
         if (array_element_count < 1) Logger::error(m_current_token.filename, m_current_token.line, m_current_token.position, "Trying to create an array with a length less than 1");
         eat(TokenType::INTEGER);
 
@@ -532,6 +534,19 @@ uptr<compound_statement> Parser::parse_compound_statement()
     return make_node<compound_statement>(std::move(statements));
 }
 
+uptr<macro_expr> Parser::parse_macro_expr() {
+    eat(TokenType::HASH);
+    std::string command_name = m_current_token.value;
+    eat(TokenType::IDENTIFIER);
+
+    eat(TokenType::L_PAREN);
+
+    auto expr = parse_expression();
+
+    eat(TokenType::R_PAREN);
+
+    return make_node<macro_expr>(command_name, std::move(expr));
+}
     
 void Parser::eat(TokenType token_type)
 {

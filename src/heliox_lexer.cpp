@@ -288,6 +288,10 @@ Token Lexer::get_next()
     {
         return make_token(TokenType::AT, "");
     }
+    case HX_HASH:
+    {
+        return make_token(TokenType::HASH, "");
+    }
     
     case HX_LEFT_ARROW:
     {
