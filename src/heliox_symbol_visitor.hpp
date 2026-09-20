@@ -19,6 +19,7 @@ public:
     
     void populate_toplevel_symbols()
     {
+
         for (auto& tu : program.translation_units)
         {
             current_scope = tu.global_scope;
@@ -37,11 +38,12 @@ public:
 
                     if (!func->symbol)
                     {
-                        Logger::error(*func, std::format("Redefinition of symbol {}", func->symbol->name));
+                        Logger::error(*func, std::format("Redefinition of symbol {}", func->name));
                     }
                 },
                 [&tu](uptr<struct_statement>& struct_s)
                 {
+                    *struct_s;
                     Logger::not_implemented();
                     /*
                     StructType st;
@@ -133,7 +135,7 @@ private:
         if (!variable_declaration->symbol)
         {
             Logger::error(*variable_declaration, std::format("Redefinition of symbol",
-                        variable_declaration->symbol->name));
+                        variable_declaration->var_name));
         }
     }
     void visit_variable_definition(uptr<variable_definition_statement>& variable_definition) override 
@@ -183,7 +185,7 @@ private:
             func->symbol = current_scope->insert_symbol(Symbol::Function(func->name, func->return_type, {}, flags));
             if (!func->symbol)
             {
-                Logger::error(*func, std::format("Redefinition of symbol {}", func->symbol->name));
+                Logger::error(*func, std::format("Redefinition of symbol {}", func->name));
             }
         }
         resolve_type(func->symbol->type);
@@ -197,7 +199,7 @@ private:
             param->symbol = current_scope->insert_symbol(Symbol::Variable(param->var_name, param->var_type));
             if (!param->symbol)
             {
-                Logger::error(*func, std::format("Redefinition of symbol {}", param->symbol->name));
+                Logger::error(*func, std::format("Redefinition of symbol {}", param->var_name));
             }
 
             // populate the params of the func symbol
@@ -220,6 +222,7 @@ private:
 
     void visit_struct(uptr<struct_statement>& struct_s) override
     {
+        *struct_s;
         Logger::not_implemented();
         /*
         StructType struct_type;

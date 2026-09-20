@@ -166,7 +166,7 @@ void InstructionGenerator::visit_string_literal(uptr<string_literal_expr>& strin
     int64_t literal_location = (int64_t)ir_unit.allocate_string_literal(string_literal->value);
     IRInstruction load_string(IRInstructionType::LOAD_MEM_INDEX, current_register, IROperand::LiteralLocation(literal_location), IROperand::None());
     last_string_literal_location = load_string.src1.value;
-    register_vr_type(current_register, Type{PrimitiveType::U8, 1});
+    register_vr_type(current_register, Type{PrimitiveType::U8, 1, 0});
     emit_instruction(load_string);
 }
 void InstructionGenerator::visit_int_literal(uptr<int_literal_expr>& int_literal) 

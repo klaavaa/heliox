@@ -34,6 +34,7 @@ using BaseType = std::variant<UnresolvedType, PrimitiveType, AllocatedBlock>;
 
 struct Type
 {
+
     static Type Unresolved(const UnresolvedType& name, uint32_t ptr_depth, uint32_t array_element_count=0) { 
         if (array_element_count != 0) ptr_depth++;
         return Type{name, ptr_depth, array_element_count}; 
@@ -49,7 +50,7 @@ struct Type
     BaseType base;
     uint32_t ptr_depth;
     // array_element_count = 0 meaning it is not an array
-    uint32_t array_element_count;
+    uint32_t array_element_count = 0;
 
     bool is_array() const {
         return array_element_count != 0;
@@ -80,6 +81,8 @@ struct Type
                 case PrimitiveType::F64: return 8;
 
                 case PrimitiveType::VOID: return 0;
+                default:
+                    Logger::internal_error();
             }
             },
             [] (const UnresolvedType& unresolved_type) -> uint32_t {
@@ -130,11 +133,11 @@ struct Type
         {
             return std::nullopt;
         }
-        return Type(base, ptr_depth - 1);
+        return Type(base, ptr_depth - 1, array_element_count);
     }
     Type get_ptr() const
     {
-        return Type(base, ptr_depth + 1);
+        return Type(base, ptr_depth + 1, array_element_count);
     }
 };
 

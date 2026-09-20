@@ -10,8 +10,8 @@
 namespace hx
 {
 
-inline constexpr uint8_t SF_EXTERN =  1 << 1;
-inline constexpr uint8_t SF_VARARGS = 1 << 2;
+inline constexpr uint8_t SF_EXTERN      =  1 << 1;
+inline constexpr uint8_t SF_VARARGS     =  1 << 2;
 
 enum class SymbolKind
 {
@@ -99,7 +99,7 @@ inline sptr<Scope> create_program_scope()
        Symbol s;
        s.kind = SymbolKind::TYPEDEF;
        s.name = str;
-       s.type = Type{pt, 0};
+       s.type = Type{pt, 0, 0};
        program_scope->insert_symbol(s);
    }
 
