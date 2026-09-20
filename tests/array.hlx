@@ -1,0 +1,19 @@
+extern fun printf(str: u8*, ...) void;
+
+
+fun main() i32 
+{
+    
+    myarr: i32[12];
+    element_count: u64 = #sizeof(myarr) / #sizeof(*myarr);
+
+    for (i: u64 = 0; i < element_count; i += 1) 
+    {
+        element: i32* = myarr + i * #sizeof(*myarr);
+        *element = i;
+        printf("%d\n\0", *element);
+    }
+
+    return element_count;
+}
+

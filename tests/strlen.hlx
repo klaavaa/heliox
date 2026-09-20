@@ -1,0 +1,15 @@
+extern fun printf(str: u8*, ...) void;
+
+fun main () i32 
+{
+    str1: u8* = "This is a string of size: 28";
+    str2: u8* = "123456789";
+    
+    strlen: u64 = #strlen(str2);
+
+    printf("%d\n\0", #strlen(str1));
+    printf("%d\n\0", #strlen("four"));
+    printf("%llu\n\0", strlen);
+
+    return 0;
+}

@@ -54,7 +54,9 @@ def main():
         "multiple_operations": 30,
         "floatops": 0,
         "pointers": 100,
-        "float_types": 0
+        "float_types": 0,
+        "strlen": 0,
+        "array": 12,
         }
 
     
@@ -72,7 +74,9 @@ def main():
         "logical": "1: exec\n2: exec\n",
         "floatops": "1\n4\n5\n6\n8\n3.14\n3.54\n0.00\n1.00\n6.68\n0.00\n66.82\n-74.90\n",
         "pointers": "x = 100\ny = 20\n*ptr = 100\n&x == ptr => 1\nx = 20\ny = 100\n*ptr = 20\n&x == ptr => 1\n",
-        "float_types": "28.00\n"
+        "float_types": "28.00\n",
+        "strlen": "28\n4\n9\n",
+        "array": "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n",
     }
     if sys.platform == "win32":
         CompileData.nasm_format = "-fwin64"
