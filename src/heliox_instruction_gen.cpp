@@ -985,29 +985,17 @@ void InstructionGenerator::visit_macro_expr(uptr<macro_expr>& macro)
 
     }
     else if (macro->command_name == "sizeof") {
-        std::visit(overloads{
-            [&](uptr<string_literal_expr>& string_literal) {
-                Logger::not_implemented();
-            },
-            [&](uptr<int_literal_expr>& int_literal) {
-                IRInstruction load_int(IRInstructionType::LOAD_IMMEDIATE, current_register, IROperand::Immediate(TYPE_I64.byte_size()), IROperand::None());
-                register_vr_type(current_register, TYPE_U64);
-                emit_instruction(load_int);
-            },
-            [&](uptr<identifier_literal_expr>& identifier) {
-                auto type = identifier->symbol->type;
-                uint32_t byte_size;
-                if (type.is_array())
-                    byte_size = type.array_byte_size();
-                else
-                    byte_size = type.byte_size();
-                IRInstruction load_int(IRInstructionType::LOAD_IMMEDIATE, current_register, IROperand::Immediate(byte_size), IROperand::None());
-                register_vr_type(current_register, TYPE_U64);
-                emit_instruction(load_int);
-            },
+        visit_expression(macro->argument);
 
-            [&, this](auto& expr) { Logger::error(*expr, "Cannot process the string length for node"); }
-        }, macro->argument);
+        auto type = get_vr_type(effective_register);
+        uint32_t byte_size;
+        if (type.is_array())
+            byte_size = type.array_byte_size();
+        else
+            byte_size = type.byte_size();
+        IRInstruction load_int(IRInstructionType::LOAD_IMMEDIATE, current_register, IROperand::Immediate(byte_size), IROperand::None());
+        register_vr_type(current_register, TYPE_U64);
+        emit_instruction(load_int);
     }
     else {
         Logger::error(*macro, "Unknown macro command");

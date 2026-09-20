@@ -68,7 +68,7 @@ struct Scope : std::enable_shared_from_this<Scope>
            || kind == SymbolKind::STRUCT_FIELD)
     std::optional<Symbol*> find_symbol(const std::string& name)
     {
-        auto opt = symbols.find_if([&name](const Symbol& s) {return s.name == name;});
+        auto opt = symbols.find_if([&name](const Symbol& s) {return (s.name == name) && (s.kind == kind);});
         if (opt.has_value()) return &opt.value();
         
         for (const auto& scope : using_scopes)
