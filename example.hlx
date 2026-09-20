@@ -1,18 +1,6 @@
-extern fun printf(str:u8*, ...) void;
+extern fun printf(str: u8*, ...) void;
 
-
-struct Vec2 
-{
-    x: f32;
-    y: f32;
+fun main() i32 {
+    printf("Hello, World!\n\0");
+    return 0;
 }
-
-
-
-fun main() i32 
-{
-    pos: Vec2;
-    pos.x = 1.0;
-    pos.y = 1.0+3.2;
-}
-
