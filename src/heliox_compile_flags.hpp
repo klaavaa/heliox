@@ -74,7 +74,7 @@ inline void process_flag(std::string_view flag_string, int* i, int argc, char** 
     }
 
 
-    Logger::pre_compile_error("unregognized command-line option: '{}'", flag_string);
+    Logger::pre_compile_error("unrecognized command-line option: '{}'", flag_string);
 }
 
 
