@@ -484,7 +484,12 @@ std::string CodeGenerator::get_vr_location(int64_t vr, uint32_t byte_size)
         switch (byte_size)
         {
         case 8:
+        #ifdef _WIN32
+            //qword here leads to nasm "error: mismatch in operand sizes" on windows?
+            return std::format("[rbp {} {}]", op, stack_pos);
+        #else
             return std::format("qword[rbp {} {}]", op, stack_pos);
+        #endif
         case 4:
             return std::format("dword[rbp {} {}]", op, stack_pos);
         case 2:
