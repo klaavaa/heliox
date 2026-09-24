@@ -50,7 +50,7 @@ struct Type
     BaseType base;
     uint32_t ptr_depth;
     // array_element_count = 0 meaning it is not an array
-    uint32_t array_element_count = 0;
+    uint32_t array_element_count;
 
     bool is_array() const {
         return array_element_count != 0;
@@ -133,11 +133,11 @@ struct Type
         {
             return std::nullopt;
         }
-        return Type(base, ptr_depth - 1, array_element_count);
+        return Type(base, ptr_depth - 1, 0);
     }
     Type get_ptr() const
     {
-        return Type(base, ptr_depth + 1, array_element_count);
+        return Type(base, ptr_depth + 1, 0);
     }
 };
 

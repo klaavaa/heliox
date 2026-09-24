@@ -16,7 +16,7 @@ Symbol Symbol::Variable(const std::string name, Type type, uint8_t flags)
 
 Symbol Symbol::Typedef(const std::string name, Type type, uint8_t flags)
 {
-    return Symbol{.kind = SymbolKind::VARIABLE, .name = name, .type = type, .param_types={}, .alignment= 0, .flags = flags, .id = SYMBOL_ID++};
+    return Symbol{.kind = SymbolKind::TYPEDEF, .name = name, .type = type, .param_types={}, .alignment= 0, .flags = flags, .id = SYMBOL_ID++};
 }
 Symbol Symbol::StructField(const std::string name, Type type, uint32_t alignment, uint8_t flags)
 {
@@ -34,13 +34,29 @@ sptr<Scope> Scope::get_child()
 
 bool Scope::symbol_exists_in_current_scope(const std::string& name)
 {
-   return symbols.find_if([name](const Symbol& s){return s.name == name; }).has_value();
+    return symbols.contains(name);
 }
 
-Symbol* Scope::insert_symbol(Symbol symbol)
+
+Symbol* Scope::insert_function_symbol(const std::string& name, Type return_type, std::vector<Type> param_types, uint8_t flags)
 {
-    if (symbol_exists_in_current_scope(symbol.name)) return nullptr;
-    return &symbols.push_back(symbol);
+    if (symbol_exists_in_current_scope(name)) return nullptr;
+    symbols.insert({name, Symbol::Function(name, return_type, param_types, flags)});
+    return &symbols.at(name);
+}
+
+Symbol* Scope::insert_variable_symbol(const std::string& name, Type type) 
+{
+    if (symbol_exists_in_current_scope(name)) return nullptr;
+    symbols.insert({name, Symbol::Variable(name, type)});
+    return &symbols.at(name);
+}
+
+Symbol* Scope::insert_typedef_symbol(const std::string& name, Type type, uint8_t flags) 
+{
+    if (symbol_exists_in_current_scope(name)) return nullptr;
+    symbols.insert({name, Symbol::Typedef(name, type, flags)});
+    return &symbols.at(name);
 }
 
 void Scope::use_scope(sptr<Scope> scope)

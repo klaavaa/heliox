@@ -33,8 +33,8 @@ public:
                     if (func->has_varargs) flags |= SF_VARARGS;
                     // we'll fill the params in the next pass
 
-                    func->symbol = tu.global_scope->insert_symbol(
-                            Symbol::Function(func->name, func->return_type, {}, flags));
+                    func->symbol = tu.global_scope->insert_function_symbol(
+                            func->name, func->return_type, {}, flags);
 
                     if (!func->symbol)
                     {
@@ -130,8 +130,9 @@ private:
     void visit_variable_declaration(uptr<variable_declaration_statement>& variable_declaration) override 
     {
         resolve_type(variable_declaration->var_type);
-        variable_declaration->symbol = current_scope->insert_symbol(Symbol::Variable(variable_declaration->var_name,
-                variable_declaration->var_type));
+        variable_declaration->symbol = current_scope->insert_variable_symbol(variable_declaration->var_name,
+                variable_declaration->var_type);
+
         if (!variable_declaration->symbol)
         {
             Logger::error(*variable_declaration, std::format("Redefinition of symbol",
@@ -182,7 +183,7 @@ private:
             uint8_t flags{};
             if (func->is_extern) flags |= SF_EXTERN;
             if (func->has_varargs) flags |= SF_VARARGS;
-            func->symbol = current_scope->insert_symbol(Symbol::Function(func->name, func->return_type, {}, flags));
+            func->symbol = current_scope->insert_function_symbol(func->name, func->return_type, {}, flags);
             if (!func->symbol)
             {
                 Logger::error(*func, std::format("Redefinition of symbol {}", func->name));
@@ -196,7 +197,7 @@ private:
         for (auto& param : func->params)
         {
             resolve_type(param->var_type);
-            param->symbol = current_scope->insert_symbol(Symbol::Variable(param->var_name, param->var_type));
+            param->symbol = current_scope->insert_variable_symbol(param->var_name, param->var_type);
             if (!param->symbol)
             {
                 Logger::error(*func, std::format("Redefinition of symbol {}", param->var_name));

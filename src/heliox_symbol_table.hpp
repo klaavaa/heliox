@@ -46,15 +46,18 @@ struct Scope : std::enable_shared_from_this<Scope>
 {
     std::string name;
     sptr<Scope> parent;
-    BlockVector<Symbol, 64> symbols;
+    std::unordered_map<std::string, Symbol> symbols;
 
     std::vector<sptr<Scope>> child_scopes;
     std::vector<sptr<Scope>> using_scopes;
     
     sptr<Scope> get_child();
     
-    // returns whether symbol was succesfully inserted 
-    Symbol* insert_symbol(Symbol symbol);
+    // returns a pointer to the inserted symbol or nullptr
+    Symbol* insert_function_symbol(const std::string& name, Type return_type, std::vector<Type> param_types, uint8_t flags);
+    Symbol* insert_variable_symbol(const std::string& name, Type type);
+    Symbol* insert_typedef_symbol(const std::string& name, Type type,  uint8_t flags);
+
     bool symbol_exists_in_current_scope(const std::string& name);
     
     void use_scope(sptr<Scope> scope);
@@ -68,8 +71,9 @@ struct Scope : std::enable_shared_from_this<Scope>
            || kind == SymbolKind::STRUCT_FIELD)
     std::optional<Symbol*> find_symbol(const std::string& name)
     {
-        auto opt = symbols.find_if([&name](const Symbol& s) {return (s.name == name) && (s.kind == kind);});
-        if (opt.has_value()) return &opt.value();
+        if (symbols.contains(name) && symbols.at(name).kind == kind) {
+            return {&symbols.at(name)};
+        }
         
         for (const auto& scope : using_scopes)
         {
@@ -96,11 +100,8 @@ inline sptr<Scope> create_program_scope()
    program_scope->name = "program"; 
    for (auto& [str, pt] : primitive_type_map)
    {
-       Symbol s;
-       s.kind = SymbolKind::TYPEDEF;
-       s.name = str;
-       s.type = Type{pt, 0, 0};
-       program_scope->insert_symbol(s);
+       program_scope->insert_typedef_symbol(str.data(), Type::Primitive(pt, 0, 0), 0);
+
    }
 
   return program_scope;
@@ -108,9 +109,8 @@ inline sptr<Scope> create_program_scope()
 
 inline void print_scope(sptr<Scope> scope) {
     std::println("scope name: {}", scope->name);
-    for (size_t i = 0; i < scope->symbols.size(); i++) {
-        auto& sym = scope->symbols[i];
-        std::println("sym: {}", sym.name);
+    for (auto&[name, sym] : scope->symbols) {
+        std::println("sym: {}", name);
     }
     if (scope->parent)
         print_scope(scope->parent);
