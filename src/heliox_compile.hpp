@@ -64,19 +64,21 @@ inline void compile(const std::vector<std::string>& file_paths)
     HX_PERF_START();
     // Creates a program which contains all modules
     Program program(translation_units);
-    
+
+    HX_PERF_START();
     SymbolVisitor symbol_visitor(program);
     symbol_visitor.populate_toplevel_symbols();
     symbol_visitor.populate_rest_of_symbols_and_resolve_types();
-    
+    HX_PERF_END("symbol table");
 
     size_t i = 0;
     for (auto& tu : translation_units)
     {
         // generate IR instructions
+        HX_PERF_START();
         InstructionGenerator instruction_gen(tu);
-        
         IRUnit ir_unit = instruction_gen.generate_instructions();
+        HX_PERF_END("instruction gen");
         
         if (flags.print_ir)
             print_ir_unit(ir_unit);
@@ -86,9 +88,11 @@ inline void compile(const std::vector<std::string>& file_paths)
         
         // preallocate certain registers / stack
 
+        HX_PERF_START();
         // perform register allocation
         RegisterAllocator register_allocator(ir_unit);
         register_allocator.allocate_registers();
+        HX_PERF_END("register allocation");
         
         //print_ir_unit(ir_unit);
 
