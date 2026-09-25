@@ -4,6 +4,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <map>
 #include <variant>
 #include "typedefs.hpp"
 #include "heliox_error.hpp"
@@ -29,8 +30,14 @@ struct AllocatedBlock {
     uint32_t block_size; 
 };
 
+struct Type;
+
+struct StructType {
+    std::map<std::string, Type> fields;
+};
+
 using UnresolvedType = std::string;
-using BaseType = std::variant<UnresolvedType, PrimitiveType, AllocatedBlock>;
+using BaseType = std::variant<UnresolvedType, PrimitiveType, AllocatedBlock, StructType>;
 
 struct Type
 {
@@ -45,6 +52,9 @@ struct Type
     }
     static Type BlockAllocation(uint32_t block_size) {
         return Type{AllocatedBlock(block_size), 0, 0};
+    }
+    static Type Struct(const std::map<std::string, Type>& fields) {
+        return Type{StructType(fields), 0, 0};
     }
 
     BaseType base;
@@ -91,6 +101,10 @@ struct Type
             },
             [] (const AllocatedBlock& allocated_block) -> uint32_t {
                 return allocated_block.block_size;
+            },
+            [] (const StructType& struct_type) -> uint32_t {
+                Logger::not_implemented(); 
+                return 0; 
             }
             },
             base);

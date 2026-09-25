@@ -178,6 +178,6 @@ namespace hx {
 
         std::string name;
         std::vector<uptr<variable_declaration_statement>> fields;
-        Symbol* symbol;
+        //Symbol* symbol;
     };
 }

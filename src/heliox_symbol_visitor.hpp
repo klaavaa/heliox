@@ -43,17 +43,16 @@ public:
                 },
                 [&tu](uptr<struct_statement>& struct_s)
                 {
-                    *struct_s;
-                    Logger::not_implemented();
-                    /*
-                    StructType st;
-                    Type t = Type::Struct(st);
-                    struct_s->symbol = tu.global_scope->insert_symbol(Symbol::Typedef(struct_s->name, t));
-                    if (!struct_s->symbol)
-                    {
-                        Logger::error(*struct_s, std::format("Redefinition of symbol {}", struct_s->symbol->name));
+                    std::map<std::string, Type> fields;
+                    for (const auto& field: struct_s->fields) {
+                        if (fields.contains(field->var_name))
+                            Logger::error(*struct_s, std::format("Redefinition of field '{}' in struct", field->var_name));
+                        fields.insert({field->var_name, field->var_type});
                     }
-                    */
+
+                    auto* sym = tu.global_scope->insert_typedef_symbol(struct_s->name, Type::Struct(fields), 0);
+                    if (!sym)
+                        Logger::error(*struct_s, std::format("Redefinition of symbol '{}'", struct_s->name));
                 },
                 [](auto&&) {}
                 }, statement);
@@ -223,67 +222,58 @@ private:
 
     void visit_struct(uptr<struct_statement>& struct_s) override
     {
-        *struct_s;
-        Logger::not_implemented();
-        /*
-        StructType struct_type;
-        struct_type.scope = std::make_shared<Scope>(); 
-        uint32_t struct_byte_size{0};
-        uint32_t max_alignment{0};
-
-        for (auto& decl : struct_s->fields)
-        {
-            resolve_type(decl->var_type);
-
-            if (decl->var_type.byte_size() == 0)
-            {
-                Logger::error(*decl, "Cannot have a struct field with byte size 0");
-            }
-            // pad
-            uint32_t alignment = decl->var_type.byte_size();
-            max_alignment = std::max(alignment, max_alignment);
-            
-            struct_byte_size = (struct_byte_size + alignment - 1) & ~(alignment - 1);
-
-            Symbol field = Symbol::StructField(decl->var_name, decl->var_type, struct_byte_size);
-            struct_type.scope->insert_symbol(field);
-
-            struct_byte_size += alignment;
-
-        }
-        struct_byte_size = (struct_byte_size + max_alignment - 1) & ~(max_alignment - 1);
-        struct_type.byte_size = struct_byte_size;
-        Type t = Type::Struct(struct_type);
-        // if toplevel
-        if (struct_s->symbol)
-        {
-            struct_s->symbol->type = t;
+        auto symopt = current_scope->find_typedef_symbol(struct_s->name);
+        if (symopt.has_value()) {
+            auto* sym = symopt.value();
+            resolve_type(sym->type);
         }
         else
         {
-            struct_s->symbol = current_scope->insert_symbol(Symbol::Typedef(struct_s->name, t));
-            if (!struct_s->symbol)
-            {
-                Logger::error(*struct_s, std::format("Redefinition of symbol {}", struct_s->symbol->name));
+            std::map<std::string, Type> fields;
+            for (const auto& field: struct_s->fields) {
+                if (fields.contains(field->var_name))
+                    Logger::error(*struct_s, std::format("Redefinition of field '{}' in struct", field->var_name));
+                fields.insert({field->var_name, field->var_type});
             }
+
+            auto* sym = current_scope->insert_typedef_symbol(struct_s->name, Type::Struct(fields), 0);
+            if (!sym)
+                Logger::error(*struct_s, std::format("Redefinition of symbol '{}'", struct_s->name));
         }
-        */
     }
     
     void visit_binop(uptr<binop_expr>& binop) override 
     {
         visit_expression(binop->left);
+        
         if (binop->op_token == TokenType::DOT)
         {
-            Logger::not_implemented();
-            /*
             if (!std::holds_alternative<StructType>(effective_type->base))
             {
                 Logger::error(*binop, "Type not accessable");
             }
-            current_scope = std::get<StructType>(effective_type->base).scope;
-            */
+            if (std::holds_alternative<uptr<binop_expr>>(binop->right))
+            {
+                visit_expression(binop->right);
+            } 
+            else if (std::holds_alternative<uptr<identifier_literal_expr>>(binop->right))  
+            {
+                StructType& st = std::get<StructType>(effective_type->base);
+                auto& identifier_literal = std::get<uptr<identifier_literal_expr>>(binop->right);
+                if (!st.fields.contains(identifier_literal->name)) 
+                {
+                    auto* ast_node = as_ast_node(binop->right);
+                    Logger::error(*ast_node, "Type not accessable");
+                }
+                resolve_type(st.fields.at(identifier_literal->name));
+            }
+            else {
+                auto* ast_node = as_ast_node(binop->right);
+                Logger::error(*ast_node, "Type not accessable");
+            }
+            return;
         }
+        
         visit_expression(binop->right);
     }
     void visit_unary(uptr<unary_expr>& unary) override 
