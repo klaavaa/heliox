@@ -4,8 +4,10 @@
 #include <optional>
 #include <vector>
 #include <algorithm>
+#include <expected>
 #include "typedefs.hpp"
 #include "heliox_types.hpp"
+#include "heliox_expression.hpp"
 
 namespace hx
 {
@@ -30,17 +32,17 @@ struct Symbol
     
     std::vector<Type> param_types;
     
-    uint32_t alignment;
-
     uint8_t flags{0};
 
     uint32_t id;
     
     static Symbol Function(const std::string name, Type return_type, std::vector<Type> param_types, uint8_t flags={});
     static Symbol Variable(const std::string name, Type type, uint8_t flags={});
-    static Symbol StructField(const std::string name, Type type, uint32_t alignment, uint8_t flags={});
+    static Symbol StructField(const std::string name, Type type, uint8_t flags={});
     static Symbol Typedef(const std::string name, Type type, uint8_t flags={});
 };
+
+using ExpectedSymbol = std::expected<Symbol*, std::string>;
 
 struct Scope : std::enable_shared_from_this<Scope>
 {
@@ -54,11 +56,12 @@ struct Scope : std::enable_shared_from_this<Scope>
     sptr<Scope> get_child();
     
     // returns a pointer to the inserted symbol or nullptr
-    Symbol* insert_function_symbol(const std::string& name, Type return_type, std::vector<Type> param_types, uint8_t flags);
-    Symbol* insert_variable_symbol(const std::string& name, Type type);
-    Symbol* insert_typedef_symbol(const std::string& name, Type type,  uint8_t flags);
+    ExpectedSymbol insert_function_symbol(const std::string& name, Type return_type, std::vector<Type> param_types, uint8_t flags);
+    ExpectedSymbol insert_variable_symbol(const std::string& name, Type type);
+    ExpectedSymbol insert_typedef_symbol(const std::string& name, Type type,  uint8_t flags);
 
     bool symbol_exists_in_current_scope(const std::string& name);
+    bool resolve_type(Type& type);
     
     void use_scope(sptr<Scope> scope);
     
@@ -69,28 +72,31 @@ struct Scope : std::enable_shared_from_this<Scope>
            || kind == SymbolKind::VARIABLE 
            || kind == SymbolKind::FUNCTION
            || kind == SymbolKind::STRUCT_FIELD)
-    std::optional<Symbol*> find_symbol(const std::string& name)
+    [[nodiscard]] Symbol* find_symbol(const std::string& name)
     {
         if (symbols.contains(name) && symbols.at(name).kind == kind) {
-            return {&symbols.at(name)};
+            return &symbols.at(name);
         }
         
         for (const auto& scope : using_scopes)
         {
-            auto s = scope->find_symbol<kind>(name);
-            if (s.has_value()) return s.value();
+            Symbol* s = scope->find_symbol<kind>(name);
+            if (s) return s;
         }
 
         if (parent)
             return parent->find_symbol<kind>(name);
 
-        return std::nullopt;
+        return nullptr;
     }
 
-    std::optional<Symbol*> find_function_symbol(const std::string& name);
-    std::optional<Symbol*> find_variable_symbol(const std::string& name);
-    std::optional<Symbol*> find_typedef_symbol(const std::string& name);
-    std::optional<Symbol*> find_struct_field_symbol(const std::string& name);
+    [[nodiscard]] Symbol* find_function_symbol(const std::string& name);
+    [[nodiscard]] Symbol* find_variable_symbol(const std::string& name);
+    [[nodiscard]] Symbol* find_typedef_symbol(const std::string& name);
+
+    [[nodiscard]] Symbol* find_function_symbol(uptr<identifier_literal_expr>& identifier_literal);
+    [[nodiscard]] Symbol* find_variable_symbol(uptr<identifier_literal_expr>& identifier_literal);
+    [[nodiscard]] Symbol* find_typedef_symbol(uptr<identifier_literal_expr>& identifier_literal);
 
 };
 
@@ -100,8 +106,13 @@ inline sptr<Scope> create_program_scope()
    program_scope->name = "program"; 
    for (auto& [str, pt] : primitive_type_map)
    {
-       program_scope->insert_typedef_symbol(str.data(), Type::Primitive(pt, 0, 0), 0);
+       ExpectedSymbol expected =
+           program_scope->insert_typedef_symbol(str.data(), Type::Primitive(pt, 0, 0), 0);
 
+       if (!expected.has_value()) 
+       {
+           Logger::internal_error();
+       }
    }
 
   return program_scope;

@@ -20,13 +20,13 @@ std::string CodeGenerator::generate()
 
 void CodeGenerator::emit_function(IRFunction& ir_function)
 {
-    if (ir_function.is_extern)
+    if (ir_function.is_extern())
     {
-        extern_section += std::format("extern {}\n", ir_function.name);
+        extern_section += std::format("extern {}\n", ir_function.name());
         return;
     }
 
-    text_section += std::format("global {}\n{}:\n", ir_function.name, ir_function.name);
+    text_section += std::format("global {}\n{}:\n", ir_function.name(), ir_function.name());
 
 
     save_callee_preserved_registers();
@@ -48,7 +48,7 @@ void CodeGenerator::emit_function(IRFunction& ir_function)
         emit_instruction(instruction);
     }
 
-    text_section += std::format(".ret.{}:\n", ir_function.name);
+    text_section += std::format(".ret.{}:\n", ir_function.name());
     emit("mov", "rsp", "rbp");
     emit("pop", "rbp");
     load_callee_preserved_registers();
@@ -214,7 +214,7 @@ void CodeGenerator::emit_instruction(IRInstruction& instruction)
 
     case IRInstructionType::RETURN:
         emit_mov(instruction.dst, instruction.src1);
-        emit("jmp", std::format(".ret.{}", current_function->name));
+        emit("jmp", std::format(".ret.{}", current_function->name()));
         return;
 
     case IRInstructionType::FUNCTION_CALL:

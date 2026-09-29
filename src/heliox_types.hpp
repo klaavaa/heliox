@@ -191,6 +191,12 @@ inline bool is_float_type(const Type& t)
 
 }
 
+inline bool is_struct_type(const Type& t) 
+{
+    if (t.ptr_depth != 0) return false;     
+    return std::holds_alternative<StructType>(t.base);
+}
+
 // naming kinda sus 
 inline bool is_string(const Type& t) {
     if (!std::holds_alternative<PrimitiveType>(t.base))

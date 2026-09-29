@@ -7,6 +7,7 @@
 #include <optional>
 #include "heliox_registerdata.hpp"
 #include "heliox_types.hpp"
+#include "heliox_symbol_table.hpp"
 
 
 
@@ -299,8 +300,8 @@ struct RegisterReservation
 
 struct IRFunction
 {
-    std::string name;
-    bool is_extern;
+    Symbol* symbol;
+
     std::vector<IRInstruction> instructions{};
     std::unordered_map<int64_t, Type> virtual_register_types;
     std::map<int64_t, LiveRange> live_ranges;
@@ -311,6 +312,17 @@ struct IRFunction
     std::set<int64_t> vrs_with_variables;
 
     int64_t total_stack_allocated = 0;
+
+
+    bool is_extern() {
+        return symbol->flags & SF_EXTERN;
+    }
+    bool has_varargs() {
+        return symbol->flags & SF_VARARGS;
+    }
+    std::string name() {
+        return symbol->name;
+    }
 };
 
 struct IRUnit
@@ -630,7 +642,7 @@ inline void print_ir_unit(IRUnit& ir_unit)
 
     for (auto& ir_function : ir_unit.ir_functions)
     {
-        std::println("{}():", ir_function.name);
+        std::println("{}():", ir_function.symbol->name);
 
         size_t instruction_number = 1;
         for (auto& inst : ir_function.instructions)

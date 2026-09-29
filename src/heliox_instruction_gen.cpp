@@ -12,6 +12,7 @@ InstructionGenerator::InstructionGenerator(TranslationUnit& _translation_unit)
 
 IRUnit InstructionGenerator::generate_instructions()
 {
+    current_scope = translation_unit.global_scope;
     visit_translation_unit(translation_unit);
     return ir_unit;
 }
@@ -57,27 +58,61 @@ const Type& InstructionGenerator::get_vr_type(IROperand vr) const
 
 void InstructionGenerator::visit_function(uptr<function_statement>& func)
 {
+      
     current_register.value = 0;
     effective_register.value = 0;
     current_function = IRFunction{};
-    current_function.name = func->symbol->name;
-    current_function.is_extern = func->is_extern;
+    
+    std::vector<Type> param_types{};
+    for (auto& p : func->params) 
+    {
+        param_types.push_back(p->var_type);
+    }
+    
+    int8_t flags{};
+    if (func->is_extern)
+        flags |= SF_EXTERN;
+    if (func->has_varargs)
+        flags |= SF_VARARGS;
 
-    if (current_function.is_extern)
+    ExpectedSymbol expected =
+        current_scope->insert_function_symbol(func->name, func->return_type, param_types, flags);
+
+    if (!expected.has_value()) {
+        Logger::error(*func, expected.error());
+    }
+    current_function.symbol = expected.value();
+    
+
+    if (current_function.symbol->flags & SF_EXTERN)
     {
         ir_unit.ir_functions.push_back(std::move(current_function));
         return;
     }
     
+    current_scope = current_scope->get_child();
+
+    
     for (size_t i = 0; i < func->params.size(); i++)
     {
         const auto& param = func->params[i];
+        
+        
+        ExpectedSymbol expected =
+            current_scope->insert_variable_symbol(param->var_name, param->var_type);
+
+        if (!expected.has_value()) {
+            Logger::error(*func, expected.error());
+        }
+
+        Symbol* param_symbol = expected.value();
+
         auto src = IROperand::Vr(current_register.value);
         current_register.value++;
         auto dst = IROperand::Vr(current_register.value);
-        register_vr_type(src, param->symbol->type);
-        register_vr_type(dst, param->symbol->type);
-        symbol_id_to_vr.emplace(param->symbol->id, dst.value);
+        register_vr_type(src, param_symbol->type);
+        register_vr_type(dst, param_symbol->type);
+        symbol_id_to_vr.emplace(param_symbol->id, dst.value);
         current_function.vrs_with_variables.insert(dst.value);
         emit_instruction(IRInstruction(IRInstructionType::REGISTER_ARG, dst, src, IROperand::Arg((int64_t)i)));
     }
@@ -88,15 +123,20 @@ void InstructionGenerator::visit_function(uptr<function_statement>& func)
     }
 
     ir_unit.ir_functions.push_back(std::move(current_function));
+
+    current_scope = current_scope->parent;
 }
 
 
 void InstructionGenerator::visit_function_call(uptr<function_call_expr>& function_call)
 {
-    //FunctionSymbol& func_symbol = find_function_symbol(global_table, function_call->identifier->name, function_call->in_module, function_call->find_in_parent_modules); 
-    Symbol& func_symbol = *function_call->symbol;
+    Symbol* symbol = current_scope->find_function_symbol(function_call->name);
+    if (!symbol) {
+        Logger::error(*function_call, "Function not found");
+    }
+
     const size_t param_count = function_call->parameters.size();
-    if ((param_count != func_symbol.param_types.size() && !(func_symbol.flags | SF_VARARGS) ) || param_count < func_symbol.param_types.size())
+    if ((param_count != symbol->param_types.size() && !(symbol->flags | SF_VARARGS) ) || param_count < symbol->param_types.size())
     {
         Logger::error(*function_call, "Function call argument count does not match function signature");
     }
@@ -114,10 +154,10 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
         IROperand arg_vreg = arg_vregs[i];
         IRInstructionType mov_type;
         effective_register = arg_vreg;
-        if (i < func_symbol.param_types.size())
+        if (i < symbol->param_types.size())
         {
              mov_type = IRInstructionType::MOV_ARG;
-             emit_implicit_conversion(*function_call, arg_vreg, func_symbol.param_types[i]);
+             emit_implicit_conversion(*function_call, arg_vreg, symbol->param_types[i]);
         }
         else
         {
@@ -136,10 +176,10 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
     // call instruction
     int64_t name_id = (int64_t)ir_unit.allocate_function_name(function_call->name);
     IRInstruction call_instruction(IRInstructionType::FUNCTION_CALL, current_register, IROperand::LiteralLocation(name_id), IROperand::None());
-    register_vr_type(current_register, func_symbol.type);
+    register_vr_type(current_register, symbol->type);
     emit_instruction(call_instruction);
 
-    if (func_symbol.type.byte_size() != 0)
+    if (symbol->type.byte_size() != 0)
     {
         IRInstruction mov(IRInstructionType::MOV, current_register, effective_register, IROperand::None());;
         register_vr_type(current_register, effective_register);
@@ -150,10 +190,12 @@ void InstructionGenerator::visit_function_call(uptr<function_call_expr>& functio
 
 void InstructionGenerator::visit_compound(uptr<compound_statement>& compound)
 {
+    current_scope = current_scope->get_child();
     for (auto& statement : compound->statements)
     {
         visit_statement(statement);
     }
+    current_scope = current_scope->parent;
 }
 
 void InstructionGenerator::visit_expression_s(uptr<expression_statement>& expr)
@@ -187,7 +229,9 @@ void InstructionGenerator::visit_float_literal(uptr<float_literal_expr>& float_l
 
 void InstructionGenerator::visit_identifier_literal(uptr<identifier_literal_expr>& identifier_literal)
 {
-    int64_t vr = symbol_id_to_vr.at(identifier_literal->symbol->id);
+    Symbol* symbol = current_scope->find_variable_symbol(identifier_literal);
+
+    int64_t vr = symbol_id_to_vr.at(symbol->id);
     IRInstruction mov(IRInstructionType::MOV, current_register, IROperand::Vr(vr), IROperand::None());
     register_vr_type(current_register, mov.src1);
     emit_instruction(mov);
@@ -197,8 +241,9 @@ void InstructionGenerator::visit_return(uptr<return_statement>& return_s)
 {
     // todo check current function return type
     visit_expression(return_s->return_expression);
-    if (return_s->symbol->type.byte_size() != 0)
-        emit_implicit_conversion(*return_s, effective_register, return_s->symbol->type);
+    
+    if (current_function.symbol->type.byte_size() != 0)
+        emit_implicit_conversion(*return_s, effective_register, current_function.symbol->type);
     IRInstruction return_inst(IRInstructionType::RETURN, current_register, effective_register, IROperand::None());
     register_vr_type(current_register, effective_register);
     
@@ -207,16 +252,27 @@ void InstructionGenerator::visit_return(uptr<return_statement>& return_s)
 
 void InstructionGenerator::visit_variable_declaration(uptr<variable_declaration_statement>& variable_declaration)
 {
-    if (variable_declaration->var_type.is_array()) {
+
+    ExpectedSymbol expected = 
+        current_scope->insert_variable_symbol(variable_declaration->var_name, variable_declaration->var_type);
+    
+    if (!expected.has_value()) {
+        Logger::error(*variable_declaration, expected.error());
+    }
+
+    Symbol* symbol = expected.value();
+
+    if (symbol->type.is_array()) {
         IRInstruction stack_allocation(IRInstructionType::LOAD_EFFECTIVE_ADDRESS, 
                 IROperand::Vr(current_register.value + 1), current_register, IROperand::None());
                 //IROperand::Immediate(variable_declaration->var_type.array_byte_size()));
-        register_vr_type(current_register, Type::BlockAllocation(variable_declaration->var_type.array_byte_size()));
+        register_vr_type(current_register, Type::BlockAllocation(symbol->type.array_byte_size()));
         emit_instruction(stack_allocation);
     }
+    
 
-    symbol_id_to_vr.emplace(variable_declaration->symbol->id, current_register.value);
-    register_vr_type(current_register, variable_declaration->var_type);
+    symbol_id_to_vr.emplace(symbol->id, current_register.value);
+    register_vr_type(current_register, symbol->type);
     current_function.vrs_with_variables.insert(current_register.value);
     effective_register = current_register;
     current_register.value++;
@@ -236,8 +292,9 @@ void InstructionGenerator::visit_variable_definition(uptr<variable_definition_st
         emit_implicit_conversion(*variable_definition, expression_vr, get_vr_type(effective_register));
         expression_vr = effective_register;
     }
-
-    int64_t vr = symbol_id_to_vr.at(variable_definition->declaration->symbol->id);
+    
+    Symbol* symbol = current_scope->find_variable_symbol(variable_definition->declaration->var_name); 
+    int64_t vr = symbol_id_to_vr.at(symbol->id);
 
     // used for #strlen
     if (std::holds_alternative<uptr<string_literal_expr>>(variable_definition->definition)) {
@@ -345,8 +402,10 @@ void InstructionGenerator::emit_assignment(TokenType op_token, expression& left_
         overloads{
         [this, op_token, &right_register](uptr<identifier_literal_expr>& identifier)
         {
-            emit_implicit_conversion(*identifier, right_register, identifier->symbol->type);
-            int64_t vr = symbol_id_to_vr.at(identifier->symbol->id);
+            Symbol* symbol = current_scope->find_variable_symbol(identifier);
+
+            emit_implicit_conversion(*identifier, right_register, symbol->type);
+            int64_t vr = symbol_id_to_vr.at(symbol->id);
             IRInstruction write_var(IRInstructionType::MOV, IROperand::Vr(vr), effective_register, IROperand::None());
             emit_instruction(write_var, 0);
         },
@@ -370,6 +429,7 @@ void InstructionGenerator::emit_assignment(TokenType op_token, expression& left_
         },
         [this, op_token, &right_register](uptr<binop_expr>& binary)
         {
+            Logger::not_implemented();
             if (binary->op_token != TokenType::DOT)
             {
                 Logger::error(*binary, "Tried to assign a non-assignable value");
@@ -554,9 +614,25 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
 {
     if (is_equals_operator(binop->op_token))
     {
-        // todo += -= etc (maybe unwrap in parser?)
         emit_assignment(binop->op_token, binop->left, binop->right);
         return;
+    }
+    
+    if (binop->op_token == TokenType::DOT) 
+    {
+        // field access
+        visit_expression(binop->left);
+        IROperand left_register = effective_register;
+        const Type& left_type = get_vr_type(left_register);
+        if (!is_struct_type(left_type)) Logger::error(*binop, "Type not accessable");
+        if (!std::holds_alternative<uptr<identifier_literal_expr>>(binop->right))
+        {
+            Logger::error(*binop, "Field not an identifier");
+        }
+    
+        auto& right_identifier = std::get<uptr<identifier_literal_expr>>(binop->right);
+        Logger::not_implemented();
+        
     }
 
     // logical operators need to be handled with their own logic
@@ -604,10 +680,12 @@ void InstructionGenerator::visit_unary(uptr<unary_expr>& unary)
             Logger::error(*unary, "Trying to get the address of a non-literal");
         }
         auto& identifier_literal = std::get<uptr<identifier_literal_expr>>(unary->expr);
-        int64_t vr = symbol_id_to_vr.at(identifier_literal->symbol->id);
+        Symbol* symbol = current_scope->find_variable_symbol(identifier_literal);
+
+        int64_t vr = symbol_id_to_vr.at(symbol->id);
         IROperand var_vr = IROperand::Vr(vr);
         IRInstruction addr_of(IRInstructionType::ADDR_OF, current_register, var_vr, IROperand::None());
-        register_vr_type(current_register, identifier_literal->symbol->type.get_ptr());
+        register_vr_type(current_register, symbol->type.get_ptr());
         emit_instruction(addr_of);
         return;
     }
@@ -816,6 +894,7 @@ void InstructionGenerator::visit_while(uptr<while_statement>& while_s)
 
 void InstructionGenerator::visit_for(uptr<for_statement>& for_s)
 {
+    current_scope = current_scope->get_child();
 
     auto begin_label = IROperand::Label(next_label++);
     auto iteration_label = IROperand::Label(next_label++);
@@ -848,6 +927,7 @@ void InstructionGenerator::visit_for(uptr<for_statement>& for_s)
     loop_continue_label = previous_continue_label;
     loop_break_label = previous_break_label;
 
+    current_scope = current_scope->parent;
 }
 
 void InstructionGenerator::visit_break(uptr<break_statement>& break_s) 
@@ -967,9 +1047,10 @@ void InstructionGenerator::visit_macro_expr(uptr<macro_expr>& macro)
                 emit_instruction(strlen); 
             },
             [&](uptr<identifier_literal_expr>& identifier) {
-                auto type = identifier->symbol->type;
+                Symbol* symbol = current_scope->find_variable_symbol(identifier);
+                auto& type = symbol->type;
                 if (!is_string(type)) Logger::error(*identifier, "Cannot process the string length for non-string-type"); 
-                auto vr = symbol_id_to_vr.at(identifier->symbol->id);
+                auto vr = symbol_id_to_vr.at(symbol->id);
                 if (!identifier_string_literal_location.contains(vr)) 
                     Logger::error(*identifier, "Identifier is not a const string");
                 

@@ -59,6 +59,7 @@ private:
 
 private:
     TranslationUnit& translation_unit;
+    sptr<Scope> current_scope = nullptr;
 
     IRUnit ir_unit;
     IRFunction current_function;

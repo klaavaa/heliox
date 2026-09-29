@@ -6,7 +6,7 @@
 #include "typedefs.hpp"
 #include "heliox_token.hpp"
 #include "heliox_ast_node.hpp"
-#include "heliox_symbol_table.hpp"
+#include "heliox_types.hpp"
 
 namespace hx
 {
@@ -61,7 +61,6 @@ struct identifier_literal_expr : ast_node
     identifier_literal_expr(std::string_view filename, uint32_t line, uint32_t position, std::string name)
         : ast_node(filename, line, position), name(name) {}
     std::string name;
-    Symbol* symbol;
 };
 
 struct binop_expr : ast_node
@@ -87,7 +86,6 @@ struct function_call_expr : ast_node
           {}
     std::string name;
     std::vector<expression> parameters;
-    Symbol* symbol;
 };
 
 struct explicit_conversion_expr : ast_node

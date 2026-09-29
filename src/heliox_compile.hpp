@@ -11,7 +11,6 @@
 
 #include "heliox_timer.hpp"
 
-#include "heliox_symbol_visitor.hpp"
 #include "heliox_instruction_gen.hpp"
 #include "heliox_liveness_analysis.hpp"
 #include "heliox_register_allocation.hpp"
@@ -65,11 +64,11 @@ inline void compile(const std::vector<std::string>& file_paths)
     // Creates a program which contains all modules
     Program program(translation_units);
 
-    HX_PERF_START();
-    SymbolVisitor symbol_visitor(program);
-    symbol_visitor.populate_toplevel_symbols();
-    symbol_visitor.populate_rest_of_symbols_and_resolve_types();
-    HX_PERF_END("symbol table");
+    //HX_PERF_START();
+    //SymbolVisitor symbol_visitor(program);
+    //symbol_visitor.populate_toplevel_symbols();
+    //symbol_visitor.populate_rest_of_symbols_and_resolve_types();
+    //HX_PERF_END("symbol table");
 
     size_t i = 0;
     for (auto& tu : translation_units)
