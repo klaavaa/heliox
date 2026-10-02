@@ -51,7 +51,6 @@ bool is_valid_unary_operator(TokenType token_type)
         case TokenType::BITWISE_AND:
         case TokenType::NOT:
         case TokenType::BITWISE_NOT:
-        case TokenType::AT:
             return true;
     default:
         return false;

@@ -98,11 +98,10 @@ uptr<function_statement> Parser::parse_function()
         }
     }
     eat(TokenType::R_PAREN);
-    Type return_type; 
+    Type return_type = Type::Primitive(PrimitiveType::VOID, 0);
+
     if (m_current_token.type == TokenType::IDENTIFIER)
         return_type = parse_type(); 
-    else 
-        return_type = Type::Primitive(PrimitiveType::VOID, 0);
     
     if (m_current_token.type == TokenType::SEMICOLON)
     {
@@ -292,15 +291,17 @@ expression Parser::parse_expression()
 Type Parser::parse_type()
 {
     if (m_current_token.type != TokenType::IDENTIFIER)
-        return Type::Unresolved("auto", 0);
+        return Type::Unresolved("auto", 0, {});
     std::string type_name = parse_identifier_literal()->name;
+
     uint32_t ptr_depth = 0;
     while (m_current_token.type == TokenType::MULTIPLY)
     {
         ptr_depth++; 
         eat(TokenType::MULTIPLY);
     }
-    if (m_current_token.type == TokenType::L_BRACK) {
+    std::vector<uint32_t> array_element_counts;
+    while (m_current_token.type == TokenType::L_BRACK) {
         eat(TokenType::L_BRACK);
 
         if (m_current_token.type != TokenType::INTEGER) 
@@ -311,17 +312,15 @@ Type Parser::parse_type()
         eat(TokenType::INTEGER);
 
         eat(TokenType::R_BRACK);
-
-        return Type::Unresolved(type_name, ptr_depth, static_cast<uint32_t>(array_element_count));
-
+        array_element_counts.push_back(array_element_count);
     }
-    return Type::Unresolved(type_name, ptr_depth);
+    return Type::Unresolved(type_name, ptr_depth, array_element_counts);
 }
 
 uptr<explicit_conversion_expr> Parser::parse_explicit_cast()
 {
     eat(TokenType::AT);
-    auto type = parse_type();
+    Type type = parse_type();
 
     return make_node<explicit_conversion_expr>(type, parse_primary());
 }
@@ -553,7 +552,7 @@ void Parser::eat(TokenType token_type)
     if (m_current_token.type != token_type)
     {
         // TODO: unexpected token error
-        Logger::error(m_current_token, std::format("Unexpected token {}", m_current_token.value));
+        Logger::error(m_current_token, std::format("Unexpected token {}, tried to eat {}", m_current_token.value, (int)token_type));
     }
     relevant_line = m_current_token.line; 
     relevant_position = m_current_token.position;

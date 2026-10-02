@@ -56,12 +56,43 @@ void CodeGenerator::emit_function(IRFunction& ir_function)
     registers_to_preserve.clear();
 }
 
+void CodeGenerator::emit_struct_field_access(IROperand dst, IROperand src, IROperand offset)
+{
+    Location& location = current_function->virtual_register_locations.at(src.value);
+    int64_t field_pos = location.stack + offset.value;
+    
+    emit("mov", get_location(dst), std::format("[rbp - {}]", field_pos));
+}
+
+void CodeGenerator::emit_struct_field_address(IROperand dst, IROperand src, IROperand offset)
+{
+    Location& location = current_function->virtual_register_locations.at(src.value);
+    int64_t field_pos = location.stack + offset.value;
+    
+    emit("lea", get_location(dst), std::format("[rbp - {}]", field_pos));
+}
+
 void CodeGenerator::emit_instruction(IRInstruction& instruction)
 {
     switch (instruction.type)
     {
+    case IRInstructionType::RESERVE_STACK:
+        return;
+
+    case IRInstructionType::STRUCT_FIELD_ACCESS:
+        emit_struct_field_access(instruction.dst, instruction.src1, instruction.src2);
+        return;
+
+    case IRInstructionType::STRUCT_FIELD_ADDRESS:
+        emit_struct_field_address(instruction.dst, instruction.src1, instruction.src2);
+        return;
+
     case IRInstructionType::LOAD_EFFECTIVE_ADDRESS:
         emit("lea", instruction.dst, instruction.src1);
+        return;
+
+    case IRInstructionType::LOAD_STRUCT:
+        emit("mov", get_location(instruction.dst, 8), get_location(instruction.src1, 8));
         return;
 
     case IRInstructionType::LOAD_IMMEDIATE:

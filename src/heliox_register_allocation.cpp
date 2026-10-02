@@ -7,7 +7,12 @@ namespace hx
 
 void RegisterAllocator::allocate_stack(IRFunction& ir_function, const int64_t vr)
 {
-    auto byte_size = (int64_t)ir_function.virtual_register_types.at(vr).byte_size();
+    int64_t byte_size;    
+    if (is_array_type(ir_function.virtual_register_types.at(vr)))
+        byte_size = (int64_t)ir_function.virtual_register_types.at(vr).array_byte_size();
+    else
+        byte_size = (int64_t)ir_function.virtual_register_types.at(vr).byte_size();
+
     
     ir_function.total_stack_allocated += byte_size;
     ir_function.total_stack_allocated = align_up(ir_function.total_stack_allocated, byte_size);
@@ -404,22 +409,17 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
     
     int64_t pushed_argc = 0;
 
-    int64_t register_int_argc = 0;
-    int64_t register_float_argc = 0;
-
     for (auto& instruction : ir_function.instructions)
     {
         switch (instruction.type)
         {
-        case IRInstructionType::LOAD_EFFECTIVE_ADDRESS:
-            preallocate_stack(ir_function, instruction.src1.value);
-            break;
         case IRInstructionType::INLINE_ASM:
         {
             const auto& asm_block = ir_unit.assembly_blocks[instruction.src1.value];
             preallocate_register(ir_function, instruction.dst.value, Register::A, asm_block.clobbered_registers); 
             break;
         }
+        // TODO FIX COMPILER BUG (see test factorial)
         case IRInstructionType::IDIV:
         case IRInstructionType::IMUL:
             preallocate_register(ir_function, instruction.src1.value, Register::A, {Register::D});
@@ -451,7 +451,6 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
             break;
         case IRInstructionType::REGISTER_ARG:
             {
-            #ifdef _WIN32
             if (!is_integer_type(ir_function.virtual_register_types.at(instruction.src1.value)))
             {
 
@@ -468,26 +467,6 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
                 preallocate_register(ir_function, instruction.src1.value, g_register_data.register_passed_int_args.at(instruction.src2.value));
                 break;
             }
-            #else
-            if (!is_integer_type(ir_function.virtual_register_types.at(instruction.src1.value)))
-            {
-
-                if (register_float_argc < (int64_t)g_register_data.register_passed_float_args.size())
-                {
-                    preallocate_register(ir_function, instruction.src1.value, g_register_data.register_passed_float_args.at(register_float_argc));
-                    register_float_argc++;
-                    break;
-                }
-
-                goto inst_register_arg_push; 
-            }
-            if (register_int_argc < (int64_t)g_register_data.register_passed_int_args.size())
-            {
-                preallocate_register(ir_function, instruction.src1.value, g_register_data.register_passed_int_args.at(register_int_argc));
-                register_int_argc++;
-                break;
-            }
-            #endif
 
             inst_register_arg_push:
                 //need to take in codegen consideration the callee saved registers
@@ -574,6 +553,10 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
         }
         case IRInstructionType::STORE_MEM:
             preallocate_some_register(ir_function, instruction.dst.value);
+            break;
+
+        case IRInstructionType::RESERVE_STACK:
+            preallocate_stack(ir_function, instruction.dst.value);
             break;
 
         case IRInstructionType::DEREF:

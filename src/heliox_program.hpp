@@ -17,7 +17,6 @@ namespace hx
         std::vector<statement> statements;
 
         sptr<Scope> global_scope;
-
     };
 
     struct Program 

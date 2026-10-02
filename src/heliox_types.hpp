@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <vector>
 #include <unordered_map>
 #include <map>
 #include <variant>
@@ -10,6 +11,16 @@
 #include "heliox_error.hpp"
 
 namespace hx {
+
+inline int64_t align_up(int64_t offset, int64_t align)
+{
+    return (offset + align - 1) & ~(align - 1);
+}
+
+struct Type;
+
+struct UserDefinedStruct;
+inline UserDefinedStruct& get_user_defined_struct(size_t id);
 
 enum struct PrimitiveType
 {
@@ -26,49 +37,55 @@ enum struct PrimitiveType
     F64,
 };
 
-struct AllocatedBlock {
-    uint32_t block_size; 
+struct StructType {
+    StructType(size_t id, uint32_t byte_size) : id(id), byte_size(byte_size) {}
+    size_t id;
+    uint32_t byte_size;
 };
 
-struct Type;
-
-struct StructType {
-    std::map<std::string, Type> fields;
+struct ArrayType {
+    sptr<Type> underlying_type;
+    uint32_t element_count;
 };
 
 using UnresolvedType = std::string;
-using BaseType = std::variant<UnresolvedType, PrimitiveType, AllocatedBlock, StructType>;
+using BaseType = std::variant<UnresolvedType, PrimitiveType, StructType, ArrayType>;
+
 
 struct Type
 {
+    Type(BaseType base, uint32_t ptr_depth, std::vector<uint32_t> _array_element_counts) 
+        : base(base), ptr_depth(ptr_depth), array_element_counts(_array_element_counts) {}
+    Type(BaseType base, uint32_t ptr_depth) 
+        : base(base), ptr_depth(ptr_depth) {}
 
-    static Type Unresolved(const UnresolvedType& name, uint32_t ptr_depth, uint32_t array_element_count=0) { 
-        if (array_element_count != 0) ptr_depth++;
-        return Type{name, ptr_depth, array_element_count}; 
+    static Type Unresolved(const UnresolvedType& name, uint32_t ptr_depth, const std::vector<uint32_t>& _array_element_counts) { 
+        return Type{name, ptr_depth, _array_element_counts}; 
     }
-    static Type Primitive(PrimitiveType basic, uint32_t ptr_depth, uint32_t array_element_count=0) { 
-        if (array_element_count != 0) ptr_depth++;
-        return Type{basic, ptr_depth, array_element_count};
+
+    static Type Primitive(PrimitiveType basic, uint32_t ptr_depth) { 
+        return Type{basic, ptr_depth};
     }
-    static Type BlockAllocation(uint32_t block_size) {
-        return Type{AllocatedBlock(block_size), 0, 0};
+
+    static Type Struct(StructType st) {
+        return Type{st, 0};
     }
-    static Type Struct(const std::map<std::string, Type>& fields) {
-        return Type{StructType(fields), 0, 0};
+    static Type Array(sptr<Type> underlying, uint32_t element_count) {
+        return Type(ArrayType(underlying, element_count), 0);
     }
 
     BaseType base;
     uint32_t ptr_depth;
-    // array_element_count = 0 meaning it is not an array
-    uint32_t array_element_count;
+    uint32_t offset = 0;
+
+    std::vector<uint32_t> array_element_counts = {};
+
+public:
 
     bool is_array() const {
-        return array_element_count != 0;
+        return std::holds_alternative<ArrayType>(base);
     }
 
-    uint32_t array_byte_size() const {
-        return array_element_count * this->deref()->byte_size();
-    }
     
     uint32_t base_type_byte_size() const {
         return std::visit(
@@ -99,12 +116,11 @@ struct Type
                 Logger::error("", std::format("unresolved type: {}", unresolved_type)); 
                 return 0; 
             },
-            [] (const AllocatedBlock& allocated_block) -> uint32_t {
-                return allocated_block.block_size;
-            },
             [] (const StructType& struct_type) -> uint32_t {
-                Logger::not_implemented(); 
-                return 0; 
+                return struct_type.byte_size;
+            },
+            [] (const ArrayType& array_type) -> uint32_t {
+                return 8;
             }
             },
             base);
@@ -114,6 +130,15 @@ struct Type
     {
         if (ptr_depth != 0) return 8;
         return base_type_byte_size();
+    }
+
+    uint32_t array_byte_size() const 
+    {
+        if (!std::holds_alternative<ArrayType>(base)) Logger::internal_error(); 
+        const ArrayType& array_type = std::get<ArrayType>(base);
+        if (array_type.underlying_type->is_array()) 
+            return array_type.underlying_type->array_byte_size() * array_type.element_count;
+        return array_type.underlying_type->byte_size() * array_type.element_count;
     }
     
     friend bool operator == (const Type& a, const Type& b)
@@ -145,28 +170,66 @@ struct Type
     {
         if (ptr_depth == 0)
         {
+            if (is_array()) {
+                return *std::get<ArrayType>(base).underlying_type;
+            }
             return std::nullopt;
         }
-        return Type(base, ptr_depth - 1, 0);
+        return Type(base, ptr_depth - 1);
     }
     Type get_ptr() const
     {
-        return Type(base, ptr_depth + 1, 0);
+        return Type(base, ptr_depth + 1);
     }
+
 };
 
 
-inline constexpr Type TYPE_F32  = Type(PrimitiveType::F32,  0, 0);
-inline constexpr Type TYPE_F64  = Type(PrimitiveType::F64,  0, 0);
-inline constexpr Type TYPE_I8   = Type(PrimitiveType::I8,   0, 0);
-inline constexpr Type TYPE_I16  = Type(PrimitiveType::I16,  0, 0);
-inline constexpr Type TYPE_I32  = Type(PrimitiveType::I32,  0, 0);
-inline constexpr Type TYPE_I64  = Type(PrimitiveType::I64,  0, 0);
-inline constexpr Type TYPE_U8   = Type(PrimitiveType::U8,   0, 0);
-inline constexpr Type TYPE_U16  = Type(PrimitiveType::U16,  0, 0);
-inline constexpr Type TYPE_U32  = Type(PrimitiveType::U32,  0, 0);
-inline constexpr Type TYPE_U64  = Type(PrimitiveType::U64,  0, 0);
-inline constexpr Type TYPE_VOID = Type(PrimitiveType::VOID, 0, 0);
+struct UserDefinedStruct {
+    UserDefinedStruct(std::map<std::string, Type> fields_) : fields(fields_) {
+        uint32_t offset = 0;
+        for (auto& [name, type] : fields) {
+            uint32_t size = type.byte_size();
+            type.offset = (uint32_t)align_up((int64_t)offset, (int64_t)size);
+            offset = type.offset + size;
+            
+            struct_alignment = std::max(size, struct_alignment);
+        }
+        byte_size = (uint32_t)align_up((int64_t)offset, (int64_t)struct_alignment);
+    }
+
+    std::map<std::string, Type> fields;
+    uint32_t struct_alignment = 0;
+    uint32_t byte_size = 0;
+};
+
+inline std::vector<UserDefinedStruct>& get_user_defined_structs() {
+    static std::vector<UserDefinedStruct> user_defined_structs;
+    return user_defined_structs;
+}
+
+inline UserDefinedStruct& get_user_defined_struct(size_t id) {
+    return get_user_defined_structs()[id];
+}
+
+inline StructType push_user_defined_struct(const UserDefinedStruct& user_defined_struct) {
+    auto& user_defined_structs = get_user_defined_structs();
+    user_defined_structs.push_back(user_defined_struct);
+    return StructType{user_defined_structs.size() - 1ul, user_defined_struct.byte_size};
+}
+
+
+inline const Type TYPE_F32  = Type(PrimitiveType::F32,  0);
+inline const Type TYPE_F64  = Type(PrimitiveType::F64,  0);
+inline const Type TYPE_I8   = Type(PrimitiveType::I8,   0);
+inline const Type TYPE_I16  = Type(PrimitiveType::I16,  0);
+inline const Type TYPE_I32  = Type(PrimitiveType::I32,  0);
+inline const Type TYPE_I64  = Type(PrimitiveType::I64,  0);
+inline const Type TYPE_U8   = Type(PrimitiveType::U8,   0);
+inline const Type TYPE_U16  = Type(PrimitiveType::U16,  0);
+inline const Type TYPE_U32  = Type(PrimitiveType::U32,  0);
+inline const Type TYPE_U64  = Type(PrimitiveType::U64,  0);
+inline const Type TYPE_VOID = Type(PrimitiveType::VOID, 0);
 
 
 /* TODO */
@@ -211,9 +274,17 @@ inline bool is_pointer_type(const Type& t) {
     return t.ptr_depth > 0;
 }
 
+inline bool is_array_type(const Type& t) {
+    if (t.ptr_depth > 0) return false;
+    return std::holds_alternative<ArrayType>(t.base);
+}
+
+
 inline bool is_integer_type(const Type& t)
 {
     if (t.ptr_depth != 0) return true;
+    if (is_array_type(t)) return true; // arrays act like pointers
+    if (is_struct_type(t)) return true; // structs act like pointers
     if (!std::holds_alternative<PrimitiveType>(t.base))
     {
         return false;
@@ -237,6 +308,18 @@ inline bool is_integer_type(const Type& t)
     }
 
 }
+
+/*
+TODO use this maybe:
+inline bool is_integer_representable_type(const Type& t)
+{
+    if (t.ptr_depth != 0) return true;
+    if (is_array_type(t)) return true; // arrays act like pointers
+    if (is_struct_type(t)) return true; // structs act like pointers
+    
+    return is_integer_type(t);
+}
+*/
 
 inline bool is_unsigned(const Type& t)
 {
@@ -262,6 +345,8 @@ inline bool is_unsigned(const Type& t)
 
 inline bool is_implicit_conversion_possible(const Type& t1, const Type& t2)
 {
+    if (is_array_type(t1) && is_integer_type(t2)) return true;
+    if (is_integer_type(t1) && is_array_type(t2)) return true;
     if (is_integer_type(t1) && is_integer_type(t2)) return true;
     if (is_float_type(t1) && is_float_type(t2)) return true;
 
@@ -285,134 +370,5 @@ inline std::unordered_map<std::string_view, PrimitiveType> primitive_type_map =
  
 };
 
+} // namespace hx
 
-
-/*
-constexpr uint32_t get_ptr_byte_size()
-{
-    return 8;
-}
-
-
-
-struct type_data
-{
-    type_data(primitive_type type, uint32_t ptr_depth)
-        :
-            type(type),
-            ptr_depth(ptr_depth)
-    {
-        if (ptr_depth) 
-            byte_size = get_ptr_byte_size();
-        else
-        {
-            if (type == primitive_type::USER_DEFINED_STRUCT)
-            {
-                Logger::error("", HX_TODO, "Size of user defined struct is not known at this point");
-            }
-            else
-            byte_size = get_byte_size_from_known_type(type);
-        }
-    }
-
-    type_data(const type_data& other)
-        : type(other.type), ptr_depth(other.ptr_depth), byte_size(other.byte_size)
-    { }
-
-
-    type_data deref() const
-    {
-        if (ptr_depth == 0)
-        {
-            Logger::error("", HX_ILLEGAL_DEREF, "Cannot dereference non-pointer type");
-        }
-        return type_data(type, ptr_depth - 1);
-    }
-
-    type_data get_ptr_type() const
-    {
-        return type_data(type, ptr_depth + 1);
-    }
-
-    friend bool operator!=(const type_data& left, const type_data& right)
-    {
-        return !(left == right);
-    }
-
-    friend bool operator==(const type_data& left, const type_data& right)
-    {
-        return (left.type == right.type) && (left.ptr_depth == right.ptr_depth);
-    }
-
-   primitive_type type; 
-   uint32_t ptr_depth;
-   uint32_t byte_size;
-};
-
-inline bool is_integer_type(const type_data td) 
-{
-    if (td.ptr_depth != 0) return true;
-    switch (td.type)
-    {
-        case primitive_type::I8:
-        case primitive_type::I16:
-        case primitive_type::I32:
-        case primitive_type::I64:
-        case primitive_type::U8:
-        case primitive_type::U16:
-        case primitive_type::U32:
-        case primitive_type::U64:
-            return true;
-        default:
-            return false;
-    }
-}
-
-inline bool is_float_type(const type_data td) 
-{
-    if (td.ptr_depth != 0) return false;
-    switch (td.type)
-    {
-        case primitive_type::F32:
-        case primitive_type::F64:
-            return true;
-        default:
-            return false;
-    }
-}
-
-inline bool is_unsigned(const type_data td)
-{
-    if (td.ptr_depth != 0) return true;
-    switch (td.type)
-    {
-        case primitive_type::I8:
-        case primitive_type::I16:
-        case primitive_type::I32:
-        case primitive_type::I64:
-            return false;
-
-        case primitive_type::U8:
-        case primitive_type::U16:
-        case primitive_type::U32:
-        case primitive_type::U64:
-            return true;
-    default:
-        std::println("ERROR: unknown type at function: is_unsigned");
-        exit(-1);
-
-    }
-}
-
-inline bool is_implicit_conversion_possible(const type_data t1, const type_data t2)
-{
-    if (is_integer_type(t1) && is_integer_type(t2))
-        return true;
-
-    if (is_float_type(t1) && is_float_type(t2))
-        return true;
-
-    return false;
-}
-*/
-}

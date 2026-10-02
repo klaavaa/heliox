@@ -48,9 +48,24 @@ bool Scope::resolve_type(Type& type)
     {
         return false;
     }
+
     type.base = symbol->type.base;
     // we do += since we could have a type defined as a ptr
     type.ptr_depth += symbol->type.ptr_depth;
+
+    if (!type.array_element_counts.empty()) 
+    {
+        sptr<Type> t  = std::make_shared<Type>(type); 
+        for (size_t i = 0; i < type.array_element_counts.size(); i++) {
+            size_t array_element_count = type.array_element_counts[type.array_element_counts.size() - 1 - i];
+            t = std::make_shared<Type>(Type::Array(t, array_element_count));
+        }
+
+        type = *t;
+
+        return true;
+    }
+
     return true;
 }
 

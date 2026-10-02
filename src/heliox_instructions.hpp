@@ -14,10 +14,6 @@
 namespace hx
 {
 
-inline int64_t align_up(int64_t offset, int64_t align)
-{
-    return (offset + align - 1) & ~(align - 1);
-}
 
 
 
@@ -74,12 +70,16 @@ enum class IRInstructionType
     LOAD_MEM_INDEX,
     LOAD_FLOAT32,
     LOAD_FLOAT64,
+    LOAD_STRUCT,
     LOAD_EFFECTIVE_ADDRESS,
 
     STORE_MEM,
-    
-    // dst = return value, src1 = function_index
+    RESERVE_STACK,
 
+    STRUCT_FIELD_ACCESS,
+    STRUCT_FIELD_ADDRESS,
+
+    // dst = return value, src1 = function_index
     FUNCTION_CALL,
     RETURN,
 
@@ -426,6 +426,9 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
         case IRInstructionType::LOAD_FLOAT64:
             std::println("{}  LOAD_F64   r{}  <- idx[{}]", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
+        case IRInstructionType::LOAD_STRUCT:
+            std::println("{}  LOAD_STRCT r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
         case IRInstructionType::LOAD_EFFECTIVE_ADDRESS:
             std::println("{}  LEA        r{}  <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
             break;
@@ -442,6 +445,18 @@ inline void print_ir_instruction(IRInstruction& ir_instruction, size_t instructi
             break;
         case IRInstructionType::STORE_MEM:
             std::println("{}  STORE_MEM [r{}] <- r{}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
+
+        case IRInstructionType::RESERVE_STACK:
+            std::println("{}  RES_STACK  r{}   <- {}", prefix, ir_instruction.dst, ir_instruction.src1);
+            break;
+
+        case IRInstructionType::STRUCT_FIELD_ACCESS:
+            std::println("{}  FIELD_ACCSS r{}   <- r{} {}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
+            break;
+
+        case IRInstructionType::STRUCT_FIELD_ADDRESS:
+            std::println("{}  FIELD_ADDR  r{}   <- r{} {}", prefix, ir_instruction.dst, ir_instruction.src1, ir_instruction.src2);
             break;
 
         case IRInstructionType::IADD:

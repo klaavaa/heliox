@@ -5,7 +5,7 @@
 namespace hx
 {
 InstructionGenerator::InstructionGenerator(TranslationUnit& _translation_unit)
-    : translation_unit(_translation_unit)
+    :    translation_unit(_translation_unit)
 {
 
 }
@@ -208,7 +208,7 @@ void InstructionGenerator::visit_string_literal(uptr<string_literal_expr>& strin
     int64_t literal_location = (int64_t)ir_unit.allocate_string_literal(string_literal->value);
     IRInstruction load_string(IRInstructionType::LOAD_MEM_INDEX, current_register, IROperand::LiteralLocation(literal_location), IROperand::None());
     last_string_literal_location = load_string.src1.value;
-    register_vr_type(current_register, Type{PrimitiveType::U8, 1, 0});
+    register_vr_type(current_register, Type{PrimitiveType::U8, 1});
     emit_instruction(load_string);
 }
 void InstructionGenerator::visit_int_literal(uptr<int_literal_expr>& int_literal) 
@@ -230,11 +230,23 @@ void InstructionGenerator::visit_float_literal(uptr<float_literal_expr>& float_l
 void InstructionGenerator::visit_identifier_literal(uptr<identifier_literal_expr>& identifier_literal)
 {
     Symbol* symbol = current_scope->find_variable_symbol(identifier_literal);
-
     int64_t vr = symbol_id_to_vr.at(symbol->id);
-    IRInstruction mov(IRInstructionType::MOV, current_register, IROperand::Vr(vr), IROperand::None());
-    register_vr_type(current_register, mov.src1);
-    emit_instruction(mov);
+    const Type& vr_type = get_vr_type(IROperand::Vr(vr));
+    if (is_struct_type(vr_type)) {
+        IRInstruction lea(IRInstructionType::LOAD_STRUCT, current_register, IROperand::Vr(vr), IROperand::None());
+        register_vr_type(current_register, vr_type);
+        emit_instruction(lea);
+    } else if (is_array_type(vr_type)) {
+        IRInstruction lea(IRInstructionType::LOAD_EFFECTIVE_ADDRESS, current_register, IROperand::Vr(vr), IROperand::None());
+        register_vr_type(current_register, vr_type);
+        emit_instruction(lea);
+    }
+    else
+    {
+        IRInstruction mov(IRInstructionType::MOV, current_register, IROperand::Vr(vr), IROperand::None());
+        register_vr_type(current_register, mov.src1);
+        emit_instruction(mov);
+    }
 }
 
 void InstructionGenerator::visit_return(uptr<return_statement>& return_s) 
@@ -263,11 +275,15 @@ void InstructionGenerator::visit_variable_declaration(uptr<variable_declaration_
     Symbol* symbol = expected.value();
 
     if (symbol->type.is_array()) {
-        IRInstruction stack_allocation(IRInstructionType::LOAD_EFFECTIVE_ADDRESS, 
-                IROperand::Vr(current_register.value + 1), current_register, IROperand::None());
-                //IROperand::Immediate(variable_declaration->var_type.array_byte_size()));
-        register_vr_type(current_register, Type::BlockAllocation(symbol->type.array_byte_size()));
-        emit_instruction(stack_allocation);
+        IRInstruction stack_allocation(IRInstructionType::RESERVE_STACK, 
+                current_register, IROperand::Immediate((int64_t)symbol->type.array_byte_size()), IROperand::None());
+        emit_instruction(stack_allocation, 0, false);
+    }
+
+    else if (is_struct_type(symbol->type)) {
+        IRInstruction stack_allocation(IRInstructionType::RESERVE_STACK, 
+                current_register, IROperand::Immediate((int64_t)symbol->type.byte_size()), IROperand::None());
+        emit_instruction(stack_allocation, 0, false);
     }
     
 
@@ -317,6 +333,7 @@ void InstructionGenerator::emit_implicit_conversion(const ast_node& node, IROper
     }
 
     effective_register = vr;
+
     if (is_integer_type(type_from))
     {
         if (type_from.byte_size() >= type_to.byte_size()) return;
@@ -429,11 +446,14 @@ void InstructionGenerator::emit_assignment(TokenType op_token, expression& left_
         },
         [this, op_token, &right_register](uptr<binop_expr>& binary)
         {
-            Logger::not_implemented();
             if (binary->op_token != TokenType::DOT)
             {
                 Logger::error(*binary, "Tried to assign a non-assignable value");
             }
+
+            emit_struct_field_address(binary);
+            IRInstruction write_mem(IRInstructionType::STORE_MEM, effective_register, right_register, IROperand::None());
+            emit_instruction(write_mem, 0, false);
 
         },
         [](auto& expr) { Logger::error(*expr, "Tried to assign a non-assignable value"); }
@@ -620,19 +640,8 @@ void InstructionGenerator::visit_binop(uptr<binop_expr>& binop)
     
     if (binop->op_token == TokenType::DOT) 
     {
-        // field access
-        visit_expression(binop->left);
-        IROperand left_register = effective_register;
-        const Type& left_type = get_vr_type(left_register);
-        if (!is_struct_type(left_type)) Logger::error(*binop, "Type not accessable");
-        if (!std::holds_alternative<uptr<identifier_literal_expr>>(binop->right))
-        {
-            Logger::error(*binop, "Field not an identifier");
-        }
-    
-        auto& right_identifier = std::get<uptr<identifier_literal_expr>>(binop->right);
-        Logger::not_implemented();
-        
+        visit_struct_access(binop);
+        return;
     }
 
     // logical operators need to be handled with their own logic
@@ -675,6 +684,16 @@ void InstructionGenerator::visit_unary(uptr<unary_expr>& unary)
 {
     if (unary->op_token == TokenType::BITWISE_AND)
     {
+        if (std::holds_alternative<uptr<binop_expr>>(unary->expr))
+        {
+            auto& binop = std::get<uptr<binop_expr>>(unary->expr);
+            if (binop->op_token != TokenType::DOT) {
+                Logger::error(*unary, "Trying to get the address of a non-literal");
+            }
+            
+            emit_struct_field_address(binop);
+            return;
+        }
         if (!std::holds_alternative<uptr<identifier_literal_expr>>(unary->expr))
         {
             Logger::error(*unary, "Trying to get the address of a non-literal");
@@ -763,6 +782,7 @@ void InstructionGenerator::visit_unary(uptr<unary_expr>& unary)
 void InstructionGenerator::visit_explicit_conversion(uptr<explicit_conversion_expr>& explicit_conversion)
 {
     visit_expression(explicit_conversion->expr);
+    current_scope->resolve_type(explicit_conversion->type);
     // todo other ops than ptr cast
     auto effective_type = get_vr_type(effective_register);
     if (is_pointer_type(explicit_conversion->type) && is_pointer_type(effective_type)) {
@@ -798,9 +818,8 @@ void InstructionGenerator::visit_explicit_conversion(uptr<explicit_conversion_ex
                 Logger::error(*explicit_conversion, "unknown float size");
         }
         if (effective_type.byte_size() < 4) {
-            Type implicit_type;
+            Type implicit_type = TYPE_I32;
             if (is_unsigned(effective_type)) implicit_type = TYPE_U32;
-            else implicit_type = TYPE_I32;
             emit_implicit_conversion(*explicit_conversion, effective_register, implicit_type);
         }
         IRInstruction conversion(conversion_type, current_register, effective_register, IROperand::None());
@@ -1070,10 +1089,11 @@ void InstructionGenerator::visit_macro_expr(uptr<macro_expr>& macro)
 
         auto type = get_vr_type(effective_register);
         uint32_t byte_size;
-        if (type.is_array())
+        if (is_array_type(type))
             byte_size = type.array_byte_size();
         else
             byte_size = type.byte_size();
+
         IRInstruction load_int(IRInstructionType::LOAD_IMMEDIATE, current_register, IROperand::Immediate(byte_size), IROperand::None());
         register_vr_type(current_register, TYPE_U64);
         emit_instruction(load_int);
@@ -1082,6 +1102,177 @@ void InstructionGenerator::visit_macro_expr(uptr<macro_expr>& macro)
         Logger::error(*macro, "Unknown macro command");
     }
 
+}
+
+void InstructionGenerator::visit_struct(uptr<struct_statement>& struct_s) 
+{
+    std::map<std::string, Type> fields;
+    for (auto& field : struct_s->fields) {
+        current_scope->resolve_type(field->var_type);
+        fields.emplace(field->var_name, field->var_type);
+    }
+    //Type type = Type::Struct(fields);
+    UserDefinedStruct defined(fields);
+
+    StructType st = push_user_defined_struct(defined);
+    Type type = Type::Struct(st);
+
+    ExpectedSymbol expected = current_scope->insert_typedef_symbol(struct_s->name, type, 0);
+    if (!expected.has_value()) {
+        Logger::error(*struct_s, expected.error());
+    }
+}
+
+void InstructionGenerator::visit_struct_access(uptr<binop_expr>& binop)
+{
+    uint32_t offset = get_struct_field_offset(binop);
+
+    IRInstruction field_access(IRInstructionType::STRUCT_FIELD_ACCESS,
+            current_register, effective_register, IROperand::Immediate(offset));
+
+    if (!prevous_struct_access_type) Logger::internal_error();
+
+    register_vr_type(current_register, *prevous_struct_access_type);
+    emit_instruction(field_access);
+}
+
+void InstructionGenerator::emit_struct_field_address(uptr<binop_expr>& binop)
+{
+    /*
+    if (!(std::holds_alternative<uptr<identifier_literal_expr>>(binop->left) && std::holds_alternative<uptr<identifier_literal_expr>>(binop->right)))
+    {
+        Logger::not_implemented();
+    }
+    auto& left_identifier = std::get<uptr<identifier_literal_expr>>(binop->left);
+    auto& right_identifier = std::get<uptr<identifier_literal_expr>>(binop->right);
+
+    Symbol* left_symbol = current_scope->find_variable_symbol(left_identifier);
+    
+    if (left_symbol->type.ptr_depth) {
+        Logger::error(*left_identifier, "Cannot access pointer-type");
+    }
+    if (!is_struct_type(left_symbol->type)) {
+        Logger::error(*left_identifier, "Cannot access non-struct-type");
+    }
+
+    StructType st = std::get<StructType>(left_symbol->type.base);
+
+    UserDefinedStruct& struct_content = get_user_defined_struct(st.id);
+    
+    if (!struct_content.fields.contains(right_identifier->name))
+    {
+        Logger::error(*right_identifier, "Struct field not found");
+    }
+
+    Type& right_type = struct_content.fields.at(right_identifier->name);
+    
+    Symbol* left_sym = current_scope->find_variable_symbol(left_identifier); 
+    auto left_vr = IROperand::Vr(symbol_id_to_vr.at(left_sym->id));
+    */
+    
+    uint32_t offset = get_struct_field_offset(binop);
+
+    IRInstruction field_access(IRInstructionType::STRUCT_FIELD_ACCESS,
+            current_register, effective_register, IROperand::Immediate(offset));
+
+    if (!prevous_struct_access_type) Logger::internal_error();
+
+    IRInstruction field_address(IRInstructionType::STRUCT_FIELD_ADDRESS,
+            current_register, effective_register, IROperand::Immediate(offset));
+    register_vr_type(current_register, prevous_struct_access_type->get_ptr());
+    emit_instruction(field_address);
+}
+
+uint32_t InstructionGenerator::get_struct_field_offset(uptr<binop_expr>& binop)
+{
+    
+    if (binop->op_token != TokenType::DOT)
+    {
+        Logger::error(*binop, "Unexpected expression");
+    }
+    
+    expression& left = binop->left;
+    expression& right = binop->right;
+
+    if (!std::holds_alternative<uptr<identifier_literal_expr>>(right))
+    {
+        Logger::error(*as_ast_node(right), "non-identifier struct field");
+    }
+
+    uint32_t offset = 0; 
+
+    auto& right_identifier = std::get<uptr<identifier_literal_expr>>(right);
+
+    if (!std::holds_alternative<uptr<identifier_literal_expr>>(left))
+    {
+        if (std::holds_alternative<uptr<binop_expr>>(left))
+        {
+            auto& left_binop = std::get<uptr<binop_expr>>(left);
+            offset += get_struct_field_offset(left_binop);
+        }
+        else
+        {
+            // check unary *
+            Logger::not_implemented();
+        }
+        
+        // check this is not a nullptr in case
+        if (!prevous_struct_access_type) Logger::internal_error();
+         
+        Type& left_type = *prevous_struct_access_type;
+
+        if (left_type.ptr_depth) {
+            Logger::error(*as_ast_node(left), "Cannot access pointer-type");
+        }
+        if (!is_struct_type(left_type)) {
+            Logger::error(*as_ast_node(left), "Cannot access non-struct-type");
+        }
+
+        StructType st = std::get<StructType>(left_type.base);
+
+        UserDefinedStruct& struct_content = get_user_defined_struct(st.id);
+
+        if (!struct_content.fields.contains(right_identifier->name))
+        {
+            Logger::error(*right_identifier, "Struct field not found");
+        }
+
+        Type& right_type = struct_content.fields.at(right_identifier->name);
+        // set this for the next recursion step
+        prevous_struct_access_type = &right_type;
+        
+        return right_type.offset + offset;
+    }
+    else
+    {
+        auto& left_identifier = std::get<uptr<identifier_literal_expr>>(left);
+        Symbol* left_symbol = current_scope->find_variable_symbol(left_identifier);
+        if (left_symbol->type.ptr_depth) {
+            Logger::error(*left_identifier, "Cannot access pointer-type");
+        }
+        if (!is_struct_type(left_symbol->type)) {
+            Logger::error(*left_identifier, "Cannot access non-struct-type");
+        }
+    
+        StructType st = std::get<StructType>(left_symbol->type.base);
+        auto left_vr = IROperand::Vr(symbol_id_to_vr.at(left_symbol->id));
+
+        // this is important and needs to be preserved in this recursive function
+        effective_register = left_vr;
+
+        UserDefinedStruct& struct_content = get_user_defined_struct(st.id);
+        if (!struct_content.fields.contains(right_identifier->name))
+        {
+            Logger::error(*right_identifier, "Struct field not found");
+        }
+
+        Type& right_type = struct_content.fields.at(right_identifier->name);
+
+        // set this for the next recursion step
+        prevous_struct_access_type = &right_type;
+        
+        return right_type.offset;
+    }
 }
 
 } // namespace hx

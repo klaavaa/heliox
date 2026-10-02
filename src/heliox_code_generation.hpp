@@ -48,6 +48,9 @@ private:
     void emit_clear_register(IROperand src);
     void emit_inline_asm(IROperand src);
 
+    void emit_struct_field_access(IROperand dst, IROperand src, IROperand offset);
+    void emit_struct_field_address(IROperand dst, IROperand src, IROperand offset);
+
     IRUnit& ir_unit;
     IRFunction* current_function;
 

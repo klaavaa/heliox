@@ -46,6 +46,11 @@ private:
     void visit_expression_s(uptr<expression_statement>& expr) override;
     void visit_explicit_conversion(uptr<explicit_conversion_expr>& explicit_conversion) override;
 
+    void visit_struct(uptr<struct_statement>& struct_s) override;
+    void visit_struct_access(uptr<binop_expr>& binop);
+
+    void emit_struct_field_address(uptr<binop_expr>& binop);
+
     void visit_macro_expr(uptr<macro_expr>& macro) override;
 
     void visit_break(uptr<break_statement>& break_s) override;
@@ -56,6 +61,8 @@ private:
     void emit_implicit_conversion(const ast_node& node, IROperand vr, const Type& type_to);
 
     void visit_logical_binop(TokenType op_token, expression& left, expression& right);
+
+    uint32_t get_struct_field_offset(uptr<binop_expr>& binop);
 
 private:
     TranslationUnit& translation_unit;
@@ -75,6 +82,9 @@ private:
     
     std::unordered_map<int64_t, int64_t> identifier_string_literal_location;
     int64_t last_string_literal_location = 0;
+
+
+    Type* prevous_struct_access_type = nullptr;
 };
 
 

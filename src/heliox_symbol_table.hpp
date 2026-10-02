@@ -52,6 +52,7 @@ struct Scope : std::enable_shared_from_this<Scope>
 
     std::vector<sptr<Scope>> child_scopes;
     std::vector<sptr<Scope>> using_scopes;
+
     
     sptr<Scope> get_child();
     
@@ -107,7 +108,7 @@ inline sptr<Scope> create_program_scope()
    for (auto& [str, pt] : primitive_type_map)
    {
        ExpectedSymbol expected =
-           program_scope->insert_typedef_symbol(str.data(), Type::Primitive(pt, 0, 0), 0);
+           program_scope->insert_typedef_symbol(str.data(), Type::Primitive(pt, 0), 0);
 
        if (!expected.has_value()) 
        {
