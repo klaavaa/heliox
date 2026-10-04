@@ -86,6 +86,13 @@ public:
         return std::holds_alternative<ArrayType>(base);
     }
 
+    void set_struct_byte_size(uint32_t byte_size) {
+        if (ptr_depth > 0) Logger::internal_error();
+        if (!std::holds_alternative<StructType>(base)) Logger::internal_error();
+        StructType& st = std::get<StructType>(base);
+        st.byte_size = byte_size;
+    }
+
     
     uint32_t base_type_byte_size() const {
         return std::visit(
@@ -117,7 +124,7 @@ public:
                 return 0; 
             },
             [] (const StructType& struct_type) -> uint32_t {
-                return struct_type.byte_size;
+                return 8;
             },
             [] (const ArrayType& array_type) -> uint32_t {
                 return 8;
@@ -125,7 +132,7 @@ public:
             },
             base);
     }
-    /* TODO */
+
     uint32_t byte_size() const
     {
         if (ptr_depth != 0) return 8;
@@ -134,11 +141,18 @@ public:
 
     uint32_t array_byte_size() const 
     {
-        if (!std::holds_alternative<ArrayType>(base)) Logger::internal_error(); 
+        if (!std::holds_alternative<ArrayType>(base) || ptr_depth != 0) Logger::internal_error(); 
         const ArrayType& array_type = std::get<ArrayType>(base);
         if (array_type.underlying_type->is_array()) 
             return array_type.underlying_type->array_byte_size() * array_type.element_count;
         return array_type.underlying_type->byte_size() * array_type.element_count;
+    }
+
+    uint32_t struct_byte_size() const 
+    {
+        if (!std::holds_alternative<StructType>(base) || ptr_depth != 0) Logger::internal_error(); 
+        const StructType& struct_type = std::get<StructType>(base);
+        return struct_type.byte_size;
     }
     
     friend bool operator == (const Type& a, const Type& b)
@@ -186,7 +200,9 @@ public:
 
 
 struct UserDefinedStruct {
-    UserDefinedStruct(std::map<std::string, Type> fields_) : fields(fields_) {
+    UserDefinedStruct()=default;
+
+    void calculate_offset() {
         uint32_t offset = 0;
         for (auto& [name, type] : fields) {
             uint32_t size = type.byte_size();
@@ -212,10 +228,10 @@ inline UserDefinedStruct& get_user_defined_struct(size_t id) {
     return get_user_defined_structs()[id];
 }
 
-inline StructType push_user_defined_struct(const UserDefinedStruct& user_defined_struct) {
+inline StructType push_user_defined_struct() {
     auto& user_defined_structs = get_user_defined_structs();
-    user_defined_structs.push_back(user_defined_struct);
-    return StructType{user_defined_structs.size() - 1ul, user_defined_struct.byte_size};
+    user_defined_structs.push_back({});
+    return StructType{user_defined_structs.size() - 1ul, 0};
 }
 
 
@@ -284,7 +300,7 @@ inline bool is_integer_type(const Type& t)
 {
     if (t.ptr_depth != 0) return true;
     if (is_array_type(t)) return true; // arrays act like pointers
-    if (is_struct_type(t)) return true; // structs act like pointers
+    //if (is_struct_type(t)) return true; // structs act like pointers
     if (!std::holds_alternative<PrimitiveType>(t.base))
     {
         return false;

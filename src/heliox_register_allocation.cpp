@@ -10,6 +10,8 @@ void RegisterAllocator::allocate_stack(IRFunction& ir_function, const int64_t vr
     int64_t byte_size;    
     if (is_array_type(ir_function.virtual_register_types.at(vr)))
         byte_size = (int64_t)ir_function.virtual_register_types.at(vr).array_byte_size();
+    else if (is_struct_type(ir_function.virtual_register_types.at(vr)))
+        byte_size = (int64_t)ir_function.virtual_register_types.at(vr).struct_byte_size();
     else
         byte_size = (int64_t)ir_function.virtual_register_types.at(vr).byte_size();
 
@@ -178,7 +180,7 @@ void RegisterAllocator::allocate_registers(IRFunction& ir_function)
         }
 
         Type vr_type = get_operand_type(ir_function, IROperand::Vr(vr));
-        if (is_integer_type(vr_type))
+        if (is_integer_type(vr_type) || is_struct_type(vr_type))
         { 
         if (gp_free_registers.size() == 0)
         {
@@ -201,6 +203,7 @@ void RegisterAllocator::allocate_registers(IRFunction& ir_function)
         else
         {
             Logger::not_implemented();
+
         }
     }
 
@@ -370,7 +373,7 @@ void RegisterAllocator::cleanup_pass(IRFunction& ir_func)
         fixed_instructions.push_back(instruction);
     }
 
-    ir_func.instructions = std::move(fixed_instructions);
+    ir_func.instructions = fixed_instructions;
 }
 
 void RegisterAllocator::allocate_registers()

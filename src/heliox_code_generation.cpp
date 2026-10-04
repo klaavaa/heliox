@@ -59,17 +59,39 @@ void CodeGenerator::emit_function(IRFunction& ir_function)
 void CodeGenerator::emit_struct_field_access(IROperand dst, IROperand src, IROperand offset)
 {
     Location& location = current_function->virtual_register_locations.at(src.value);
-    int64_t field_pos = location.stack + offset.value;
-    
-    emit("mov", get_location(dst), std::format("[rbp - {}]", field_pos));
+    if (location.kind == LocationKind::STACK)
+    {
+        int64_t field_pos = location.stack + offset.value;
+        emit("mov", get_location(dst), std::format("[rbp - {}]", field_pos));
+    } 
+    else if (location.kind == LocationKind::REGISTER)
+    {
+        std::string reg = get_register(location.reg, 8);
+        emit("mov", get_location(dst), std::format("[{} - {}]", reg, offset.value));
+    }
+    else
+    {
+        Logger::internal_error();
+    }
 }
 
 void CodeGenerator::emit_struct_field_address(IROperand dst, IROperand src, IROperand offset)
 {
     Location& location = current_function->virtual_register_locations.at(src.value);
-    int64_t field_pos = location.stack + offset.value;
-    
-    emit("lea", get_location(dst), std::format("[rbp - {}]", field_pos));
+    if (location.kind == LocationKind::STACK)
+    {
+        int64_t field_pos = location.stack + offset.value;
+        emit("lea", get_location(dst), std::format("[rbp - {}]", field_pos));
+    } 
+    else if (location.kind == LocationKind::REGISTER)
+    {
+        std::string reg = get_register(location.reg, 8);
+        emit("lea", get_location(dst), std::format("[{} - {}]", reg, offset.value));
+    }
+    else
+    {
+        Logger::internal_error();
+    }
 }
 
 void CodeGenerator::emit_instruction(IRInstruction& instruction)
@@ -735,6 +757,10 @@ std::string CodeGenerator::get_mov_inst(Type type, IROperand dst, IROperand src)
             return "movq";
         else
             return "movd";
+    }
+    if (is_struct_type(type))
+    {
+        return "lea";
     }
     return "mov";
 }

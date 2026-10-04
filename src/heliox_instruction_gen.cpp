@@ -86,7 +86,7 @@ void InstructionGenerator::visit_function(uptr<function_statement>& func)
 
     if (current_function.symbol->flags & SF_EXTERN)
     {
-        ir_unit.ir_functions.push_back(std::move(current_function));
+        ir_unit.ir_functions.push_back(current_function);
         return;
     }
     
@@ -122,7 +122,7 @@ void InstructionGenerator::visit_function(uptr<function_statement>& func)
         visit_statement(statement);
     }
 
-    ir_unit.ir_functions.push_back(std::move(current_function));
+    ir_unit.ir_functions.push_back(current_function);
 
     current_scope = current_scope->parent;
 }
@@ -1085,14 +1085,37 @@ void InstructionGenerator::visit_macro_expr(uptr<macro_expr>& macro)
 
     }
     else if (macro->command_name == "sizeof") {
-        visit_expression(macro->argument);
-
-        auto type = get_vr_type(effective_register);
         uint32_t byte_size;
-        if (is_array_type(type))
-            byte_size = type.array_byte_size();
+        // do this becuase we dont want to generate code for the identifier
+        if (std::holds_alternative<uptr<identifier_literal_expr>>(macro->argument))
+        {
+            auto& identifier = std::get<uptr<identifier_literal_expr>>(macro->argument);
+            Symbol* possible_symbol = current_scope->find_variable_symbol(identifier->name);
+            if (!possible_symbol)
+            {
+                possible_symbol = current_scope->find_typedef_symbol(identifier->name);
+            }
+            if (!possible_symbol)
+            {
+                Logger::error(*identifier, std::format("'{}' not found", identifier->name));
+            }
+
+            if (is_array_type(possible_symbol->type))
+                byte_size = possible_symbol->type.array_byte_size();
+            else if (is_struct_type(possible_symbol->type))
+                byte_size = possible_symbol->type.struct_byte_size();
+            else
+                byte_size = possible_symbol->type.byte_size();
+        }
         else
-            byte_size = type.byte_size();
+        {
+            visit_expression(macro->argument);
+            auto type = get_vr_type(effective_register);
+            if (is_array_type(type))
+                byte_size = type.array_byte_size();
+            else
+                byte_size = type.byte_size();
+        }
 
         IRInstruction load_int(IRInstructionType::LOAD_IMMEDIATE, current_register, IROperand::Immediate(byte_size), IROperand::None());
         register_vr_type(current_register, TYPE_U64);
@@ -1106,21 +1129,32 @@ void InstructionGenerator::visit_macro_expr(uptr<macro_expr>& macro)
 
 void InstructionGenerator::visit_struct(uptr<struct_statement>& struct_s) 
 {
-    std::map<std::string, Type> fields;
-    for (auto& field : struct_s->fields) {
-        current_scope->resolve_type(field->var_type);
-        fields.emplace(field->var_name, field->var_type);
-    }
-    //Type type = Type::Struct(fields);
-    UserDefinedStruct defined(fields);
+    
+   
 
-    StructType st = push_user_defined_struct(defined);
+    StructType st = push_user_defined_struct();
     Type type = Type::Struct(st);
 
     ExpectedSymbol expected = current_scope->insert_typedef_symbol(struct_s->name, type, 0);
     if (!expected.has_value()) {
         Logger::error(*struct_s, expected.error());
     }
+
+    Symbol* symbol = expected.value();
+
+    std::map<std::string, Type> fields;
+    for (auto& field : struct_s->fields) {
+        if (!current_scope->resolve_type(field->var_type))
+        {
+            Logger::error(*field, "Type not defined");
+        }
+        
+        fields.emplace(field->var_name, field->var_type);
+    }
+    UserDefinedStruct& defined = get_user_defined_struct(st.id);
+    defined.fields = fields;
+    defined.calculate_offset();
+    symbol->type.set_struct_byte_size(defined.byte_size);
 }
 
 void InstructionGenerator::visit_struct_access(uptr<binop_expr>& binop)
@@ -1138,37 +1172,6 @@ void InstructionGenerator::visit_struct_access(uptr<binop_expr>& binop)
 
 void InstructionGenerator::emit_struct_field_address(uptr<binop_expr>& binop)
 {
-    /*
-    if (!(std::holds_alternative<uptr<identifier_literal_expr>>(binop->left) && std::holds_alternative<uptr<identifier_literal_expr>>(binop->right)))
-    {
-        Logger::not_implemented();
-    }
-    auto& left_identifier = std::get<uptr<identifier_literal_expr>>(binop->left);
-    auto& right_identifier = std::get<uptr<identifier_literal_expr>>(binop->right);
-
-    Symbol* left_symbol = current_scope->find_variable_symbol(left_identifier);
-    
-    if (left_symbol->type.ptr_depth) {
-        Logger::error(*left_identifier, "Cannot access pointer-type");
-    }
-    if (!is_struct_type(left_symbol->type)) {
-        Logger::error(*left_identifier, "Cannot access non-struct-type");
-    }
-
-    StructType st = std::get<StructType>(left_symbol->type.base);
-
-    UserDefinedStruct& struct_content = get_user_defined_struct(st.id);
-    
-    if (!struct_content.fields.contains(right_identifier->name))
-    {
-        Logger::error(*right_identifier, "Struct field not found");
-    }
-
-    Type& right_type = struct_content.fields.at(right_identifier->name);
-    
-    Symbol* left_sym = current_scope->find_variable_symbol(left_identifier); 
-    auto left_vr = IROperand::Vr(symbol_id_to_vr.at(left_sym->id));
-    */
     
     uint32_t offset = get_struct_field_offset(binop);
 
@@ -1212,14 +1215,14 @@ uint32_t InstructionGenerator::get_struct_field_offset(uptr<binop_expr>& binop)
         }
         else
         {
-            // check unary *
-            Logger::not_implemented();
+            visit_expression(left);
+            prevous_struct_access_type = &const_cast<Type&>(get_vr_type(effective_register));
         }
         
         // check this is not a nullptr in case
         if (!prevous_struct_access_type) Logger::internal_error();
          
-        Type& left_type = *prevous_struct_access_type;
+        Type left_type = *prevous_struct_access_type;
 
         if (left_type.ptr_depth) {
             Logger::error(*as_ast_node(left), "Cannot access pointer-type");
