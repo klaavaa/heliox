@@ -444,7 +444,7 @@ void InstructionGenerator::emit_assignment(TokenType op_token, expression& left_
             emit_instruction(write_mem, 0, false);
             
         },
-        [this, op_token, &right_register](uptr<binop_expr>& binary)
+        [this, op_token, &right_side, &right_register](uptr<binop_expr>& binary)
         {
             if (binary->op_token != TokenType::DOT)
             {
@@ -452,7 +452,12 @@ void InstructionGenerator::emit_assignment(TokenType op_token, expression& left_
             }
 
             emit_struct_field_address(binary);
-            IRInstruction write_mem(IRInstructionType::STORE_MEM, effective_register, right_register, IROperand::None());
+            IROperand left_side = effective_register;
+
+            emit_implicit_conversion(*as_ast_node(right_side), right_register, *prevous_struct_access_type);
+
+
+            IRInstruction write_mem(IRInstructionType::STORE_MEM, left_side, effective_register, IROperand::None());
             emit_instruction(write_mem, 0, false);
 
         },

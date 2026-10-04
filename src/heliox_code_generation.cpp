@@ -62,7 +62,9 @@ void CodeGenerator::emit_struct_field_access(IROperand dst, IROperand src, IROpe
     if (location.kind == LocationKind::STACK)
     {
         int64_t field_pos = location.stack + offset.value;
-        emit("mov", get_location(dst), std::format("[rbp - {}]", field_pos));
+        Type& type = current_function->virtual_register_types.at(dst.value);
+        std::string mov_inst = get_mov_inst(type, dst, src);
+        emit(mov_inst, get_location(dst), std::format("[rbp - {}]", field_pos));
     } 
     else if (location.kind == LocationKind::REGISTER)
     {
