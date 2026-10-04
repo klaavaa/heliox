@@ -1,13 +1,5 @@
 extern fun printf(str: u8*, ...) void;
 
-fun main(argc: i32, argv: u8**) i32
-{
-    1;
-    a: i64 = 14; 
-    b: i64 = 3;
-    return add(a, sub(mul(div(a, b), b), b));
-}
-
 fun add(a: i32, b: i32) i64
 {
     printf("add: %d + %d = %d\n\0", a, b, a+b);
@@ -31,4 +23,13 @@ fun div(a: i64, b: i64) i64
     printf("div: %d / %d = %d\n\0", a, b, a/b);
     return a / b;
 }
+
+fun main(argc: i32, argv: u8**) i32
+{
+    1;
+    a: i64 = 14; 
+    b: i64 = 3;
+    return add(a, sub(mul(div(a, b), b), b));
+}
+
 
