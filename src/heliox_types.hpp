@@ -157,6 +157,9 @@ public:
     
     friend bool operator == (const Type& a, const Type& b)
     {
+        if (a.ptr_depth != b.ptr_depth) 
+            return false;
+
         if (a.base.index() != b.base.index())
             return false;
 
@@ -165,9 +168,19 @@ public:
             [&a, &b](const PrimitiveType at)
             {
                 const PrimitiveType bt = std::get<PrimitiveType>(b.base);
-                return (at == bt) && (a.ptr_depth == b.ptr_depth);
+                return at == bt;
             },
-
+            [&a, &b](const StructType at)
+            {
+                const StructType bt = std::get<StructType>(b.base);
+                return at.id == bt.id;
+                
+            },
+            [&a, &b](const ArrayType at)
+            {
+                const ArrayType bt = std::get<ArrayType>(b.base);
+                return at.underlying_type == bt.underlying_type;                
+            },
             [](auto&&)
             {
             // TODO

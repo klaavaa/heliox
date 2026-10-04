@@ -61,7 +61,7 @@ void CodeGenerator::emit_struct_field_access(IROperand dst, IROperand src, IROpe
     Location& location = current_function->virtual_register_locations.at(src.value);
     if (location.kind == LocationKind::STACK)
     {
-        int64_t field_pos = location.stack + offset.value;
+        int64_t field_pos = location.stack - offset.value;
         Type& type = current_function->virtual_register_types.at(dst.value);
         std::string mov_inst = get_mov_inst(type, dst, src);
         emit(mov_inst, get_location(dst), std::format("[rbp - {}]", field_pos));
@@ -69,7 +69,7 @@ void CodeGenerator::emit_struct_field_access(IROperand dst, IROperand src, IROpe
     else if (location.kind == LocationKind::REGISTER)
     {
         std::string reg = get_register(location.reg, 8);
-        emit("mov", get_location(dst), std::format("[{} - {}]", reg, offset.value));
+        emit("mov", get_location(dst), std::format("[{} + {}]", reg, offset.value));
     }
     else
     {
@@ -82,13 +82,13 @@ void CodeGenerator::emit_struct_field_address(IROperand dst, IROperand src, IROp
     Location& location = current_function->virtual_register_locations.at(src.value);
     if (location.kind == LocationKind::STACK)
     {
-        int64_t field_pos = location.stack + offset.value;
+        int64_t field_pos = location.stack - offset.value;
         emit("lea", get_location(dst), std::format("[rbp - {}]", field_pos));
     } 
     else if (location.kind == LocationKind::REGISTER)
     {
         std::string reg = get_register(location.reg, 8);
-        emit("lea", get_location(dst), std::format("[{} - {}]", reg, offset.value));
+        emit("lea", get_location(dst), std::format("[{} + {}]", reg, offset.value));
     }
     else
     {
@@ -696,6 +696,11 @@ void CodeGenerator::emit_lea(const IROperand dst, const IROperand src)
 void CodeGenerator::emit_mov(const IROperand dst, const IROperand src)
 {
     Type vr_type = get_vr_type(dst);
+    if (is_struct_type(vr_type)) {
+        emit_copy_struct(dst, src);
+        return;
+    }
+
     uint32_t instruction_size = vr_type.byte_size();
     std::string mov_inst = get_mov_inst(vr_type, dst, src);
 
@@ -801,6 +806,46 @@ void CodeGenerator::emit_inline_asm(IROperand src)
 {
     const auto& asm_block = ir_unit.assembly_blocks[src.value];
     emit(asm_block.assembly_code);
+}
+
+void CodeGenerator::emit_copy_struct(IROperand dst, IROperand src)
+{
+    Type type_dst = get_vr_type(dst);
+    Type type_src = get_vr_type(src);
+    if (!is_struct_type(type_dst)) Logger::internal_error();
+    if (!is_struct_type(type_src)) Logger::internal_error();
+
+
+    std::println("dst: {}\nsrc: {}", dst.value, src.value);
+
+    Location& src_location = current_function->virtual_register_locations.at(src.value);
+    if (src_location.kind == LocationKind::REGISTER) Logger::internal_error();
+
+    Location& dst_location = current_function->virtual_register_locations.at(dst.value);
+    if (dst_location.kind == LocationKind::REGISTER) Logger::internal_error();
+
+    uint32_t instruction_size = type_dst.struct_byte_size();
+    
+    uint32_t blocks_of_eight = instruction_size / 8;
+    uint32_t remainder = instruction_size % 8;
+
+    std::println("istruction size: {}\nblocks: {}\nremainder: {}", instruction_size, blocks_of_eight, remainder);
+    std::println("src_location.stack {}\ndst_location.stack {}", src_location.stack, dst_location.stack);
+    for (uint32_t i = 0; i < blocks_of_eight; i++)
+    {
+        uint32_t offset_src = src_location.stack - i * 8;
+        uint32_t offset_dst = dst_location.stack - i * 8;
+        emit("mov", "r11", std::format("[rbp - {}]", offset_src));
+        emit("mov", std::format("[rbp - {}]", offset_dst), "r11");
+    }
+    if (remainder != 0) 
+    {
+        uint32_t offset_src = src_location.stack - blocks_of_eight * 8; 
+        uint32_t offset_dst = dst_location.stack - blocks_of_eight * 8; 
+        std::string r11 = get_register(Register::R11, remainder);
+        emit("mov", r11, std::format("[rbp - {}]", offset_src));
+        emit("mov", std::format("[rbp - {}]", offset_dst), r11);
+    }
 }
 
 } // namespace hx

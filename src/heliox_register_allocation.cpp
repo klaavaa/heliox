@@ -315,6 +315,7 @@ void RegisterAllocator::cleanup_pass(IRFunction& ir_func)
             }
             break;
             default:
+                if (is_spilled(ir_func, instruction.dst) && is_struct_type(get_operand_type(ir_func, instruction.dst))) break;
                 if (is_spilled(ir_func, instruction.src1) && is_spilled(ir_func, instruction.src2))
                 {
                     Register scratch;

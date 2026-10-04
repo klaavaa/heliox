@@ -233,9 +233,13 @@ void InstructionGenerator::visit_identifier_literal(uptr<identifier_literal_expr
     int64_t vr = symbol_id_to_vr.at(symbol->id);
     const Type& vr_type = get_vr_type(IROperand::Vr(vr));
     if (is_struct_type(vr_type)) {
+        effective_register = IROperand::Vr(vr);
+        return;
+        /*
         IRInstruction lea(IRInstructionType::LOAD_STRUCT, current_register, IROperand::Vr(vr), IROperand::None());
         register_vr_type(current_register, vr_type);
         emit_instruction(lea);
+        */
     } else if (is_array_type(vr_type)) {
         IRInstruction lea(IRInstructionType::LOAD_EFFECTIVE_ADDRESS, current_register, IROperand::Vr(vr), IROperand::None());
         register_vr_type(current_register, vr_type);
@@ -326,13 +330,16 @@ void InstructionGenerator::emit_implicit_conversion(const ast_node& node, IROper
 {
     const Type& type_from = get_vr_type(vr);
 
+    effective_register = vr;
+
+    if (type_from == type_to) return;
+
     if (!is_implicit_conversion_possible(type_from, type_to))
     {
         //todo cool error text like from i32* to f32 or etc
         Logger::error(node, "Implicit conversion not possible");
     }
 
-    effective_register = vr;
 
     if (is_integer_type(type_from))
     {
