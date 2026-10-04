@@ -454,7 +454,8 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
             break;
         case IRInstructionType::REGISTER_ARG:
             {
-            if (!is_integer_type(ir_function.virtual_register_types.at(instruction.src1.value)))
+            const Type& arg_type = ir_function.virtual_register_types.at(instruction.src1.value);
+            if (is_float_type(arg_type))
             {
 
                 if (instruction.src2.value < (int64_t)g_register_data.register_passed_float_args.size())
@@ -462,28 +463,43 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
                     preallocate_register(ir_function, instruction.src1.value, g_register_data.register_passed_float_args.at(instruction.src2.value));
                     break;
                 }
-
-                goto inst_register_arg_push; 
             }
-            if (instruction.src2.value < (int64_t)g_register_data.register_passed_int_args.size())
+            else if (is_integer_type(arg_type))
             {
-                preallocate_register(ir_function, instruction.src1.value, g_register_data.register_passed_int_args.at(instruction.src2.value));
-                break;
+                if (instruction.src2.value < (int64_t)g_register_data.register_passed_int_args.size())
+                {
+                    preallocate_register(ir_function, instruction.src1.value, g_register_data.register_passed_int_args.at(instruction.src2.value));
+                    break;
+                }
+            }
+            else if (is_struct_type(arg_type))
+            {
+
+                Logger::not_implemented();
+                // if struct byte size <= 16, then they are passed in 2 registers if possible 
+                if (arg_type.struct_byte_size() <= 16)
+                {
+                    if (instruction.src2.value < (int64_t)g_register_data.register_passed_int_args.size())
+                    {
+                        preallocate_register(ir_function, instruction.src1.value, g_register_data.register_passed_int_args.at(instruction.src2.value));
+                        break;
+                    }
+                }
+
             }
 
-            inst_register_arg_push:
-                //need to take in codegen consideration the callee saved registers
-                // push rbp => +8
-                // fcall => +8
-                int64_t base_offset = -16;
-                #ifdef _WIN32
-                // shadow space on windows
-                base_offset -= 32;
-                #endif
-                ir_function.virtual_register_locations.insert({instruction.src1.value,
-                     Location::Stack(base_offset - 8 * register_pushed_argc)});     
+            //need to take in codegen consideration the callee saved registers
+            // push rbp => +8
+            // fcall => +8
+            int64_t base_offset = -16;
+            #ifdef _WIN32
+            // shadow space on windows
+            base_offset -= 32;
+            #endif
+            ir_function.virtual_register_locations.insert({instruction.src1.value,
+                 Location::Stack(base_offset - 8 * register_pushed_argc)});     
 
-                register_pushed_argc++;
+            register_pushed_argc++;
             break;
             }
         case IRInstructionType::MOV_VARARG:
