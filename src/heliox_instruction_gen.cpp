@@ -850,6 +850,13 @@ void InstructionGenerator::visit_explicit_conversion(uptr<explicit_conversion_ex
         return;
     }
 
+    if ((is_float_type(explicit_conversion->type) && is_float_type(effective_type)) ||
+        (is_integer_type(explicit_conversion->type) && is_integer_type(effective_type)))
+    {
+        emit_implicit_conversion(*explicit_conversion, effective_register, explicit_conversion->type);
+        return;
+    }
+
     Logger::error(*explicit_conversion, "Illegal conversion");
 }
 
