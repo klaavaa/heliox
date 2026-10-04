@@ -816,7 +816,6 @@ void CodeGenerator::emit_copy_struct(IROperand dst, IROperand src)
     if (!is_struct_type(type_src)) Logger::internal_error();
 
 
-    std::println("dst: {}\nsrc: {}", dst.value, src.value);
 
     Location& src_location = current_function->virtual_register_locations.at(src.value);
     if (src_location.kind == LocationKind::REGISTER) Logger::internal_error();
@@ -829,8 +828,6 @@ void CodeGenerator::emit_copy_struct(IROperand dst, IROperand src)
     uint32_t blocks_of_eight = instruction_size / 8;
     uint32_t remainder = instruction_size % 8;
 
-    std::println("istruction size: {}\nblocks: {}\nremainder: {}", instruction_size, blocks_of_eight, remainder);
-    std::println("src_location.stack {}\ndst_location.stack {}", src_location.stack, dst_location.stack);
     for (uint32_t i = 0; i < blocks_of_eight; i++)
     {
         uint32_t offset_src = src_location.stack - i * 8;
