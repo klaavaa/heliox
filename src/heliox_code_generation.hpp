@@ -51,6 +51,8 @@ private:
     void emit_struct_field_access(IROperand dst, IROperand src, IROperand offset);
     void emit_struct_field_address(IROperand dst, IROperand src, IROperand offset);
 
+    void emit_copy_struct(IROperand dst, IROperand src);
+
     IRUnit& ir_unit;
     IRFunction* current_function;
 

@@ -233,9 +233,13 @@ void InstructionGenerator::visit_identifier_literal(uptr<identifier_literal_expr
     int64_t vr = symbol_id_to_vr.at(symbol->id);
     const Type& vr_type = get_vr_type(IROperand::Vr(vr));
     if (is_struct_type(vr_type)) {
+        effective_register = IROperand::Vr(vr);
+        return;
+        /*
         IRInstruction lea(IRInstructionType::LOAD_STRUCT, current_register, IROperand::Vr(vr), IROperand::None());
         register_vr_type(current_register, vr_type);
         emit_instruction(lea);
+        */
     } else if (is_array_type(vr_type)) {
         IRInstruction lea(IRInstructionType::LOAD_EFFECTIVE_ADDRESS, current_register, IROperand::Vr(vr), IROperand::None());
         register_vr_type(current_register, vr_type);
@@ -326,13 +330,16 @@ void InstructionGenerator::emit_implicit_conversion(const ast_node& node, IROper
 {
     const Type& type_from = get_vr_type(vr);
 
+    effective_register = vr;
+
+    if (type_from == type_to) return;
+
     if (!is_implicit_conversion_possible(type_from, type_to))
     {
         //todo cool error text like from i32* to f32 or etc
         Logger::error(node, "Implicit conversion not possible");
     }
 
-    effective_register = vr;
 
     if (is_integer_type(type_from))
     {
@@ -444,7 +451,7 @@ void InstructionGenerator::emit_assignment(TokenType op_token, expression& left_
             emit_instruction(write_mem, 0, false);
             
         },
-        [this, op_token, &right_register](uptr<binop_expr>& binary)
+        [this, op_token, &right_side, &right_register](uptr<binop_expr>& binary)
         {
             if (binary->op_token != TokenType::DOT)
             {
@@ -452,7 +459,12 @@ void InstructionGenerator::emit_assignment(TokenType op_token, expression& left_
             }
 
             emit_struct_field_address(binary);
-            IRInstruction write_mem(IRInstructionType::STORE_MEM, effective_register, right_register, IROperand::None());
+            IROperand left_side = effective_register;
+
+            emit_implicit_conversion(*as_ast_node(right_side), right_register, *prevous_struct_access_type);
+
+
+            IRInstruction write_mem(IRInstructionType::STORE_MEM, left_side, effective_register, IROperand::None());
             emit_instruction(write_mem, 0, false);
 
         },
@@ -842,6 +854,13 @@ void InstructionGenerator::visit_explicit_conversion(uptr<explicit_conversion_ex
         IRInstruction conversion(conversion_type, current_register, effective_register, IROperand::None());
         register_vr_type(current_register, explicit_conversion->type);
         emit_instruction(conversion);        
+        return;
+    }
+
+    if ((is_float_type(explicit_conversion->type) && is_float_type(effective_type)) ||
+        (is_integer_type(explicit_conversion->type) && is_integer_type(effective_type)))
+    {
+        emit_implicit_conversion(*explicit_conversion, effective_register, explicit_conversion->type);
         return;
     }
 
