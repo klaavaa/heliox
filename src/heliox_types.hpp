@@ -139,6 +139,31 @@ public:
         return base_type_byte_size();
     }
 
+    uint32_t actual_byte_size() const 
+    {
+        if (ptr_depth != 0) return 8;
+        
+        return std::visit(
+        overloads{
+            [this](PrimitiveType primitive_type) -> uint32_t  {
+            {
+                return byte_size(); 
+            }
+            },
+            [] (const UnresolvedType& unresolved_type) -> uint32_t {
+                Logger::error("", std::format("unresolved type: {}", unresolved_type)); 
+                return 0; 
+            },
+            [] (const StructType& struct_type) -> uint32_t {
+                return struct_type.byte_size;
+            },
+            [this] (const ArrayType& array_type) -> uint32_t {
+                return array_byte_size();
+            }
+            },
+            base);
+    }
+
     uint32_t array_byte_size() const 
     {
         if (!std::holds_alternative<ArrayType>(base) || ptr_depth != 0) Logger::internal_error(); 
@@ -154,6 +179,7 @@ public:
         const StructType& struct_type = std::get<StructType>(base);
         return struct_type.byte_size;
     }
+    
     
     friend bool operator == (const Type& a, const Type& b)
     {
