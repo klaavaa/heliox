@@ -405,13 +405,16 @@ bool RegisterAllocator::is_spilled(IRFunction& ir_function, IROperand operand)
 
 void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
 {
-
+     
     int64_t register_pushed_argc = 0; 
    
     int64_t int_argc = 0;
     int64_t float_argc = 0;
     
     int64_t pushed_argc = 0;
+
+    int64_t register_int_argc = 0;
+    int64_t register_float_argc = 0;
 
     for (auto& instruction : ir_function.instructions)
     {
@@ -458,33 +461,61 @@ void RegisterAllocator::preallocate_registers(IRFunction& ir_function)
             const Type& arg_type = ir_function.virtual_register_types.at(instruction.src1.value);
             if (is_float_type(arg_type))
             {
-
-                if (instruction.src2.value < (int64_t)g_register_data.register_passed_float_args.size())
+                int64_t arg_num = 
+                #ifdef _WIN32
+                        instruction.src2.value;
+                #else
+                        register_float_argc++;
+                #endif
+                if (arg_num < (int64_t)g_register_data.register_passed_float_args.size())
                 {
-                    preallocate_register(ir_function, instruction.src1.value, g_register_data.register_passed_float_args.at(instruction.src2.value));
+                    preallocate_register(ir_function, instruction.src1.value, g_register_data.register_passed_float_args.at(arg_num));
                     break;
                 }
             }
             else if (is_integer_type(arg_type))
             {
-                if (instruction.src2.value < (int64_t)g_register_data.register_passed_int_args.size())
+                int64_t arg_num = 
+                #ifdef _WIN32
+                        instruction.src2.value;
+                #else
+                        register_int_argc++;
+                #endif
+                if (arg_num < (int64_t)g_register_data.register_passed_int_args.size())
                 {
-                    preallocate_register(ir_function, instruction.src1.value, g_register_data.register_passed_int_args.at(instruction.src2.value));
+                    preallocate_register(ir_function, instruction.src1.value, g_register_data.register_passed_int_args.at(arg_num));
                     break;
                 }
             }
             else if (is_struct_type(arg_type))
             {
+                uint32_t regargs_count = 0;
+                if (arg_type.struct_byte_size() <= 8)
+                    regargs_count = 1;
+                else if (arg_type.struct_byte_size() <= 16)
+                    regargs_count = 2;
 
-                Logger::not_implemented();
-                // if struct byte size <= 16, then they are passed in 2 registers if possible 
-                if (arg_type.struct_byte_size() <= 16)
+                if (regargs_count)
                 {
-                    if (instruction.src2.value < (int64_t)g_register_data.register_passed_int_args.size())
+                const StructType& struct_type = std::get<StructType>(arg_type.base);
+                
+                UserDefinedStruct& user_defined_struct = get_user_defined_struct(struct_type.id);
+                uint32_t offset = 0;
+                bool goes_in_gp_1 = false;
+                bool goes_in_gp_2 = false;
+                for (auto& [name, type] : user_defined_struct.fields)
+                {
+                    if (!is_float_type(type))
                     {
-                        preallocate_register(ir_function, instruction.src1.value, g_register_data.register_passed_int_args.at(instruction.src2.value));
-                        break;
+                        if (offset >= 8)
+                            goes_in_gp_2 = true;
+                        else
+                            goes_in_gp_2 = true;
                     }
+                    offset += type.actual_byte_size();
+                    offset += type.offset;
+                }
+                // if struct byte size <= 16, then they are passed in 2 registers if possible 
                 }
 
             }
